@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import SidebarLayout from "@/components/sidebar/layout";
 
 export const metadata: Metadata = {
   title: "Sign Up | Festari Estate",
@@ -12,13 +11,8 @@ export default function SignupLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <div className="flex bg-gray-50 min-h-screen">
-      <SidebarLayout />
-      <main className="flex-1 ml-64 flex items-center justify-center p-6">
-        <div className="w-full  p-8 bg-white shadow-sm rounded-lg">
-          {children}
-        </div>
-      </main>
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 p-6">
+      <div className="w-full max-w-4xl">{children}</div>
     </div>
   );
 }

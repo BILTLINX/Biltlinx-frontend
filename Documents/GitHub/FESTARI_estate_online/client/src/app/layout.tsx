@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Footer from "@/components/footer/layout";
+import SidebarLayout from "@/components/sidebar/layout";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -13,8 +15,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>
-        {children}
+      <body className="min-h-screen bg-gray-50">
+        <SidebarLayout />
+        <div className="min-h-screen ml-64 flex flex-col">
+          <main className="flex-1">{children}</main>
+          <Footer />
+        </div>
       </body>
     </html>
   );
