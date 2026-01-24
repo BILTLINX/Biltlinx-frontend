@@ -1,1 +1,20 @@
 @import "tailwindcss";
+
+/* Custom orange scrollbar for WebKit-based browsers */
+.scrollbar-orange::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+.scrollbar-orange::-webkit-scrollbar-track {
+	background: transparent;
+}
+.scrollbar-orange::-webkit-scrollbar-thumb {
+	background-color: #BE4D00;
+	border-radius: 9999px;
+}
+
+/* Firefox scrollbar */
+.scrollbar-orange {
+	scrollbar-color: #BE4D00 transparent;
+	scrollbar-width: thin;
+}

@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function SignupPage() {
   return (
     <div className="bg-white rounded-lg shadow-sm py-8 px-30 w-full   ">
@@ -33,12 +35,12 @@ export default function SignupPage() {
             Back
           </button>
 
-          <button
-            type="submit"
-            className="w-20.5 py-2 px-4 bg-[#BE4D00] text-white font-medium hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#BE4D00] text-sm"
+          <Link
+            href="/terms"
+            className="w-20.5 py-2 px-4 bg-[#BE4D00] text-white text-center font-medium hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#BE4D00] text-sm"
           >
             Next
-          </button>
+          </Link>
         </div>
       </form>
 
