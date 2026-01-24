@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function SignupPage() {
   return (
     <div className="bg-white rounded-lg shadow-sm py-8 px-30 w-full   ">
@@ -16,7 +18,7 @@ export default function SignupPage() {
             type="text"
             id="fullname"
             name="fullname"
-            className="block w-99 px-3 py-2 border border-black focus:outline-none focus:ring-[#BE4D00] focus:border-[#BE4D00] text-sm"
+            className="block w-62.5 px-3 py-2 border border-black focus:outline-none focus:ring-[#BE4D00] focus:border-[#BE4D00] text-sm"
             placeholder="John Doe"
           />
           <p className="mt-1 text-xs text-gray-500">
@@ -33,12 +35,12 @@ export default function SignupPage() {
             Back
           </button>
 
-          <button
-            type="submit"
-            className="w-20.5 py-2 px-4 bg-[#BE4D00] text-white font-medium hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#BE4D00] text-sm"
+          <Link
+            href="/terms"
+            className="w-20.5 py-2 px-4 bg-[#BE4D00] text-white text-center font-medium hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#BE4D00] text-sm"
           >
             Next
-          </button>
+          </Link>
         </div>
       </form>
 
@@ -51,7 +53,7 @@ export default function SignupPage() {
       <div className="space-y-3 flex flex-col items-center">
         <button
           type="button"
-          className="w-90.75 flex items-center justify-center gap-2 py-2 px-4 border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 text-sm"
+          className="w-90.75 flex items-center justify-center gap-2 py-2 px-4 border border-[#BE4D00] bg-white text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 text-sm"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path
@@ -76,7 +78,7 @@ export default function SignupPage() {
 
         <button
           type="button"
-          className="w-90.75 flex items-center justify-center gap-2 py-2 px-4 border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 text-sm"
+          className="w-90.75 flex items-center justify-center gap-2 py-2 px-4 border border-[#BE4D00] bg-white text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 text-sm"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
             <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
