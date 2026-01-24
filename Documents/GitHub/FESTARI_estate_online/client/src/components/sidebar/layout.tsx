@@ -20,7 +20,7 @@ export default function SidebarLayout() {
 
       {/* Navigation */}
       <nav className="mt-8 w-full flex-1">
-        <ul className="space-y-4 text-center text-[20px] font-lightbold ">
+        <ul className="space-y-4 text-center text-[16px] font-lightbold ">
           <li>
             <Link href="/" className="text-black">
               Home
