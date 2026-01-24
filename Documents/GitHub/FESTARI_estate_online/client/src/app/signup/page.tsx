@@ -1,6 +1,29 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 
 export default function SignupPage() {
+  const [step, setStep] = useState(1);
+  const [fullName, setFullName] = useState("");
+  const [emailOrPhone, setEmailOrPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
+
+  const handleNext = () => {
+    if (step === 1 && fullName.trim()) {
+      setStep(2);
+    } else if (step === 2 && emailOrPhone.trim()) {
+      setStep(3);
+    }
+  };
+
+  const handleBack = () => {
+    if (step > 1) {
+      setStep(step - 1);
+    }
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-sm py-8 px-30 w-full   ">
       <div className="space-y-6">
@@ -10,37 +33,123 @@ export default function SignupPage() {
         </div>
 
       <form className="space-y-4">
-        <div>
-          <label htmlFor="fullname" className="block text-sm font-medium text-gray-700 mb-1">
-            Full Name
-          </label>
-          <input
-            type="text"
-            id="fullname"
-            name="fullname"
-            className="block w-62.5 px-3 py-2 border border-black focus:outline-none focus:ring-[#BE4D00] focus:border-[#BE4D00] text-sm"
-            placeholder="John Doe"
-          />
-          <p className="mt-1 text-xs text-gray-500">
-            Preferably First Name, Middle, Last Name in that order
-          </p>
-        </div>
+        {step === 1 && (
+          <div>
+            <label htmlFor="fullname" className="block text-sm font-medium text-gray-700 mb-1">
+              Full Name
+            </label>
+            <input
+              type="text"
+              id="fullname"
+              name="fullname"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              className="block w-62.5 px-3 py-2 border border-black focus:outline-none focus:ring-[#BE4D00] focus:border-[#BE4D00] text-sm"
+              placeholder="John Doe"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Preferably First Name, Middle, Last Name in that order
+            </p>
+          </div>
+        )}
+
+        {step === 2 && (
+          <div>
+            <label htmlFor="emailOrPhone" className="block text-sm font-medium text-gray-700 mb-1">
+              Email/Phone Number
+            </label>
+            <input
+              type="text"
+              id="emailOrPhone"
+              name="emailOrPhone"
+              value={emailOrPhone}
+              onChange={(e) => setEmailOrPhone(e.target.value)}
+              className="block w-62.5 px-3 py-2 border border-black focus:outline-none focus:ring-[#BE4D00] focus:border-[#BE4D00] text-sm"
+              placeholder="johndoe@gmail.com"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              A 4-digits code will be sent to this account to verify it
+            </p>
+          </div>
+        )}
+
+        {step === 3 && (
+          <div className="space-y-2">
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              Password
+            </label>
+            <div className="relative">
+              <input
+                type="password"
+                id="password"
+                name="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="block w-62.5 px-3 py-2 border border-black focus:outline-none focus:ring-[#BE4D00] focus:border-[#BE4D00] text-sm"
+                placeholder="xxxxxxxxxxxx"
+              />
+              <span className="absolute inset-y-0 right-3 flex items-center text-gray-600">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={1.5}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M17 11V8a5 5 0 10-10 0v3m-1 0h12a1 1 0 011 1v8a1 1 0 01-1 1H6a1 1 0 01-1-1v-8a1 1 0 011-1z"
+                  />
+                </svg>
+              </span>
+            </div>
+            <p className="text-xs text-gray-600">At least 8 characters with numbers and symbols</p>
+            <label className="flex items-center gap-2 text-xs text-gray-700">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="h-4 w-4 border-gray-400"
+              />
+              <span>Remember Me</span>
+            </label>
+          </div>
+        )}
 
         
         <div className="flex justify-between gap-4">
           <button
             type="button"
+            onClick={handleBack}
             className="w-20.5 py-2 px-4 bg-[#ffffff] text-[#BE4D00] font-medium hover:bg-orange-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#BE4D00] text-sm border-[#BE4D00] border"
           >
             Back
           </button>
 
-          <Link
-            href="/terms"
-            className="w-20.5 py-2 px-4 bg-[#BE4D00] text-white text-center font-medium hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#BE4D00] text-sm"
-          >
-            Next
-          </Link>
+          {step < 3 ? (
+            <button
+              type="button"
+              onClick={handleNext}
+              disabled={(step === 1 && !fullName.trim()) || (step === 2 && !emailOrPhone.trim())}
+              className={
+                "w-20.5 py-2 px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#BE4D00] " +
+                ((step === 1 && fullName.trim()) || (step === 2 && emailOrPhone.trim())
+                  ? "bg-[#BE4D00] text-white hover:bg-orange-700"
+                  : "bg-gray-200 text-gray-500 cursor-not-allowed")
+              }
+            >
+              Next
+            </button>
+          ) : (
+            <Link
+              href="/terms"
+              className="w-20.5 py-2 px-4 bg-[#BE4D00] text-white text-center font-medium hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#BE4D00] text-sm"
+            >
+              Next
+            </Link>
+          )}
         </div>
       </form>
 
