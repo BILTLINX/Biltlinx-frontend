@@ -5,9 +5,10 @@ import Link from "next/link";
 
 export default function TermsPage() {
   const [accepted, setAccepted] = useState(false);
+  const [showModal, setShowModal] = useState(false);
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+    <div className="relative bg-white rounded-lg shadow-sm border border-gray-200">
       <div className="p-6">
         <h1 className="text-2xl font-bold text-[#BE4D00]">Terms and Conditions</h1>
         <h2 className="mt-2 text-sm font-semibold text-gray-800">Your Agreement</h2>
@@ -199,6 +200,7 @@ export default function TermsPage() {
           <button
             type="button"
             disabled={!accepted}
+            onClick={() => accepted && setShowModal(true)}
             className={
               "py-2 px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#BE4D00] " +
               (accepted
@@ -210,6 +212,45 @@ export default function TermsPage() {
           </button>
         </div>
       </div>
+
+      {showModal && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="bg-white w-full max-w-md rounded-md shadow-lg p-6 space-y-4">
+            <button
+              type="button"
+              onClick={() => setShowModal(false)}
+              className="flex items-center text-sm text-gray-700 hover:text-gray-900"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4 mr-1"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.5}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+              </svg>
+              Back
+            </button>
+
+            <div className="text-center space-y-2">
+              <h3 className="text-xl font-semibold text-gray-900">Terms and Conditions</h3>
+              <p className="text-sm text-gray-700">
+                By accepting, you agree to the company&apos;s Terms and Conditions
+              </p>
+            </div>
+
+            <button
+              type="button"
+              className="w-full py-3 bg-[#BE4D00] text-white font-semibold text-sm hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#BE4D00]"
+              onClick={() => setShowModal(false)}
+            >
+              Agree and register
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
