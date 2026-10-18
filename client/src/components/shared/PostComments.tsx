@@ -194,7 +194,7 @@ export function CommentsModal({ open, post, like, onShare, onClose }: CommentsMo
   );
 }
 
-function ThreadCommentRow({
+export function ThreadCommentRow({
   postId,
   comment,
   onReply,

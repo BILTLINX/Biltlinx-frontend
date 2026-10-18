@@ -1,5 +1,8 @@
 export interface DiscoverReel {
   id: string;
+  authorId: string;
+  isOwn: boolean;
+  likedByMe: boolean;
   authorName: string;
   authorAvatar: string;
   verified: boolean;

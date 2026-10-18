@@ -17,7 +17,8 @@ import { useMyStories } from "@/hooks/useMyStories";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 
 export default function DiscoverPage() {
-  const { reels, loading, query, setQuery, activeTab, setActiveTab, addReel } = useDiscoverReels();
+  const { reels, loading, isError, refetch, hasNextPage, fetchNextPage, isFetchingNextPage, query, setQuery, activeTab, setActiveTab, addReel } =
+    useDiscoverReels();
   const [activeIndex, setActiveIndex] = useState(0);
   const [commentsReelId, setCommentsReelId] = useState<string | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
@@ -124,10 +125,26 @@ export default function DiscoverPage() {
           ))
         ) : (
           <div className="flex w-full flex-col items-center gap-[15px] rounded-[15px] border border-gray-200 bg-white p-[15px] py-9 text-center">
-            <p className="text-[13px] text-gray-500">No reels match that search yet.</p>
+            <p className="text-[13px] text-gray-500">{isError ? "We could not load reels right now." : "No reels yet. Post a video to get started."}</p>
+            {isError && (
+              <button type="button" onClick={() => void refetch()} className="text-[13px] font-medium text-brand-900">
+                Try again
+              </button>
+            )}
           </div>
         )}
       </div>
+
+      {hasNextPage && (
+        <button
+          type="button"
+          disabled={isFetchingNextPage}
+          onClick={() => void fetchNextPage()}
+          className="mx-auto my-4 text-[13px] font-medium text-brand-900"
+        >
+          {isFetchingNextPage ? "Loading…" : "Load more reels"}
+        </button>
+      )}
 
       <PostStoryModal
         open={composerOpen}

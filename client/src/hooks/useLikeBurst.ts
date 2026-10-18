@@ -17,8 +17,8 @@ const PARTICLES_PER_LIKE = 7;
  * `removeParticle` once their animation completes, so there's no shared timer
  * to leak or race against fast repeat taps. Particles are skipped entirely
  * under reduced motion. */
-export function useLikeBurst(prefersReducedMotion: boolean) {
-  const [liked, setLiked] = useState(false);
+export function useLikeBurst(prefersReducedMotion: boolean, options: { initialLiked?: boolean; onChange?: (liked: boolean) => void } = {}) {
+  const [liked, setLiked] = useState(options.initialLiked ?? false);
   const [particles, setParticles] = useState<LikeParticle[]>([]);
   const nextId = useRef(0);
 
@@ -27,6 +27,7 @@ export function useLikeBurst(prefersReducedMotion: boolean) {
   function toggleLike() {
     const next = !liked;
     setLiked(next);
+    options.onChange?.(next);
     if (!next || prefersReducedMotion) return;
     const batch: LikeParticle[] = Array.from({ length: PARTICLES_PER_LIKE }, () => {
       nextId.current += 1;
@@ -45,5 +46,5 @@ export function useLikeBurst(prefersReducedMotion: boolean) {
     setParticles((current) => current.filter((particle) => particle.id !== id));
   }
 
-  return { liked, particles, toggleLike, removeParticle };
+  return { liked, setLiked, particles, toggleLike, removeParticle };
 }

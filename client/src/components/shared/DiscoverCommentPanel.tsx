@@ -1,11 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
-import { showErrorToast } from "@/components/shared/AppToast";
+import { useState } from "react";
 import { EmojiPicker } from "@/components/shared/EmojiPicker";
-import { CommentLikeButton, DEFAULT_COMMENTS } from "@/components/shared/PostComments";
-import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
+import { useSession } from "@/context/SessionContext";
+import { useCommentLike, useComments } from "@/hooks/useComments";
 import type { CommentItem } from "@/types/comment";
 
 interface DiscoverCommentPanelProps {
@@ -13,88 +12,22 @@ interface DiscoverCommentPanelProps {
   onClose: () => void;
 }
 
-const IMAGE_ACCEPT = ["image/png", "image/jpeg", "image/gif", "image/webp"];
-
-function formatClock(totalSeconds: number) {
-  const minutes = Math.floor(totalSeconds / 60);
-  return `${minutes}:${String(totalSeconds % 60).padStart(2, "0")}`;
-}
-
 /** The reel comments panel (Figma node 791:38240 + the quick-action toolbar
  * at 791:38337) — rendered in `AppShell`'s `railAccessory` slot (see
  * discover/page.tsx), so it pops up in that same gap between the reel's
- * comment button and the story rail rather than as a centered modal.
- * Reuses `CommentItem`/`DEFAULT_COMMENTS`/`CommentLikeButton` from the main
- * feed's comments UI, and the same emoji/photo/voice-note mechanics as
- * `CommentComposer`, so attachments behave identically everywhere. */
+ * comment button and the story rail rather than as a centered modal. */
 export function DiscoverCommentPanel({ reelId, onClose }: DiscoverCommentPanelProps) {
-  const [comments, setComments] = useState<CommentItem[]>(DEFAULT_COMMENTS);
+  const { user } = useSession();
+  const thread = useComments(reelId);
   const [draft, setDraft] = useState("");
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [audioUrl, setAudioUrl] = useState<string | undefined>(undefined);
-  // Marks object URLs that have been handed off to a posted comment, so the
-  // cleanup effects below don't revoke one still being displayed — same
-  // lifecycle as CommentComposer (see its header comment for the full
-  // rationale; this mirrors it rather than redefining a looser one).
-  const handedOffRef = useRef<Set<string>>(new Set());
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const imagePreview = useMemo(() => (imageFile ? URL.createObjectURL(imageFile) : undefined), [imageFile]);
-
-  useEffect(() => {
-    if (!imagePreview) return;
-    return () => {
-      if (!handedOffRef.current.has(imagePreview)) URL.revokeObjectURL(imagePreview);
-    };
-  }, [imagePreview]);
-
-  useEffect(() => {
-    if (!audioUrl) return;
-    return () => {
-      if (!handedOffRef.current.has(audioUrl)) URL.revokeObjectURL(audioUrl);
-    };
-  }, [audioUrl]);
-
-  const recorder = useVoiceRecorder({ onRecorded: setAudioUrl });
-
-  const canSend = !recorder.isRecording && (draft.trim().length > 0 || !!imagePreview || !!audioUrl);
-
-  function removeAttachment(kind: "image" | "audio") {
-    if (kind === "image") setImageFile(null);
-    else setAudioUrl(undefined);
-  }
-
-  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
-    if (!IMAGE_ACCEPT.includes(file.type)) {
-      showErrorToast("Only PNG, JPEG, GIF or WEBP images are supported");
-      return;
-    }
-    setImageFile(file);
-  }
-
-  function submit() {
-    if (!canSend) return;
+  async function submit() {
     const text = draft.trim();
-    if (imagePreview) handedOffRef.current.add(imagePreview);
-    if (audioUrl) handedOffRef.current.add(audioUrl);
-    setComments((current) => [
-      ...current,
-      {
-        id: `${reelId}-${current.length + 1}`,
-        authorName: "You",
-        postedAt: "Just now",
-        text,
-        image: imagePreview,
-        audio: audioUrl,
-      },
-    ]);
-    setDraft("");
-    setImageFile(null);
-    setAudioUrl(undefined);
+    if (!text) return;
+    if (await thread.add(text)) setDraft("");
   }
+
+  const canSend = draft.trim().length > 0 && !thread.adding;
 
   return (
     // Matches the reel video's own height formula exactly (see the `h-[min(...)]`
@@ -119,56 +52,39 @@ export function DiscoverCommentPanel({ reelId, onClose }: DiscoverCommentPanelPr
         </div>
 
         <div className="no-scrollbar flex flex-1 flex-col gap-[10px] overflow-y-auto px-[20px] py-[14px]">
-          {comments.map((comment) => (
-            <DiscoverCommentRow key={comment.id} comment={comment} />
+          {thread.isPending && <p className="text-[12px] text-gray-500">Loading comments…</p>}
+          {!thread.isPending && thread.comments.length === 0 && <p className="text-[12px] text-gray-500">No comments yet.</p>}
+          {thread.comments.map((comment) => (
+            <DiscoverCommentRow key={comment.id} comment={comment} onDelete={thread.remove} />
           ))}
+          {thread.hasNextPage && (
+            <button type="button" onClick={() => void thread.fetchNextPage()} className="text-left text-[11px] font-bold text-brand-900">
+              Load more comments
+            </button>
+          )}
         </div>
 
         <div className="flex shrink-0 flex-col gap-[10px] border-t border-gray-200 px-[20px] pb-[18px] pt-[14px]">
-          {(imagePreview || audioUrl) && (
-            <div className="flex flex-wrap items-center gap-2">
-              {imagePreview && (
-                <div className="relative size-14 shrink-0">
-                  <Image src={imagePreview} alt="Attached photo" fill unoptimized className="rounded-xl object-cover" sizes="56px" />
-                  <RemoveAttachmentButton label="Remove photo" onClick={() => removeAttachment("image")} />
-                </div>
-              )}
-              {audioUrl && (
-                <div className="relative flex min-w-0 items-center rounded-full bg-gray-100 py-1 pl-1 pr-3">
-                  <audio controls src={audioUrl} className="h-8 w-[180px] max-w-full" />
-                  <RemoveAttachmentButton label="Remove voice note" onClick={() => removeAttachment("audio")} />
-                </div>
-              )}
-            </div>
-          )}
-
           <div className="flex w-full items-center gap-[10px]">
             <span className="relative block size-5 shrink-0 overflow-hidden rounded-full bg-gray-100">
-              <Image src="/images/avatar-kasapa.png" alt="" fill sizes="20px" className="object-cover" />
+              <Image src={user?.profilePicUrl ?? "/icons/avatar-placeholder-user.svg"} alt="" fill sizes="20px" className="object-cover" />
             </span>
-            {recorder.isRecording ? (
-              <p className="flex min-w-0 flex-1 items-center gap-2 text-[12px] font-medium text-black" role="status">
-                <span className="size-2 shrink-0 animate-pulse rounded-full bg-like" />
-                Recording… {formatClock(recorder.seconds)}
-              </p>
-            ) : (
-              <input
-                type="text"
-                value={draft}
-                onChange={(event) => setDraft(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") submit();
-                }}
-                placeholder="Enter your comment"
-                aria-label="Enter your comment"
-                className="min-w-0 flex-1 bg-transparent text-[12px] text-night-900 placeholder:text-[#94a3b7] focus:outline-none"
-              />
-            )}
+            <input
+              type="text"
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") void submit();
+              }}
+              placeholder="Enter your comment"
+              aria-label="Enter your comment"
+              className="min-w-0 flex-1 bg-transparent text-[12px] text-night-900 placeholder:text-[#94a3b7] focus:outline-none"
+            />
             <button
               type="button"
               aria-label="Send comment"
               disabled={!canSend}
-              onClick={submit}
+              onClick={() => void submit()}
               className="flex size-[30px] shrink-0 items-center justify-center rounded-full bg-brand-900 transition-opacity disabled:opacity-40"
             >
               <span className="relative block size-4">
@@ -179,71 +95,18 @@ export function DiscoverCommentPanel({ reelId, onClose }: DiscoverCommentPanelPr
         </div>
       </div>
 
-      {/* Quick Action Pill Capsule (Figma node 791:38337) — a separate
-          floating control below the comment card, not nested inside its
-          border, matching Figma (same emoji/photo/voice-note mechanics as
-          CommentComposer). */}
       <div className="flex w-fit shrink-0 items-center gap-[12px] rounded-full border border-brand-900 bg-white px-[13px] py-[7px] shadow-sm">
         <EmojiPicker onSelect={(emoji) => setDraft((current) => current + emoji)} side="top">
           <Image src="/icons/emoji-add.svg" alt="Add emoji" width={14} height={14} />
         </EmojiPicker>
-        <button
-          type="button"
-          aria-label="Add photo or GIF"
-          onClick={() => fileInputRef.current?.click()}
-          className="flex size-3 items-center justify-center"
-        >
-          <Image src="/icons/gallery-01.svg" alt="" width={12} height={12} />
-        </button>
-        <button
-          type="button"
-          aria-label={recorder.isRecording ? "Stop recording" : "Record voice note"}
-          aria-pressed={recorder.isRecording}
-          onClick={recorder.isRecording ? recorder.stop : recorder.start}
-          className="flex size-3 items-center justify-center"
-        >
-          {recorder.isRecording ? (
-            <span className="size-2 rounded-sm bg-like" />
-          ) : (
-            <Image src="/icons/mic-02.svg" alt="" width={9} height={11} />
-          )}
-        </button>
       </div>
-
-      {recorder.error && (
-        <p className="text-[11px] text-like" role="alert">
-          {recorder.error}
-        </p>
-      )}
-
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept={IMAGE_ACCEPT.join(",")}
-        aria-label="Attach a photo"
-        className="hidden"
-        onChange={handleFileChange}
-      />
     </div>
   );
 }
 
-function RemoveAttachmentButton({ label, onClick }: { label: string; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      onClick={onClick}
-      className="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full bg-night-900 text-white"
-    >
-      <svg width="8" height="8" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-        <path d="M1 1L11 11M11 1L1 11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      </svg>
-    </button>
-  );
-}
+function DiscoverCommentRow({ comment, onDelete }: { comment: CommentItem; onDelete: (id: string) => Promise<boolean> }) {
+  const like = useCommentLike(comment);
 
-function DiscoverCommentRow({ comment }: { comment: CommentItem }) {
   return (
     <div className="flex w-full flex-col items-start gap-[3px]">
       <div className="flex w-full items-center gap-[6px]">
@@ -255,28 +118,22 @@ function DiscoverCommentRow({ comment }: { comment: CommentItem }) {
               <Image src="/icons/avatar-placeholder-user.svg" alt="" fill sizes="14px" />
             </span>
           )}
-          <span className="absolute -bottom-0.5 -right-0.5 block size-2">
-            <Image src="/icons/avatar-verified-badge-green.svg" alt="" fill sizes="8px" />
-          </span>
         </span>
         <p className="whitespace-nowrap text-[13px] font-bold text-brand-900">{comment.authorName}</p>
         <p className="whitespace-nowrap text-[11px] text-[#9398a1]">{comment.postedAt}</p>
       </div>
       <div className="flex w-full flex-col items-start gap-1 pl-[26px]">
-        {comment.text && (
-          <p className="w-full whitespace-pre-line text-[12px] leading-[17px] text-[#42454b]">{comment.text}</p>
-        )}
-        {comment.image && (
-          <span className="relative my-1 block h-24 w-full max-w-[150px] overflow-hidden rounded-xl bg-gray-100">
-            <Image src={comment.image} alt="" fill unoptimized className="object-cover" sizes="150px" />
-          </span>
-        )}
-        {comment.audio && <audio controls src={comment.audio} className="my-1 h-7 w-full max-w-[190px]" />}
+        {comment.text && <p className="w-full whitespace-pre-line text-[12px] leading-[17px] text-[#42454b]">{comment.text}</p>}
         <div className="flex items-center gap-[12px]">
-          <CommentLikeButton initialLikes={comment.likes ?? 0} />
-          <button type="button" className="text-[10px] font-bold text-brand-900">
-            Reply
+          <button type="button" onClick={like.toggle} aria-pressed={like.liked} className="text-[10px] font-bold text-brand-900">
+            {like.liked ? "Liked" : "Like"}
+            {like.count > 0 ? ` · ${like.count}` : ""}
           </button>
+          {comment.isOwn && (
+            <button type="button" onClick={() => void onDelete(comment.id)} className="text-[10px] font-bold text-like">
+              Delete
+            </button>
+          )}
         </div>
       </div>
     </div>

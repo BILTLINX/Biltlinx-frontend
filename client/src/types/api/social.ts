@@ -120,4 +120,6 @@ export interface FeedQuery {
   kind?: PostKind;
   authorId?: string;
   hashtag?: string;
+  hasVideo?: boolean;
+  q?: string;
 }

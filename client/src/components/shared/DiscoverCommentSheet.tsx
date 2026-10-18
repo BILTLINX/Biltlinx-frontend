@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { CommentComposer } from "@/components/shared/CommentComposer";
-import { CommentRow, DEFAULT_COMMENTS } from "@/components/shared/PostComments";
+import { ThreadCommentRow } from "@/components/shared/PostComments";
 import { useAnimatedSheet } from "@/hooks/useAnimatedSheet";
+import { useComments } from "@/hooks/useComments";
 import { cn } from "@/lib/utils";
-import type { CommentAttachments, CommentItem } from "@/types/comment";
 
 interface DiscoverCommentSheetProps {
   open: boolean;
@@ -15,22 +15,12 @@ interface DiscoverCommentSheetProps {
 }
 
 /** Mobile counterpart to `DiscoverCommentPanel`'s desktop side panel — a
- * bottom sheet matching the app's existing comments-sheet convention
- * (`PostComments.tsx`'s `CommentsModal` mobile variant: slide up/down,
- * rounded-top, drag handle). Reuses `CommentRow`/`CommentComposer` directly
- * rather than Discover's compact row styling, since a full-width mobile
- * sheet has room for the standard size and it keeps the look consistent
- * with every other comment sheet in the app.
- *
- * Keeps its own local comment list rather than sharing state with
- * `DiscoverCommentPanel` — the two are mutually exclusive by viewport
- * (desktop panel only mounts at `xl:`, this only shows below `xl:`), so the
- * only edge case is resizing mid-conversation, which isn't worth the extra
- * state-lifting for a dummy-data demo feature. */
+ * bottom sheet matching the app's comments-sheet convention (slide up/down,
+ * rounded-top, drag handle), backed by the same comment API as every post. */
 export function DiscoverCommentSheet({ open, reelId, onClose }: DiscoverCommentSheetProps) {
-  const [comments, setComments] = useState<CommentItem[]>(DEFAULT_COMMENTS);
-  const [commentDraft, setCommentDraft] = useState("");
+  const [draft, setDraft] = useState("");
   const { mounted, closing } = useAnimatedSheet(open);
+  const thread = useComments(reelId, { enabled: mounted && reelId !== "" });
 
   useEffect(() => {
     if (!mounted) return;
@@ -40,14 +30,10 @@ export function DiscoverCommentSheet({ open, reelId, onClose }: DiscoverCommentS
     };
   }, [mounted]);
 
-  function submitComment({ image, audio }: CommentAttachments) {
-    const text = commentDraft.trim();
-    if (!text && !image && !audio) return;
-    setComments((current) => [
-      { id: `${reelId}-${current.length + 1}`, authorName: "You", postedAt: "Just now", text, image, audio },
-      ...current,
-    ]);
-    setCommentDraft("");
+  async function submit() {
+    const text = draft.trim();
+    if (!text) return;
+    if (await thread.add(text)) setDraft("");
   }
 
   if (!mounted) return null;
@@ -84,12 +70,19 @@ export function DiscoverCommentSheet({ open, reelId, onClose }: DiscoverCommentS
           <span className="size-6 shrink-0" aria-hidden />
         </div>
 
-        <CommentComposer draft={commentDraft} onDraftChange={setCommentDraft} onSubmit={submitComment} />
+        <CommentComposer draft={draft} onDraftChange={setDraft} onSubmit={() => void submit()} textOnly />
 
-        <div className="no-scrollbar flex w-full flex-1 flex-col gap-5 overflow-y-auto px-6">
-          {comments.map((comment) => (
-            <CommentRow key={comment.id} comment={comment} />
+        <div className="no-scrollbar flex w-full flex-1 flex-col gap-2 overflow-y-auto px-6">
+          {thread.isPending && <p className="py-4 text-xs text-gray-500">Loading comments…</p>}
+          {!thread.isPending && thread.comments.length === 0 && <p className="py-4 text-xs text-gray-500">No comments yet.</p>}
+          {thread.comments.map((comment) => (
+            <ThreadCommentRow key={comment.id} postId={reelId} comment={comment} onReply={thread.add} onDelete={thread.remove} />
           ))}
+          {thread.hasNextPage && (
+            <button type="button" onClick={() => void thread.fetchNextPage()} className="text-left text-[11px] font-bold text-brand-900">
+              Load More Comments
+            </button>
+          )}
         </div>
       </div>
     </div>,

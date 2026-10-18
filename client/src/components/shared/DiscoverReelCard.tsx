@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { FollowButton } from "@/components/shared/FollowButton";
 import { NavIcon } from "@/components/shared/NavIcon";
@@ -15,12 +16,15 @@ import {
   ReelProgressBar,
 } from "@/components/shared/ReelPlayerControls";
 import { Tooltip } from "@/components/shared/Tooltip";
+import { useFollowAccount } from "@/hooks/useFollowAccount";
 import { useLikeBurst } from "@/hooks/useLikeBurst";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { useReelFeedback } from "@/hooks/useReelFeedback";
 import { useReelVideo } from "@/hooks/useReelVideo";
 import type { DiscoverTab } from "@/lib/discover-tabs";
+import { notifyError } from "@/lib/errors";
+import { likePost, unlikePost } from "@/lib/social-api";
 import { shareContent } from "@/lib/share";
 import { cn } from "@/lib/utils";
 import type { DiscoverReel } from "@/types/reel";
@@ -75,17 +79,29 @@ export function DiscoverReelCard({
     autoPlay: !prefersReducedMotion,
     remountKey: isMobile,
   });
-  const likes = useLikeBurst(prefersReducedMotion);
+  const likeMutation = useMutation({
+    mutationFn: (next: boolean) => (next ? likePost(reel.id) : unlikePost(reel.id)),
+  });
+  const likes = useLikeBurst(prefersReducedMotion, {
+    initialLiked: reel.likedByMe,
+    onChange: (next) =>
+      likeMutation.mutate(next, {
+        onError: (error) => {
+          likes.setLiked(!next);
+          notifyError(error);
+        },
+      }),
+  });
   const { feedback, choose: chooseFeedback } = useReelFeedback();
 
-  const [following, setFollowing] = useState(reel.following);
+  const { following, toggle: toggleFollow } = useFollowAccount(reel.authorId, reel.following);
   const [saved, setSaved] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [shareCount, setShareCount] = useState(reel.shares);
   const [mobileOptionsOpen, setMobileOptionsOpen] = useState(false);
   const [desktopOptionsOpen, setDesktopOptionsOpen] = useState(false);
 
-  const likeCount = likes.liked ? reel.likes + 1 : reel.likes;
+  const likeCount = Math.max(0, reel.likes + (likes.liked ? 1 : 0) - (reel.likedByMe ? 1 : 0));
   const saveCount = saved ? reel.saves + 1 : reel.saves;
   const captionText = cleanCaption(reel.caption);
 
@@ -180,7 +196,7 @@ export function DiscoverReelCard({
                 <Image src={reel.authorAvatar} alt="" fill sizes="36px" className="object-cover" />
               </div>
               <p className={cn("whitespace-nowrap text-[14px] font-bold text-white", TEXT_SHADOW)}>{reel.authorName}</p>
-              <FollowButton following={following} onToggle={() => setFollowing((value) => !value)} name={reel.authorName} />
+              <FollowButton following={following} onToggle={toggleFollow} name={reel.authorName} />
             </div>
             <p className={cn("line-clamp-2 text-[13px] font-medium text-white", TEXT_SHADOW)}>{captionText}</p>
           </div>
@@ -216,7 +232,7 @@ export function DiscoverReelCard({
             </div>
             <p className="truncate text-[14px] font-bold text-brand-900">{reel.authorName}</p>
           </div>
-          <FollowButton following={following} onToggle={() => setFollowing((value) => !value)} name={reel.authorName} />
+          <FollowButton following={following} onToggle={toggleFollow} name={reel.authorName} />
         </div>
         <p className="text-[14px] font-medium leading-[16px] text-black">
           {expanded || captionText.length <= 70 ? (
