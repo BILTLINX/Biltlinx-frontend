@@ -20,7 +20,7 @@ interface PostDetailCardProps {
 /** Full post on the detail page (Figma node 1055:28102): header, complete text, media, listing attachment and engagement row. */
 export function PostDetailCard({ post, commentsCount }: PostDetailCardProps) {
   const router = useRouter();
-  const { following, toggle: toggleFollow } = useFollowAccount(post.authorId);
+  const { following, toggle: toggleFollow } = useFollowAccount(post.authorId, post.authorFollowed);
   const [saved, setSaved] = useState(false);
   const like = usePostLike(post);
   const mediaItems = getMediaItems(post);

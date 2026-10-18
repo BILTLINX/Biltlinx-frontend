@@ -37,7 +37,7 @@ export function WhoToFollowCard() {
 
 function WhoToFollowRow({ suggestion }: { suggestion: SuggestedAccount }) {
   const { account } = suggestion;
-  const { following, toggle } = useFollowAccount(account.id);
+  const { following, toggle } = useFollowAccount(account.id, account.isFollowedByMe);
   const role = suggestion.bio ?? (account.organizationName !== account.username ? account.organizationName : "");
 
   return (

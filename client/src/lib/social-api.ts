@@ -1,6 +1,7 @@
 import { apiRequest } from "@/lib/api";
 import type { Paged } from "@/types/api/common";
 import type {
+  Author,
   Comment,
   CreatePostInput,
   FeedQuery,
@@ -38,6 +39,10 @@ export function likePost(id: string) {
 
 export function unlikePost(id: string) {
   return apiRequest(`/feed/posts/${id}/like`, { method: "DELETE" });
+}
+
+export function getPostLikes(postId: string, query: { page?: number; results?: number }) {
+  return apiRequest<Paged<Author>>(`/feed/posts/${postId}/likes`, { query });
 }
 
 export function likeComment(id: string) {

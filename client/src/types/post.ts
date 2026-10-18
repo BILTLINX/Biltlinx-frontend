@@ -38,6 +38,7 @@ export interface PostCardData {
   avatar: string;
   avatarPlaceholder?: boolean;
   authorId?: string;
+  authorFollowed?: boolean;
   likedByMe?: boolean;
   poll?: PollState;
   /** Id of the listing, property or service this post advertises, when the route differs from the post id. */

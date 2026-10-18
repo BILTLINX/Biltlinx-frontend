@@ -8,6 +8,7 @@ export interface Author {
   organizationId: string;
   profilePicUrl: string | null;
   isVerified: boolean;
+  isFollowedByMe: boolean;
 }
 
 export interface Media {

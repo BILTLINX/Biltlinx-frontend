@@ -9,6 +9,7 @@ const author = {
   organizationId: "o1",
   profilePicUrl: null,
   isVerified: true,
+  isFollowedByMe: true,
 };
 
 function post(overrides: Partial<Post>): Post {
@@ -48,6 +49,7 @@ describe("mapPost", () => {
       likes: 3,
       comments: 1,
       likedByMe: true,
+      authorFollowed: true,
     });
   });
 

@@ -6,6 +6,10 @@ import { createPortal } from "react-dom";
 import { FollowButton } from "@/components/shared/FollowButton";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { Tooltip } from "@/components/shared/Tooltip";
+import { useSession } from "@/context/SessionContext";
+import { useFollowAccount } from "@/hooks/useFollowAccount";
+import { useLikers } from "@/hooks/useLikers";
+import type { Author } from "@/types/api/social";
 import { cn } from "@/lib/utils";
 import { useAnimatedSheet } from "@/hooks/useAnimatedSheet";
 import { MODAL_FRAME } from "@/lib/modal-styles";
@@ -14,14 +18,15 @@ import { MODAL_FRAME } from "@/lib/modal-styles";
 interface LikesBottomSheetProps {
   open: boolean;
   onClose: () => void;
-  names: string[];
+  postId: string;
+  count: number;
 }
 
 /** Opened from a post's "Liked by X and N others" row: a bottom sheet on
  * mobile, and a centered All/Followers modal with Follow/Following actions
  * on desktop (Figma node 539:81165). Both variants share the same
  * All/Followers list, with its tabs pinned to the top of the scroll area. */
-export function LikesBottomSheet({ open, onClose, names }: LikesBottomSheetProps) {
+export function LikesBottomSheet({ open, onClose, postId, count }: LikesBottomSheetProps) {
   const { mounted, closing } = useAnimatedSheet(open);
 
   useEffect(() => {
@@ -64,12 +69,12 @@ export function LikesBottomSheet({ open, onClose, names }: LikesBottomSheetProps
               </svg>
             </button>
             <p className="flex-1 text-center text-lg font-bold tracking-[-0.54px] text-black">
-              {names.length} {names.length === 1 ? "Like" : "Likes"}
+              {count} {count === 1 ? "Like" : "Likes"}
             </p>
             <span className="size-6 shrink-0" aria-hidden />
           </div>
 
-          <LikesTabbedList names={names} className="px-6" variant="sheet" />
+          <LikesTabbedList postId={postId} enabled={mounted} className="px-6" variant="sheet" />
         </div>
       </div>
 
@@ -93,7 +98,7 @@ export function LikesBottomSheet({ open, onClose, names }: LikesBottomSheetProps
           </button>
 
           <div className="flex max-h-[calc(85vh-1.25rem)] w-full flex-col rounded-2xl bg-white p-6">
-            <LikesTabbedList names={names} variant="modal" />
+            <LikesTabbedList postId={postId} enabled={mounted} variant="modal" />
           </div>
         </div>
       </div>
@@ -103,24 +108,20 @@ export function LikesBottomSheet({ open, onClose, names }: LikesBottomSheetProps
 }
 
 function LikesTabbedList({
-  names,
+  postId,
+  enabled,
   className,
   variant,
 }: {
-  names: string[];
+  postId: string;
+  enabled: boolean;
   className?: string;
   variant: "sheet" | "modal";
 }) {
-  const [tab, setTab] = useState<"all" | "followers">("all");
-  const [following, setFollowing] = useState<Record<number, boolean>>(() =>
-    Object.fromEntries(names.map((_, index) => [index, index % 3 === 0])),
-  );
-
-  // Mock split for the "Followers" tab, since there's no real follow-graph
-  // backing this data yet — every third liker stands in as a follower.
-  const rows = names
-    .map((name, index) => ({ name, index, isFollower: index % 3 !== 1 }))
-    .filter((row) => tab === "all" || row.isFollower);
+  const [tab, setTab] = useState<"all" | "following">("all");
+  const { user } = useSession();
+  const { likers, isPending, isError, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } = useLikers(postId, { enabled });
+  const rows = tab === "all" ? likers : likers.filter((liker) => liker.isFollowedByMe);
 
   return (
     <div className={cn("no-scrollbar flex w-full flex-1 flex-col overflow-y-auto overflow-x-hidden", className)}>
@@ -130,7 +131,7 @@ function LikesTabbedList({
           variant === "modal" ? "bg-white/95 backdrop-blur-[8px]" : "bg-white",
         )}
       >
-        {(["all", "followers"] as const).map((key) => (
+        {(["all", "following"] as const).map((key) => (
           <button
             key={key}
             type="button"
@@ -147,50 +148,71 @@ function LikesTabbedList({
       </div>
 
       <div className="flex w-full flex-col gap-2 pt-2">
-        {rows.map(({ name, index }) => {
-          const isFollowing = following[index] ?? false;
-          const toggle = () => setFollowing((current) => ({ ...current, [index]: !current[index] }));
-
-          return (
-            <div
-              key={`${name}-${index}`}
-              className="flex h-14 w-full items-center justify-between gap-2 rounded-xl border border-[#e2e8f0] px-3"
-            >
-              <span className="flex min-w-0 items-center gap-2">
-                {variant === "modal" && (
-                  <span className="relative block size-8 shrink-0 overflow-hidden rounded-full bg-[#eef2ff]">
-                    <Image src="/icons/avatar-placeholder-user.svg" alt="" fill sizes="32px" className="p-1" />
-                  </span>
-                )}
-                <span className="truncate text-sm font-medium text-[#111826]">{name}</span>
-              </span>
-
-              {variant === "sheet" ? (
-                <Tooltip label={isFollowing ? "Following" : "Follow"}>
-                  <button
-                    type="button"
-                    aria-pressed={isFollowing}
-                    aria-label={isFollowing ? `Following ${name}` : `Follow ${name}`}
-                    onClick={toggle}
-                    className={cn(
-                      "flex size-8 shrink-0 items-center justify-center rounded-full border",
-                      isFollowing ? "border-brand-900 bg-brand-900" : "border-brand-900 bg-white",
-                    )}
-                  >
-                    <NavIcon
-                      icon={isFollowing ? "/icons/check-circle.svg" : "/icons/user-add-01.svg"}
-                      color={isFollowing ? "white" : "brand"}
-                      size={16}
-                    />
-                  </button>
-                </Tooltip>
-              ) : (
-                <FollowButton following={isFollowing} onToggle={toggle} name={name} />
-              )}
-            </div>
-          );
-        })}
+        {isPending && <p className="py-4 text-center text-xs text-gray-500">Loading…</p>}
+        {isError && (
+          <button type="button" onClick={() => void refetch()} className="py-4 text-center text-xs font-bold text-brand-900">
+            Could not load likes. Try again
+          </button>
+        )}
+        {!isPending && !isError && rows.length === 0 && (
+          <p className="py-4 text-center text-xs text-gray-500">
+            {tab === "following" ? "Nobody you follow has liked this yet." : "No likes yet."}
+          </p>
+        )}
+        {rows.map((liker) => (
+          <LikerRow key={liker.id} liker={liker} variant={variant} isSelf={liker.id === user?.id} />
+        ))}
+        {hasNextPage && (
+          <button
+            type="button"
+            disabled={isFetchingNextPage}
+            onClick={() => void fetchNextPage()}
+            className="py-2 text-center text-xs font-bold text-brand-900"
+          >
+            {isFetchingNextPage ? "Loading…" : "Load more"}
+          </button>
+        )}
       </div>
+    </div>
+  );
+}
+
+function LikerRow({ liker, variant, isSelf }: { liker: Author; variant: "sheet" | "modal"; isSelf: boolean }) {
+  const { following, toggle } = useFollowAccount(liker.id, liker.isFollowedByMe);
+
+  return (
+    <div className="flex h-14 w-full items-center justify-between gap-2 rounded-xl border border-[#e2e8f0] px-3">
+      <span className="flex min-w-0 items-center gap-2">
+        {variant === "modal" && (
+          <span className="relative block size-8 shrink-0 overflow-hidden rounded-full bg-[#eef2ff]">
+            <Image src={liker.profilePicUrl ?? "/icons/avatar-placeholder-user.svg"} alt="" fill sizes="32px" className="object-cover" />
+          </span>
+        )}
+        <span className="truncate text-sm font-medium text-[#111826]">{liker.username}</span>
+      </span>
+
+      {isSelf ? null : variant === "sheet" ? (
+        <Tooltip label={following ? "Following" : "Follow"}>
+          <button
+            type="button"
+            aria-pressed={following}
+            aria-label={following ? `Following ${liker.username}` : `Follow ${liker.username}`}
+            onClick={toggle}
+            className={cn(
+              "flex size-8 shrink-0 items-center justify-center rounded-full border",
+              following ? "border-brand-900 bg-brand-900" : "border-brand-900 bg-white",
+            )}
+          >
+            <NavIcon
+              icon={following ? "/icons/check-circle.svg" : "/icons/user-add-01.svg"}
+              color={following ? "white" : "brand"}
+              size={16}
+            />
+          </button>
+        </Tooltip>
+      ) : (
+        <FollowButton following={following} onToggle={toggle} name={liker.username} />
+      )}
     </div>
   );
 }

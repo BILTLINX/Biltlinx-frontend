@@ -31,6 +31,7 @@ export function mapPost(post: Post, now: Date = new Date()): PostCardData {
     id: post.id,
     variant,
     authorId: post.author.id,
+    authorFollowed: post.author.isFollowedByMe,
     authorName: name,
     roleLine: role ? `${role} |` : "",
     postedAt: formatRelative(post.createdAt, now),

@@ -8,6 +8,7 @@ import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/Button";
 import { BookmarkIcon } from "@/components/shared/BookmarkIcon";
 import { FollowButton } from "@/components/shared/FollowButton";
+import { LikesBottomSheet } from "@/components/shared/LikesBottomSheet";
 import { MediaLoadError } from "@/components/shared/MediaLoadError";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { PostOptionsControl } from "@/components/shared/PostOptionsControl";
@@ -16,6 +17,7 @@ import { CommentsModal } from "@/components/shared/PostComments";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useMediaLoadState } from "@/hooks/useMediaLoadState";
 import { useFollowAccount } from "@/hooks/useFollowAccount";
+import { useLikers } from "@/hooks/useLikers";
 import { usePostLike, usePostPoll } from "@/hooks/usePostState";
 import { Tooltip } from "@/components/shared/Tooltip";
 import { comingSoonHref } from "@/lib/coming-soon";
@@ -103,7 +105,7 @@ export function PostCard({ post }: PostCardProps) {
 }
 
 function PostHeader({ post, saved, onToggleSave }: { post: PostCardData; saved: boolean; onToggleSave: () => void }) {
-  const { following, toggle: toggleFollow } = useFollowAccount(post.authorId);
+  const { following, toggle: toggleFollow } = useFollowAccount(post.authorId, post.authorFollowed);
 
   return (
     <div className="flex w-full items-center justify-between">
@@ -588,6 +590,9 @@ export function PostStatsBar({
   onToggleComments: () => void;
 }) {
   const { liked, count: likeCount, toggle: toggleLike } = like;
+  const [likesSheetOpen, setLikesSheetOpen] = useState(false);
+  const preview = useLikers(post.id, { pageSize: 3, enabled: likeCount > 0 });
+  const previewNames = preview.likers.map((liker) => liker.username);
 
   return (
     <div className="flex w-full flex-col gap-2">
@@ -648,6 +653,49 @@ export function PostStatsBar({
         </button>
       </div>
 
+
+      {likeCount > 0 && (
+        <button
+          type="button"
+          onClick={() => setLikesSheetOpen(true)}
+          className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-start"
+        >
+          <p className="min-w-0 flex-1 truncate text-left text-[11px] text-gray-600 sm:flex-none">
+            {previewNames.length > 0 ? (
+              <>
+                Liked by <span className="font-bold text-brand-900">{previewNames[0]}</span>
+                {likeCount > 1 && (
+                  <>
+                    {" "}
+                    and{" "}
+                    <span className="font-bold text-brand-900">
+                      {likeCount - 1} {likeCount - 1 === 1 ? "other" : "others"}
+                    </span>
+                  </>
+                )}
+              </>
+            ) : (
+              <span className="font-bold text-brand-900">
+                {likeCount} {likeCount === 1 ? "like" : "likes"}
+              </span>
+            )}
+          </p>
+          <span className="flex shrink-0 items-center -space-x-2 sm:order-first sm:mr-1">
+            {preview.likers.slice(0, 3).map((liker) => (
+              <span key={liker.id} className="relative block size-[22px] shrink-0 overflow-hidden rounded-full bg-[#eef2ff] ring-2 ring-white">
+                <Image src={liker.profilePicUrl ?? "/icons/avatar-placeholder-user.svg"} alt="" fill sizes="22px" className="object-cover" />
+              </span>
+            ))}
+            {likeCount > 3 && (
+              <span className="relative flex size-[22px] shrink-0 items-center justify-center rounded-full bg-night-900 text-[8px] font-bold text-white ring-2 ring-white">
+                +{likeCount - 3}
+              </span>
+            )}
+          </span>
+        </button>
+      )}
+
+      <LikesBottomSheet open={likesSheetOpen} onClose={() => setLikesSheetOpen(false)} postId={post.id} count={likeCount} />
     </div>
   );
 }
