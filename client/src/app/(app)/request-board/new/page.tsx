@@ -1,266 +1,146 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-import toast from "react-hot-toast";
+import { useState } from "react";
+import { showSuccessToast } from "@/components/shared/AppToast";
 import { AppShell } from "@/components/shared/AppShell";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
-import { DetailAside } from "@/components/shared/DetailAside";
-import { ChoiceChip, FIELD_BOX, FIELD_INPUT, FormField } from "@/components/shared/ModalFormParts";
-import { NavIcon } from "@/components/shared/NavIcon";
 import { PageContainer } from "@/components/shared/PageContainer";
-import { OptionSelectField } from "@/components/shared/ViewingSlotPickers";
-import { Button } from "@/components/ui/Button";
-import { savePostedRequest } from "@/lib/posted-requests";
-import { isNonEmpty } from "@/lib/validation";
+import { useProviders, useServicesMutations, useTaxonomy, useTradeSuggestions } from "@/hooks/useServices";
 import { cn } from "@/lib/utils";
 
-// What the poster needs, and the categories offered once they have said.
-const NEEDS: Record<string, string[]> = {
-  "Artisan / trade": ["Plumbing", "Electrical", "Carpentry", "Painting", "Roofing", "Masonry & tiling", "Welding"],
-  "Professional service": ["Architecture & design", "Land survey", "Structural engineering", "Legal & documents", "Valuation"],
-  Materials: ["Cement & blocks", "Roofing sheets", "Steel & iron", "Paint & finishes", "Plumbing & electrical supplies"],
-  "Equipment hire": ["Excavator", "Concrete mixer", "Scaffolding", "Generator"],
-  "Moving & cleaning": ["Moving", "Deep cleaning", "Post-construction cleaning"],
-};
-const NEED_LABELS = Object.keys(NEEDS);
-const WHEN = ["Today", "Within 3 days", "Within 1 week", "Within 2 weeks", "Within a month", "I’m flexible"];
-const BUDGETS = ["Under 500", "500 – 800", "800 – 1,200", "1,200 – 2,000", "2,000 – 5,000", "Above 5,000", "Not sure yet"];
-const MATERIALS = ["Provider supplies", "I will supply", "Not needed"];
-const WHO_CAN_QUOTE = ["Verified providers only", "Anyone nearby"];
-const TIPS = ["Add 2–3 clear photos", "Give a budget range", "Say who buys the materials", "Keep payment on Biltlinx so it’s protected"];
-const NEXT_STEPS = ["Providers nearby are notified", "Quotes arrive, usually within a day", "Compare quotes side by side", "Hire, pay on Biltlinx, then review"];
-const DRAFT_KEY = "biltlinx.request-draft";
-const CARD = "flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-5";
+const FIELD = "h-11 w-full rounded-[10px] border border-gray-200 bg-white px-3.5 text-[13px] text-[#0f172a] focus:border-brand-900 focus:outline-none";
+const MAX_PROVIDERS = 5;
 
-interface Form {
-  need: string;
-  category: string;
-  title: string;
-  description: string;
-  location: string;
-  when: string;
-  budget: string;
-  materials: string;
-  whoCanQuote: string;
-}
-
-const EMPTY_FORM: Form = {
-  need: NEED_LABELS[0],
-  category: NEEDS[NEED_LABELS[0]][0],
-  title: "",
-  description: "",
-  location: "",
-  when: WHEN[2],
-  budget: "",
-  materials: MATERIALS[0],
-  whoCanQuote: WHO_CAN_QUOTE[0],
-};
-
-function readDraft(): Form | null {
-  try {
-    const raw = window.localStorage.getItem(DRAFT_KEY);
-    return raw ? { ...EMPTY_FORM, ...(JSON.parse(raw) as Partial<Form>) } : null;
-  } catch {
-    return null;
-  }
-}
-
-export default function PostRequestPage() {
+export default function NewRequestPage() {
   const router = useRouter();
-  const fileRef = useRef<HTMLInputElement | null>(null);
-  const [form, setForm] = useState<Form>(EMPTY_FORM);
-  const [files, setFiles] = useState<File[]>([]);
-  const [errors, setErrors] = useState<{ title?: string; location?: string }>({});
+  const taxonomy = useTaxonomy();
+  const { createRequest } = useServicesMutations();
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [category, setCategory] = useState("");
+  const [city, setCity] = useState("");
+  const [start, setStart] = useState("");
+  const [budget, setBudget] = useState("");
+  const [inspection, setInspection] = useState(false);
+  const [chosen, setChosen] = useState<string[]>([]);
+  const [error, setError] = useState<string | undefined>();
+  const suggestions = useTradeSuggestions(!category ? description : "");
+  const providers = useProviders({ category: category || undefined, city: city.trim() || undefined });
 
-  // A saved draft is only known in the browser, so it is restored after mount.
-  useEffect(() => {
-    const draft = readDraft();
-    if (draft) setForm(draft);
-  }, []);
+  const categories = [...(taxonomy.data?.professions ?? []), ...(taxonomy.data?.trades ?? [])];
+  const safetyCritical = category !== "" && (taxonomy.data?.safetyCritical ?? []).includes(category);
 
-  const set = <K extends keyof Form>(key: K, value: Form[K]) => setForm((current) => ({ ...current, [key]: value }));
-
-  function chooseNeed(need: string) {
-    setForm((current) => ({ ...current, need, category: NEEDS[need][0] }));
+  function toggle(id: string) {
+    setChosen((current) => (current.includes(id) ? current.filter((item) => item !== id) : current.length >= MAX_PROVIDERS ? current : [...current, id]));
   }
 
-  function saveDraft() {
-    try {
-      window.localStorage.setItem(DRAFT_KEY, JSON.stringify(form));
-      toast.success("Draft saved on this device");
-    } catch {
-      toast.error("Couldn’t save the draft");
-    }
-  }
-
-  function post() {
-    const found = {
-      title: isNonEmpty(form.title) ? undefined : "Give your request a title",
-      location: isNonEmpty(form.location) ? undefined : "Enter where the job is",
-    };
-    setErrors(found);
-    if (found.title || found.location) return;
-
-    const saved = savePostedRequest({
-      id: `mine-${Date.now()}`,
-      category: form.category,
-      timing: form.when,
-      quotes: 0,
-      title: form.title.trim(),
-      location: form.location.trim(),
-      budget: form.budget ? `GHS ${form.budget}` : "Budget not set",
-      poster: "You",
-      postedAgo: "just now",
-      posterAvatar: "/images/requests/andy.png",
-      owner: "me",
-    });
-    if (!saved) {
-      toast.error("Couldn’t post your request. Try again.");
+  function submit() {
+    if (!title.trim() || description.trim().length < 10 || !category || !city.trim()) {
+      setError("Fill in the title, details, trade and city.");
       return;
     }
-    try {
-      window.localStorage.removeItem(DRAFT_KEY);
-    } catch {
-      // Nothing to clear.
+    if (chosen.length === 0) {
+      setError("Choose at least one provider to ask.");
+      return;
     }
-    toast.success("Request posted");
-    router.push("/request-board?tab=mine");
+    setError(undefined);
+    const budgetNumber = Number(budget.replace(/,/g, ""));
+    createRequest.mutate(
+      {
+        title: title.trim(),
+        description: description.trim(),
+        category,
+        city: city.trim(),
+        preferredStart: start || null,
+        budget: budget.trim() && Number.isFinite(budgetNumber) ? budgetNumber : null,
+        currency: "GHS",
+        needsInspection: inspection,
+        providerIds: chosen,
+      },
+      {
+        onSuccess: (created) => {
+          showSuccessToast("Request sent");
+          router.push(`/request-board/${created.id}`);
+        },
+      },
+    );
   }
 
   return (
     <AppShell activeKey="services" activeChildKey="request-board" contentFullWidth>
       <PageContainer>
-        <Breadcrumbs crumbs={[{ label: "Request Board", href: "/request-board" }, { label: "Post a request" }]} />
-        <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-bold leading-8 text-[#0f172a]">Post a request</h1>
-          <p className="text-sm leading-5 text-gray-500">Describe the job once. Verified professionals and artisans nearby send you quotes in GHS.</p>
-        </div>
+        <Breadcrumbs crumbs={[{ label: "Requests", href: "/request-board" }, { label: "Post a request" }]} />
+        <h1 className="text-2xl font-bold leading-8 text-[#0f172a]">Post a request</h1>
 
-        <div className="flex w-full flex-col items-start gap-6 xl:flex-row">
-          <section className="flex w-full min-w-0 flex-1 flex-col gap-[18px] rounded-2xl border border-gray-200 bg-white p-5 sm:p-6">
-            <FormField label="What do you need?">
-              <div role="radiogroup" aria-label="What do you need?" className="flex flex-wrap gap-2">
-                {NEED_LABELS.map((need) => (
-                  <ChoiceChip key={need} role="radio" label={need} selected={need === form.need} onClick={() => chooseNeed(need)} />
+        <div className="flex w-full max-w-[760px] flex-col gap-5">
+          <section className="flex flex-col gap-3.5 rounded-2xl border border-gray-200 bg-white p-5">
+            <h2 className="text-base font-bold text-[#0f172a]">The job</h2>
+            <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Short title, e.g. Fix leaking kitchen tap" className={FIELD} aria-label="Title" />
+            <textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={4} placeholder="Describe the job: size, materials, access, timing" className="rounded-[10px] border border-gray-200 px-3.5 py-2.5 text-sm focus:border-brand-900 focus:outline-none" aria-label="Details" />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <select value={category} onChange={(event) => setCategory(event.target.value)} className={FIELD} aria-label="Trade or profession">
+                <option value="">Trade or profession</option>
+                {categories.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+              <input value={city} onChange={(event) => setCity(event.target.value)} placeholder="City or area" className={FIELD} aria-label="City" />
+              <input type="date" value={start} onChange={(event) => setStart(event.target.value)} className={FIELD} aria-label="Preferred start" />
+              <input value={budget} onChange={(event) => setBudget(event.target.value)} placeholder="Budget in GHS (optional)" inputMode="numeric" className={FIELD} aria-label="Budget" />
+            </div>
+            {!category && (suggestions.data?.length ?? 0) > 0 && (
+              <div className="flex flex-wrap items-center gap-2 text-[13px]">
+                <span className="text-gray-500">Looks like:</span>
+                {suggestions.data?.slice(0, 3).map((item) => (
+                  <button key={item.trade} type="button" onClick={() => setCategory(item.trade ?? "")} className="rounded-full border border-gray-200 px-3 py-1 font-medium text-brand-900 hover:bg-[#eff5ff]">
+                    {item.trade}
+                  </button>
                 ))}
               </div>
-            </FormField>
+            )}
+            {safetyCritical && taxonomy.data?.safetyWarning && <p className="rounded-xl bg-[#fef3c7] p-3 text-[13px] leading-[19px] text-[#b45309]">{taxonomy.data.safetyWarning}</p>}
+            <label className="flex items-start gap-2.5 text-sm text-[#334155]">
+              <input type="checkbox" checked={inspection} onChange={(event) => setInspection(event.target.checked)} className="mt-0.5 size-4 accent-[#1465e6]" />
+              I would like a site inspection before I get a quote.
+            </label>
+          </section>
 
-            <FormField label="Category">
-              <OptionSelectField value={form.category} options={NEEDS[form.need]} onChange={(value) => set("category", value)} />
-            </FormField>
-
-            <FormField label="Title" error={errors.title}>
-              <label className={cn(FIELD_BOX, errors.title ? "border-[#dc2626]" : "border-gray-200")}>
-                <input
-                  value={form.title}
-                  onChange={(event) => set("title", event.target.value)}
-                  placeholder="e.g. Fix leaking pipes and replace kitchen sink"
-                  maxLength={90}
-                  className={FIELD_INPUT}
-                />
-              </label>
-            </FormField>
-
-            <FormField label="Describe the job">
-              <textarea
-                value={form.description}
-                onChange={(event) => set("description", event.target.value)}
-                rows={4}
-                placeholder="What needs doing, what you already have, and anything a provider should know"
-                className="h-24 resize-none rounded-[10px] border border-gray-200 px-3.5 py-3 text-[13px] leading-5 text-[#0f172a] placeholder:text-[#94a3b8] focus:border-brand-900 focus:outline-none sm:text-sm"
-              />
-            </FormField>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <FormField label="Location" error={errors.location}>
-                <label className={cn(FIELD_BOX, errors.location ? "border-[#dc2626]" : "border-gray-200")}>
-                  <NavIcon icon="/icons/post-options-location.svg" size={16} className="bg-gray-500" />
-                  <input value={form.location} onChange={(event) => set("location", event.target.value)} placeholder="e.g. Adenta, Accra" className={FIELD_INPUT} />
-                </label>
-                <span className="text-xs leading-[17px] text-gray-500">Only your area is public. Exact address goes to the provider you hire.</span>
-              </FormField>
-              <FormField label="When do you need it?">
-                <OptionSelectField value={form.when} options={WHEN} onChange={(value) => set("when", value)} icon="/icons/calendar-03.svg" />
-              </FormField>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <FormField label="Budget (GHS)">
-                <OptionSelectField value={form.budget} options={BUDGETS} onChange={(value) => set("budget", value)} placeholder="Select a range" />
-              </FormField>
-              <FormField label="Who supplies materials?">
-                <OptionSelectField value={form.materials} options={MATERIALS} onChange={(value) => set("materials", value)} />
-              </FormField>
-            </div>
-
-            <input
-              ref={fileRef}
-              type="file"
-              multiple
-              accept="image/*,video/*"
-              className="hidden"
-              onChange={(event) => setFiles(Array.from(event.target.files ?? []))}
-            />
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              className="flex items-center justify-center gap-2.5 rounded-xl border border-dashed border-[#cbd5e1] p-4 text-[13px] font-medium leading-[19px] text-[#334155] hover:bg-gray-50"
-            >
-              <NavIcon icon="/icons/attachment-01.svg" size={18} className="shrink-0 bg-[#334155]" />
-              <span className="min-w-0 truncate">
-                {files.length ? files.map((file) => file.name).join(", ") : "Add photos or a video · helps providers quote accurately"}
+          <section className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-5">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-base font-bold text-[#0f172a]">Who should quote?</h2>
+              <span className="text-xs text-gray-500">
+                {chosen.length} of {MAX_PROVIDERS} chosen
               </span>
-            </button>
-
-            <FormField label="Who can quote?">
-              <div role="radiogroup" aria-label="Who can quote?" className="flex flex-wrap gap-2">
-                {WHO_CAN_QUOTE.map((option) => (
-                  <ChoiceChip key={option} role="radio" label={option} selected={option === form.whoCanQuote} onClick={() => set("whoCanQuote", option)} />
-                ))}
-              </div>
-            </FormField>
-
-            <div className="flex flex-wrap justify-end gap-2.5">
-              <Button variant="outline" onClick={saveDraft} className="h-11 w-auto rounded-[10px] px-4 lg:rounded-[10px]">
-                Save draft
-              </Button>
-              <Button variant="primary" onClick={post} className="h-11 w-auto rounded-[10px] px-4 lg:rounded-[10px]">
-                Post request
-              </Button>
+            </div>
+            {!category && <p className="text-[13px] text-gray-500">Choose a trade first to see providers.</p>}
+            {category && providers.isPending && <p className="text-[13px] text-gray-500">Looking for providers…</p>}
+            {category && providers.items.length === 0 && !providers.isPending && <p className="text-[13px] text-gray-500">No providers found yet for that trade and city.</p>}
+            <div className="flex flex-col gap-2">
+              {providers.items.map((provider) => {
+                const selected = chosen.includes(provider.id);
+                return (
+                  <label key={provider.id} className={cn("flex cursor-pointer items-center gap-3 rounded-xl border p-3", selected ? "border-brand-900 bg-[#eff5ff]" : "border-gray-200 hover:bg-gray-50")}>
+                    <input type="checkbox" checked={selected} onChange={() => toggle(provider.id)} className="size-4 accent-[#1465e6]" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-semibold text-[#0f172a]">{provider.displayName ?? provider.owner.username}</span>
+                      <span className="block truncate text-xs text-gray-500">
+                        {provider.city} · {(provider.categories ?? []).slice(0, 2).join(", ")}
+                      </span>
+                    </span>
+                    {provider.credentialVerified && <span className="shrink-0 rounded-full bg-[#dcfce7] px-2 py-[3px] text-[11px] font-medium text-[#16a34a]">Credential ✓</span>}
+                  </label>
+                );
+              })}
             </div>
           </section>
 
-          <DetailAside className="xl:w-[360px]">
-            <section className={CARD}>
-              <h2 className="text-[15px] font-bold leading-[22px] text-[#0f172a]">Get better quotes</h2>
-              {TIPS.map((tip) => (
-                <p key={tip} className="flex gap-2 text-[13px] leading-[19px] text-[#334155]">
-                  <span className="font-bold text-[#16a34a]">✓</span>
-                  {tip}
-                </p>
-              ))}
-            </section>
-
-            <section className={`${CARD} gap-2`}>
-              <h2 className="text-[15px] font-bold leading-[22px] text-[#0f172a]">What happens next</h2>
-              {NEXT_STEPS.map((step, index) => (
-                <p key={step} className="flex items-center gap-2.5 text-[13px] leading-[19px] text-[#334155]">
-                  <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[#eff5ff] text-[11px] font-bold leading-4 text-brand-900">{index + 1}</span>
-                  {step}
-                </p>
-              ))}
-            </section>
-
-            <section className="flex flex-col gap-2 rounded-2xl border border-gray-200 bg-[#f8fafc] p-5">
-              <h2 className="text-[15px] font-bold leading-[22px] text-[#0f172a]">Bigger job?</h2>
-              <p className="text-xs leading-[17px] text-gray-500">Concierge can scope a renovation, find 3 vetted contractors and manage the work.</p>
-              <Button variant="outline" onClick={() => router.push("/concierge/new")} className="h-[38px] rounded-[10px] lg:rounded-[10px]">
-                Start with Concierge
-              </Button>
-            </section>
-          </DetailAside>
+          {error && <p className="text-sm text-[#dc2626]">{error}</p>}
+          <button type="button" disabled={createRequest.isPending} onClick={submit} className="h-12 w-fit rounded-[10px] bg-brand-900 px-6 text-sm font-medium text-white disabled:opacity-60">
+            {createRequest.isPending ? "Sending…" : "Send request"}
+          </button>
         </div>
       </PageContainer>
     </AppShell>

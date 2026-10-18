@@ -1,31 +1,62 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/shared/AppShell";
-import { PageContainer } from "@/components/shared/PageContainer";
 import { NavIcon } from "@/components/shared/NavIcon";
-import { ServiceCard } from "@/components/shared/ServiceCard";
+import { OfferingCard } from "@/components/shared/OfferingCard";
+import { PageContainer } from "@/components/shared/PageContainer";
 import { ServicesRail } from "@/components/shared/ServicesRail";
 import { Button } from "@/components/ui/Button";
-import { comingSoonHref } from "@/lib/coming-soon";
-import { SERVICE_CATEGORIES, SERVICES, type ServiceCategory } from "@/lib/dummy-services";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { useOfferings, useTaxonomy, useTradeSuggestions } from "@/hooks/useServices";
+import { errorMessage } from "@/lib/errors";
 import { cn } from "@/lib/utils";
+
+const SORTS = [
+  { value: "", label: "Newest" },
+  { value: "priceAsc", label: "Price: low to high" },
+  { value: "priceDesc", label: "Price: high to low" },
+] as const;
+
+const FIELD = "h-12 min-w-0 rounded-xl border border-gray-200 bg-white px-3 text-sm text-[#0f172a] focus:border-brand-900 focus:outline-none";
 
 export default function ServicesPage() {
   const router = useRouter();
-  const [category, setCategory] = useState<ServiceCategory>("All");
-  const [query, setQuery] = useState("");
-  const comingSoon = (feature: string) => () => router.push(comingSoonHref(feature));
+  const taxonomy = useTaxonomy();
+  const [text, setText] = useState("");
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("");
+  const [city, setCity] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+  const [sort, setSort] = useState<(typeof SORTS)[number]["value"]>("");
+  const [problem, setProblem] = useState("");
+  const suggestions = useTradeSuggestions(problem);
+  const sentinel = useRef<HTMLDivElement | null>(null);
 
-  const services = useMemo(() => {
-    const term = query.trim().toLowerCase();
-    return SERVICES.filter(
-      (service) =>
-        (category === "All" || service.category === category) &&
-        (!term || `${service.title} ${service.provider}`.toLowerCase().includes(term)),
-    );
-  }, [category, query]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSearch(text.trim()), 350);
+    return () => window.clearTimeout(timer);
+  }, [text]);
+
+  const max = Number(maxPrice);
+  const { items, total, isPending, isError, error, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } = useOfferings({
+    q: search || undefined,
+    category: category || undefined,
+    city: city.trim() || undefined,
+    maxPrice: maxPrice.trim() && Number.isFinite(max) ? max : undefined,
+    sort: sort || undefined,
+  });
+
+  useEffect(() => {
+    const node = sentinel.current;
+    if (!node || !hasNextPage) return;
+    const observer = new IntersectionObserver((entries) => entries.some((entry) => entry.isIntersecting) && !isFetchingNextPage && void fetchNextPage(), { rootMargin: "400px" });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage, items.length]);
+
+  const categories = [...(taxonomy.data?.professions ?? []), ...(taxonomy.data?.trades ?? [])];
 
   return (
     <AppShell activeKey="services" activeChildKey="services" contentFullWidth rightRail={<ServicesRail />}>
@@ -33,72 +64,90 @@ export default function ServicesPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <h1 className="text-2xl font-bold leading-8 text-[#0f172a]">Services</h1>
-            <p className="text-sm leading-5 text-gray-500">
-              Priced services from professionals, artisans and companies. Compare what’s included before you book.
-            </p>
+            <p className="text-sm leading-5 text-gray-500">Priced services from professionals, artisans and companies. Compare what is included before you book.</p>
           </div>
-          <Button
-            variant="outline"
-            onClick={comingSoon("Offer a service")}
-            className="h-10 w-auto shrink-0 self-start rounded-[10px] px-4 sm:self-auto lg:rounded-[10px]"
-          >
+          <Button variant="outline" onClick={() => router.push("/manage/provider")} className="h-10 w-auto shrink-0 self-start rounded-[10px] px-4 sm:self-auto lg:rounded-[10px]">
             Offer a service
           </Button>
+        </div>
+
+        <div className="flex flex-col gap-2 rounded-2xl bg-[#eff5ff] p-4">
+          <label className="flex flex-col gap-1.5 text-[13px] font-semibold text-brand-900">
+            Not sure who to hire? Describe the problem
+            <input value={problem} onChange={(event) => setProblem(event.target.value)} placeholder="e.g. the socket sparks when I plug in the kettle" className={cn(FIELD, "h-11 font-normal")} />
+          </label>
+          {(suggestions.data?.length ?? 0) > 0 && (
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-wrap items-center gap-2 text-[13px]">
+                <span className="text-brand-900">Try:</span>
+                {suggestions.data?.slice(0, 4).map((item) => (
+                  <button key={item.trade} type="button" onClick={() => setCategory(item.trade ?? "")} className="rounded-full bg-white px-3 py-1 font-medium text-brand-900 shadow-sm hover:bg-gray-50">
+                    {item.trade}
+                  </button>
+                ))}
+              </div>
+              {suggestions.data?.some((item) => item.warning) && <p className="rounded-lg bg-[#fef3c7] p-2.5 text-xs leading-[17px] text-[#b45309]">{suggestions.data.find((item) => item.warning)?.warning}</p>}
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row">
           <label className="flex h-12 min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-gray-200 bg-white px-4">
             <NavIcon icon="/icons/search-02.svg" size={15} className="shrink-0 bg-gray-500" />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search services, e.g. “site survey” or “deep cleaning”"
-              aria-label="Search services"
-              className="min-w-0 flex-1 bg-transparent text-sm text-[#0f172a] placeholder:text-[#94a3b8] focus:outline-none"
-            />
+            <input value={text} onChange={(event) => setText(event.target.value)} placeholder="Search services" aria-label="Search services" className="min-w-0 flex-1 bg-transparent text-sm focus:outline-none" />
           </label>
-          <button
-            type="button"
-            onClick={comingSoon("Price filter")}
-            className="flex h-12 flex-col items-start justify-center rounded-xl border border-gray-200 bg-white px-4 text-left sm:w-[140px]"
-          >
-            <span className="text-[11px] font-medium leading-[14px] text-gray-500">Price</span>
-            <span className="text-sm font-medium leading-5 text-[#0f172a]">Any</span>
-          </button>
+          <input value={city} onChange={(event) => setCity(event.target.value)} placeholder="City" aria-label="City" className={cn(FIELD, "sm:w-[140px]")} />
+          <input value={maxPrice} onChange={(event) => setMaxPrice(event.target.value)} placeholder="Max price (GHS)" inputMode="numeric" aria-label="Maximum price" className={cn(FIELD, "sm:w-[150px]")} />
+          <select value={sort} onChange={(event) => setSort(event.target.value as typeof sort)} aria-label="Sort" className={cn(FIELD, "sm:w-[170px]")}>
+            {SORTS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div role="tablist" aria-label="Service category" className="flex flex-wrap gap-2">
-          {SERVICE_CATEGORIES.map((item) => {
-            const active = item === category;
-            return (
-              <button
-                key={item}
-                type="button"
-                role="tab"
-                aria-selected={active}
-                onClick={() => setCategory(item)}
-                className={cn(
-                  "whitespace-nowrap rounded-full px-3.5 py-2 text-[13px] font-medium leading-[18px]",
-                  active ? "bg-brand-900 text-white" : "border border-gray-200 bg-white text-[#334155] hover:bg-gray-50",
-                )}
-              >
-                {item}
-              </button>
-            );
-          })}
+          {["", ...categories].map((item) => (
+            <button
+              key={item || "all"}
+              type="button"
+              role="tab"
+              aria-selected={item === category}
+              onClick={() => setCategory(item)}
+              className={cn("whitespace-nowrap rounded-full px-3.5 py-2 text-[13px] font-medium leading-[18px]", item === category ? "bg-brand-900 text-white" : "border border-gray-200 bg-white text-[#334155] hover:bg-gray-50")}
+            >
+              {item || "All"}
+            </button>
+          ))}
         </div>
 
-        {services.length > 0 ? (
-          <div className="flex flex-col gap-6">
-            {services.map((service) => (
-              <ServiceCard key={service.id} service={service} />
+        <p className="text-sm font-medium text-[#0f172a]">{isPending ? "Searching…" : `${total} ${total === 1 ? "service" : "services"}`}</p>
+
+        {isPending && (
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(min(280px,100%),1fr))] gap-4">
+            {[0, 1, 2].map((n) => (
+              <Skeleton key={n} className="h-[300px] rounded-2xl" />
             ))}
           </div>
-        ) : (
-          <p className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500">
-            No services match your search.
-          </p>
         )}
+        {isError && (
+          <div className="flex flex-col items-center gap-3 rounded-2xl border border-gray-200 bg-white p-8 text-center">
+            <p className="text-sm text-gray-500">{errorMessage(error)}</p>
+            <button type="button" onClick={() => void refetch()} className="text-sm font-medium text-brand-900">
+              Try again
+            </button>
+          </div>
+        )}
+        {!isPending && !isError && items.length === 0 && <p className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500">No services match your search.</p>}
+        {items.length > 0 && (
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(min(280px,100%),1fr))] gap-4">
+            {items.map((offering) => (
+              <OfferingCard key={offering.id} offering={offering} />
+            ))}
+          </div>
+        )}
+        {hasNextPage && <div ref={sentinel} aria-hidden="true" className="h-px" />}
 
         <div className="xl:hidden">
           <ServicesRail />
