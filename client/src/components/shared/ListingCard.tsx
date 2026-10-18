@@ -90,7 +90,7 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
         <div className="mt-auto flex w-full gap-2 pt-1">
           <Button
             variant="primary"
-            onClick={() => (listing.cta === VIEWING_CTA ? setViewingOpen(true) : router.push(comingSoonHref(listing.cta)))}
+            onClick={() => (listing.ctaHref ? router.push(listing.ctaHref) : listing.cta === VIEWING_CTA ? setViewingOpen(true) : router.push(comingSoonHref(listing.cta)))}
             className={cn(
               "h-10 min-w-0 flex-1 whitespace-nowrap rounded-[10px] px-4 lg:rounded-[10px]",
               listing.secondaryCta && "px-2 text-[13px]",
