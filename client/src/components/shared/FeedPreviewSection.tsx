@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { PostCard } from "@/components/shared/PostCard";
-import { usePostsFeed } from "@/context/PostsContext";
-import { FEED_POSTS } from "@/lib/dummy-posts";
+import { PostCardSkeleton } from "@/components/shared/PostCardSkeleton";
+import { useFeed } from "@/hooks/useFeed";
 
 const PREVIEW_COUNT = 2;
 
@@ -12,8 +12,8 @@ const PREVIEW_COUNT = 2;
  * top-of-feed posts a viewer would see first on "/feed" (their own posts,
  * newest first, then the dummy stream), just capped to the top two. */
 export function FeedPreviewSection() {
-  const { posts: userPosts } = usePostsFeed();
-  const previewPosts = [...userPosts, ...FEED_POSTS].slice(0, PREVIEW_COUNT);
+  const { posts, isPending, isError } = useFeed({}, { pageSize: PREVIEW_COUNT });
+  const previewPosts = posts.slice(0, PREVIEW_COUNT);
 
   return (
     <section className="flex w-full flex-col gap-3">
@@ -26,6 +26,11 @@ export function FeedPreviewSection() {
       </div>
 
       <div className="flex w-full flex-col gap-[15px]">
+        {isPending && <PostCardSkeleton />}
+        {isError && <p className="text-[13px] text-gray-500">We could not load your feed right now.</p>}
+        {!isPending && !isError && previewPosts.length === 0 && (
+          <p className="text-[13px] text-gray-500">No posts yet. Follow people or share something to get started.</p>
+        )}
         {previewPosts.map((post) => (
           <PostCard key={post.id} post={post} />
         ))}

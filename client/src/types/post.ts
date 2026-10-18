@@ -19,6 +19,14 @@ export interface MediaItem {
   isVideo?: boolean;
 }
 
+export interface PollState {
+  options: { id: string; label: string; voteCount: number }[];
+  totalVotes: number;
+  myVoteOptionId: string | null;
+  closesAt: string | null;
+  isClosed: boolean;
+}
+
 export type PostVariant = "text" | "poll" | "property" | "stay" | "project" | "professional" | "artisan";
 
 export interface PostCardData {
@@ -29,6 +37,11 @@ export interface PostCardData {
   postedAt: string;
   avatar: string;
   avatarPlaceholder?: boolean;
+  authorId?: string;
+  likedByMe?: boolean;
+  poll?: PollState;
+  /** Id of the listing, property or service this post advertises, when the route differs from the post id. */
+  linkId?: string;
   /** Published by the signed-in user, so the options menu offers owner actions. */
   isOwn?: boolean;
   verified?: "individual" | "organization";

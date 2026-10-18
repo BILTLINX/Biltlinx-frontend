@@ -128,8 +128,9 @@ export function PostOptionsControl({
         }}
         onConfirm={() => {
           setDeleteOpen(false);
-          removePost(post.id);
-          showSuccessToast("Post deleted");
+          void removePost(post.id).then((deleted) => {
+            if (deleted) showSuccessToast("Post deleted");
+          });
         }}
       />
       <WhySeeingPostModal

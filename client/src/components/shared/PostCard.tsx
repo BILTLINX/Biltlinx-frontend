@@ -8,21 +8,20 @@ import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/Button";
 import { BookmarkIcon } from "@/components/shared/BookmarkIcon";
 import { FollowButton } from "@/components/shared/FollowButton";
-import { LikesBottomSheet } from "@/components/shared/LikesBottomSheet";
 import { MediaLoadError } from "@/components/shared/MediaLoadError";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { PostOptionsControl } from "@/components/shared/PostOptionsControl";
 import { RequestViewingModal } from "@/components/shared/RequestViewingModal";
-import { CommentsModal, DEFAULT_COMMENTS } from "@/components/shared/PostComments";
+import { CommentsModal } from "@/components/shared/PostComments";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useMediaLoadState } from "@/hooks/useMediaLoadState";
+import { useFollowAccount } from "@/hooks/useFollowAccount";
+import { usePostLike, usePostPoll } from "@/hooks/usePostState";
 import { Tooltip } from "@/components/shared/Tooltip";
 import { comingSoonHref } from "@/lib/coming-soon";
 import { renderWithHashtags } from "@/lib/hashtags";
-import { buildLikerNames } from "@/lib/likes";
 import { sharePost } from "@/lib/post-actions";
 import { cn } from "@/lib/utils";
-import type { CommentAttachments, CommentItem } from "@/types/comment";
 import type { MediaItem, PostCardData } from "@/types/post";
 
 export function getMediaItems(post: PostCardData): MediaItem[] {
@@ -40,22 +39,10 @@ interface PostCardProps {
 
 export function PostCard({ post }: PostCardProps) {
   const [showComments, setShowComments] = useState(false);
-  const [comments, setComments] = useState<CommentItem[]>(post.commentsList ?? DEFAULT_COMMENTS);
-  const [commentDraft, setCommentDraft] = useState("");
   const [textExpanded, setTextExpanded] = useState(false);
   const [saved, setSaved] = useState(false);
+  const like = usePostLike(post);
   const mediaItems = getMediaItems(post);
-
-  const submitComment = ({ image, audio }: CommentAttachments) => {
-    const text = commentDraft.trim();
-    if (!text && !image && !audio) return;
-    setComments((current) => [
-      { id: `local-${Date.now()}`, authorName: "You", postedAt: "Just now", text, image, audio },
-      ...current,
-    ]);
-    setCommentDraft("");
-    setShowComments(true);
-  };
 
   return (
     <article className="flex w-full flex-col gap-[15px] rounded-[29px] border border-gray-200 bg-white p-[15px] sm:rounded-[15px]">
@@ -102,19 +89,12 @@ export function PostCard({ post }: PostCardProps) {
 
       <div className="h-px w-full bg-gray-200" />
 
-      <PostStatsBar post={post} saved={saved} onToggleSave={() => setSaved((v) => !v)} showComments={showComments} onToggleComments={() => setShowComments((v) => !v)} />
+      <PostStatsBar post={post} like={like} saved={saved} onToggleSave={() => setSaved((v) => !v)} showComments={showComments} onToggleComments={() => setShowComments((v) => !v)} />
 
       <CommentsModal
         open={showComments}
-        comments={comments}
-        commentDraft={commentDraft}
-        setCommentDraft={setCommentDraft}
-        submitComment={submitComment}
-        showComposer={post.showComposer ?? false}
-        likeCount={post.likes}
-        commentsCount={post.comments}
-        shareLabel={post.shareLabel}
-        sharesCount={post.shares}
+        post={post}
+        like={like}
         onShare={() => sharePost(post)}
         onClose={() => setShowComments(false)}
       />
@@ -123,7 +103,7 @@ export function PostCard({ post }: PostCardProps) {
 }
 
 function PostHeader({ post, saved, onToggleSave }: { post: PostCardData; saved: boolean; onToggleSave: () => void }) {
-  const [following, setFollowing] = useState(false);
+  const { following, toggle: toggleFollow } = useFollowAccount(post.authorId);
 
   return (
     <div className="flex w-full items-center justify-between">
@@ -166,15 +146,15 @@ function PostHeader({ post, saved, onToggleSave }: { post: PostCardData; saved: 
         </div>
       </div>
       <div className="flex items-center gap-4">
-        {post.variant !== "poll" && (
-          <PostFollowButton following={following} onToggle={() => setFollowing((v) => !v)} name={post.authorName} />
+        {post.variant !== "poll" && !post.isOwn && (
+          <PostFollowButton following={following} onToggle={toggleFollow} name={post.authorName} />
         )}
         <PostOptionsControl
           post={post}
           saved={saved}
           onToggleSave={onToggleSave}
           following={following}
-          onToggleFollow={() => setFollowing((v) => !v)}
+          onToggleFollow={toggleFollow}
           className="relative block size-[23px] shrink-0"
         >
           <Image src="/icons/more-horizontal.svg" alt="" fill sizes="23px" className="sm:hidden" />
@@ -398,33 +378,15 @@ function MediaLightbox({
   );
 }
 
-function parseVoteCount(votes: string) {
-  return Number(votes.replace(/,/g, "")) || 0;
-}
-
 function PollBody({ post }: { post: PostCardData }) {
-  const [counts, setCounts] = useState(() => post.pollOptions?.map((option) => parseVoteCount(option.votes)) ?? []);
-  const [votedIndex, setVotedIndex] = useState<number | null>(null);
+  const { poll, vote, pending } = usePostPoll(post);
   const [questionExpanded, setQuestionExpanded] = useState(false);
 
-  const total = counts.reduce((sum, count) => sum + count, 0);
-  const leadingIndex = counts.length
-    ? counts.reduce((leader, count, index) => (count > counts[leader] ? index : leader), 0)
-    : -1;
-
-  function handleVote(index: number) {
-    setCounts((current) => {
-      const next = [...current];
-      if (votedIndex === index) {
-        next[index] -= 1;
-      } else {
-        if (votedIndex !== null) next[votedIndex] -= 1;
-        next[index] += 1;
-      }
-      return next;
-    });
-    setVotedIndex((current) => (current === index ? null : index));
-  }
+  const options = poll?.options ?? [];
+  const counts = options.map((option) => option.voteCount);
+  const total = poll?.totalVotes ?? 0;
+  const leadingCount = counts.reduce((best, count) => Math.max(best, count), 0);
+  const votedId = poll?.myVoteOptionId ?? null;
 
   return (
     <div className="flex w-full flex-col gap-[15px]">
@@ -457,18 +419,19 @@ function PollBody({ post }: { post: PostCardData }) {
         </div>
       )}
 
-      {post.pollOptions && (
+      {poll && (
         <div className="flex w-full flex-col gap-[15px] rounded-[15px] border border-gray-200 p-[15px]">
           <div className="flex w-full flex-col gap-2">
-            {post.pollOptions.map((option, index) => {
+            {options.map((option, index) => {
               const percent = total > 0 ? Math.round((counts[index] / total) * 100) : 0;
-              const leading = index === leadingIndex && counts[index] > 0;
-              const voted = index === votedIndex;
+              const leading = leadingCount > 0 && counts[index] === leadingCount;
+              const voted = option.id === votedId;
               return (
                 <button
-                  key={option.label}
+                  key={option.id}
                   type="button"
-                  onClick={() => handleVote(index)}
+                  onClick={() => vote(option.id)}
+                  disabled={pending || poll.isClosed}
                   aria-pressed={voted}
                   aria-label={`Vote for ${option.label}`}
                   className="flex w-full items-center justify-between text-[12px] sm:text-[13px]"
@@ -494,12 +457,10 @@ function PollBody({ post }: { post: PostCardData }) {
               );
             })}
           </div>
-          {post.pollFooter && (
-            <p className="text-left text-[11px] font-medium text-gray-600">
-              {post.pollFooter.split(" — ")[0]} — {total.toLocaleString()} votes total
-              {votedIndex !== null && " · you voted"}
-            </p>
-          )}
+          <p className="text-left text-[11px] font-medium text-gray-600">
+            {poll.isClosed ? "Closed" : "Open"} — {total.toLocaleString()} {total === 1 ? "vote" : "votes"} total
+            {votedId !== null && " · you voted"}
+          </p>
         </div>
       )}
     </div>
@@ -564,7 +525,7 @@ function ActionsRow({ post }: { post: PostCardData }) {
   const [primary, secondary] = post.actions ?? [];
   // Property posts open their own detail page; other variants' secondary actions aren't built yet.
   const opensViewing = post.variant === "property" && primary?.label === "Request viewing";
-  const secondaryHref = post.variant === "property" ? `/properties/${post.id}` : comingSoonHref(secondary?.label ?? "");
+  const secondaryHref = post.variant === "property" ? `/properties/${post.linkId ?? post.id}` : comingSoonHref(secondary?.label ?? "");
   return (
     <div className="flex w-full flex-wrap items-center justify-between gap-2">
       <div className="flex flex-wrap items-center gap-2 sm:gap-4">
@@ -613,22 +574,20 @@ function ActionsRow({ post }: { post: PostCardData }) {
 
 export function PostStatsBar({
   post,
+  like,
   saved,
   onToggleSave,
   showComments,
   onToggleComments,
 }: {
   post: PostCardData;
+  like: { liked: boolean; count: number; toggle: () => void };
   saved: boolean;
   onToggleSave: () => void;
   showComments: boolean;
   onToggleComments: () => void;
 }) {
-  const [liked, setLiked] = useState(false);
-  const [likesSheetOpen, setLikesSheetOpen] = useState(false);
-
-  const likeCount = post.likes + (liked ? 1 : 0);
-  const likerNames = buildLikerNames(likeCount);
+  const { liked, count: likeCount, toggle: toggleLike } = like;
 
   return (
     <div className="flex w-full flex-col gap-2">
@@ -639,7 +598,7 @@ export function PostStatsBar({
             className="flex items-center gap-2"
             aria-pressed={liked}
             aria-label={`${likeCount} Likes`}
-            onClick={() => setLiked((v) => !v)}
+            onClick={toggleLike}
           >
             <NavIcon
               key={liked ? "liked" : "unliked"}
@@ -689,40 +648,6 @@ export function PostStatsBar({
         </button>
       </div>
 
-      {likeCount > 0 && (
-        <button
-          type="button"
-          onClick={() => setLikesSheetOpen(true)}
-          className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-start"
-        >
-          <p className="min-w-0 flex-1 truncate text-left text-[11px] text-gray-600 sm:flex-none">
-            Liked by <span className="font-bold text-brand-900">{likerNames[0]}</span>
-            {likeCount > 1 && (
-              <>
-                {" "}
-                and <span className="font-bold text-brand-900">{likeCount - 1} others</span>
-              </>
-            )}
-          </p>
-          <span className="flex shrink-0 items-center -space-x-2 sm:order-first sm:mr-1">
-            {[0, 1, 2].map((avatar) => (
-              <span
-                key={avatar}
-                className="relative block size-[22px] shrink-0 overflow-hidden rounded-full bg-[#eef2ff] ring-2 ring-white"
-              >
-                <Image src="/icons/avatar-placeholder-user.svg" alt="" fill sizes="22px" className="p-0.5" />
-              </span>
-            ))}
-            {likeCount > 3 && (
-              <span className="relative flex size-[22px] shrink-0 items-center justify-center rounded-full bg-night-900 text-[8px] font-bold text-white ring-2 ring-white">
-                +{likeCount - 3}
-              </span>
-            )}
-          </span>
-        </button>
-      )}
-
-      <LikesBottomSheet open={likesSheetOpen} onClose={() => setLikesSheetOpen(false)} names={likerNames} />
     </div>
   );
 }
