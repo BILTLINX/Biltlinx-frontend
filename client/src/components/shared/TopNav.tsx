@@ -11,11 +11,12 @@ import { NavIcon } from "@/components/shared/NavIcon";
 import { VisibilityRow } from "@/components/shared/VisibilityRow";
 import { Tooltip } from "@/components/shared/Tooltip";
 import { usePostModals } from "@/hooks/usePostModals";
-import { logout } from "@/lib/auth-api";
+import { useSession } from "@/context/SessionContext";
 import { comingSoonHref } from "@/lib/coming-soon";
 
 export function TopNav() {
   const router = useRouter();
+  const { signOut } = useSession();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [createMenuOpen, setCreateMenuOpen] = useState(false);
@@ -32,7 +33,7 @@ export function TopNav() {
   async function handleLogout() {
     setMenuOpen(false);
     try {
-      await logout();
+      await signOut();
     } catch {
       // session may already be gone; leave the page regardless
     }
