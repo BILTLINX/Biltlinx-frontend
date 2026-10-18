@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { comingSoonHref } from "@/lib/coming-soon";
 
 const CARD = "flex flex-col gap-2.5 rounded-2xl border border-gray-200 bg-white p-4";
 const ROUNDED_BUTTON = "rounded-[10px] lg:rounded-[10px]";
@@ -28,7 +27,7 @@ export function StayRail() {
         <p className="text-xs leading-[17px] text-gray-500">
           List your apartment or hotel rooms, manage your calendar and get paid through Biltlinx.
         </p>
-        <Button variant="primary" onClick={() => router.push(comingSoonHref("List your stay"))} className={ROUNDED_BUTTON}>
+        <Button variant="primary" onClick={() => router.push("/manage/stay/new")} className={ROUNDED_BUTTON}>
           List your stay
         </Button>
       </section>
