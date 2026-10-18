@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Lexend, Onest, Plus_Jakarta_Sans, Rubik } from "next/font/google";
 import { Toaster } from "react-hot-toast";
+import { CompareProvider } from "@/context/CompareContext";
 import { PostsProvider } from "@/context/PostsContext";
 import "./globals.css";
 
@@ -27,7 +28,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${plusJakartaSans.variable} ${inter.variable} ${lexend.variable} ${onest.variable} ${rubik.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <PostsProvider>{children}</PostsProvider>
+        <PostsProvider>
+          <CompareProvider>{children}</CompareProvider>
+        </PostsProvider>
         <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
       </body>
     </html>

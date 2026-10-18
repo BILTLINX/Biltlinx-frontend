@@ -4,7 +4,10 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/shared/AppShell";
 import { showSuccessToast } from "@/components/shared/AppToast";
+import { BillingTab } from "@/components/shared/BillingTab";
+import { GeneralSettingsTab } from "@/components/shared/GeneralSettingsTab";
 import { NavIcon } from "@/components/shared/NavIcon";
+import { SecurityTab } from "@/components/shared/SecurityTab";
 import { cn } from "@/lib/utils";
 
 const TABS = ["Profile", "Security", "Billings", "General Settings"] as const;
@@ -82,6 +85,12 @@ export default function AccountSettingsPage() {
         <div className="rounded-2xl border border-gray-200 bg-white p-3">
           {tab === "Profile" ? (
             <ProfileTab personal={personal} address={address} onSavePersonal={setPersonal} onSaveAddress={setAddress} />
+          ) : tab === "Security" ? (
+            <SecurityTab />
+          ) : tab === "Billings" ? (
+            <BillingTab />
+          ) : tab === "General Settings" ? (
+            <GeneralSettingsTab />
           ) : (
             <p className="px-4 py-16 text-center text-sm text-gray-500">{tab} is coming soon.</p>
           )}

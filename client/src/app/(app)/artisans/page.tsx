@@ -1,0 +1,129 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
+import { AppShell } from "@/components/shared/AppShell";
+import { PageContainer } from "@/components/shared/PageContainer";
+import { ArtisansRail } from "@/components/shared/ArtisansRail";
+import { NavIcon } from "@/components/shared/NavIcon";
+import { ProviderCard } from "@/components/shared/ProviderCard";
+import { Button } from "@/components/ui/Button";
+import { comingSoonHref } from "@/lib/coming-soon";
+import { ARTISAN_TRADES, ARTISANS, AVAILABLE_TODAY_CHIP, type ArtisanTrade } from "@/lib/dummy-artisans";
+import { cn } from "@/lib/utils";
+
+const CHIP_BASE = "whitespace-nowrap rounded-full px-3.5 py-2 text-[13px] font-medium leading-[18px]";
+
+export default function ArtisansPage() {
+  const router = useRouter();
+  const [trade, setTrade] = useState<ArtisanTrade>("All trades");
+  const [availableToday, setAvailableToday] = useState(false);
+  const [query, setQuery] = useState("");
+  const comingSoon = (feature: string) => () => router.push(comingSoonHref(feature));
+
+  const artisans = useMemo(() => {
+    const term = query.trim().toLowerCase();
+    return ARTISANS.filter(
+      (artisan) =>
+        (trade === "All trades" || artisan.trade === trade) &&
+        (!availableToday || artisan.availableToday) &&
+        (!term || `${artisan.name} ${artisan.role} ${artisan.summary}`.toLowerCase().includes(term)),
+    );
+  }, [trade, availableToday, query]);
+
+  return (
+    <AppShell activeKey="people" activeChildKey="artisans" contentFullWidth rightRail={<ArtisansRail />}>
+      <PageContainer>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <h1 className="text-2xl font-bold leading-8 text-[#0f172a]">Artisans</h1>
+            <p className="text-sm leading-5 text-gray-500">
+              Masons, electricians, plumbers, carpenters and more, near you.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={comingSoon("Join as an artisan")}
+            className="h-10 w-auto shrink-0 self-start rounded-[10px] px-4 sm:self-auto lg:rounded-[10px]"
+          >
+            Join as an artisan
+          </Button>
+        </div>
+
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <label className="flex h-12 min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-gray-200 bg-white px-4">
+            <NavIcon icon="/icons/search-02.svg" size={15} className="shrink-0 bg-gray-500" />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search a trade or a job, e.g. “fix leaking tap”"
+              aria-label="Search artisans"
+              className="min-w-0 flex-1 bg-transparent text-sm text-[#0f172a] placeholder:text-[#94a3b8] focus:outline-none"
+            />
+          </label>
+          <button
+            type="button"
+            onClick={comingSoon("Location filter")}
+            className="flex h-12 flex-col items-start justify-center rounded-xl border border-gray-200 bg-white px-4 text-left sm:w-[200px]"
+          >
+            <span className="text-[11px] font-medium leading-[14px] text-gray-500">Near</span>
+            <span className="flex items-center gap-2 text-sm font-medium leading-5 text-[#0f172a]">
+              <NavIcon icon="/icons/post-options-location.svg" size={14} className="bg-[#0f172a]" />
+              Dzorwulu, Accra
+            </span>
+          </button>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {ARTISAN_TRADES.map((item) => {
+            const active = item === trade;
+            return (
+              <button
+                key={item}
+                type="button"
+                aria-pressed={active}
+                onClick={() => setTrade(item)}
+                className={cn(
+                  CHIP_BASE,
+                  active ? "bg-brand-900 text-white" : "border border-gray-200 bg-white text-[#334155] hover:bg-gray-50",
+                )}
+              >
+                {item}
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            aria-pressed={availableToday}
+            onClick={() => setAvailableToday((v) => !v)}
+            className={cn(
+              CHIP_BASE,
+              "border",
+              availableToday
+                ? "border-brand-900 bg-[#eff5ff] text-brand-900"
+                : "border-gray-200 bg-white text-[#334155] hover:bg-gray-50",
+            )}
+          >
+            {AVAILABLE_TODAY_CHIP}
+          </button>
+        </div>
+
+        {artisans.length > 0 ? (
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(min(320px,100%),1fr))] gap-4">
+            {artisans.map((artisan) => (
+              <ProviderCard key={artisan.id} provider={artisan} />
+            ))}
+          </div>
+        ) : (
+          <p className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500">
+            No artisans match your search.
+          </p>
+        )}
+
+        <div className="xl:hidden">
+          <ArtisansRail />
+        </div>
+      </PageContainer>
+    </AppShell>
+  );
+}

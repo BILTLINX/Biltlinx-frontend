@@ -29,6 +29,8 @@ export interface PostCardData {
   postedAt: string;
   avatar: string;
   avatarPlaceholder?: boolean;
+  /** Published by the signed-in user, so the options menu offers owner actions. */
+  isOwn?: boolean;
   verified?: "individual" | "organization";
   text?: string;
   truncated?: boolean;

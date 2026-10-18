@@ -1,6 +1,5 @@
 import Image from "next/image";
 import Link from "next/link";
-import { comingSoonHref } from "@/lib/coming-soon";
 
 /** Right-rail promo card pointing to the (not-yet-built) concierge flow. */
 export function ConciergeCard() {
@@ -18,7 +17,7 @@ export function ConciergeCard() {
       </div>
 
       <Link
-        href={comingSoonHref("Concierge")}
+        href="/concierge/new"
         className="flex h-[38px] w-full items-center justify-center rounded-lg bg-brand-900 text-[13px] font-medium text-white hover:bg-brand-900/90"
       >
         Start with a Concierge

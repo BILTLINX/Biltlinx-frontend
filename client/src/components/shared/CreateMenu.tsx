@@ -8,6 +8,11 @@ import { VisibilityRow } from "@/components/shared/VisibilityRow";
 import { comingSoonHref } from "@/lib/coming-soon";
 import { cn } from "@/lib/utils";
 
+/** Where a menu entry goes: Post a Request has its own page; the rest are not built yet. */
+function menuItemHref(item: { key: string; label: string }) {
+  return item.key === "request" ? "/request-board/new" : comingSoonHref(item.label);
+}
+
 interface DesktopSubmenuItem {
   key: string;
   icon: string;
@@ -140,7 +145,7 @@ function DesktopMenuRow({
 
   return (
     <Link
-      href={comingSoonHref(item.label)}
+      href={menuItemHref(item)}
       onClick={onNavigate}
       className="flex w-full items-center gap-3 rounded-xl px-3 py-2 hover:bg-[#f8fafc]"
     >
@@ -283,7 +288,7 @@ function MobileMenuRow({
   if (!item.submenu) {
     return (
       <Link
-        href={comingSoonHref(item.label)}
+        href={menuItemHref(item)}
         onClick={onNavigate}
         className={MOBILE_ROW_CLASS}
       >

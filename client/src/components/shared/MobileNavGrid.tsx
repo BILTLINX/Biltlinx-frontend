@@ -2,11 +2,7 @@
 
 import Link from "next/link";
 import { NavIcon } from "@/components/shared/NavIcon";
-import { NAV_ITEMS } from "@/components/shared/nav-items";
-
-const ALL_CHILDREN = NAV_ITEMS.flatMap((item) =>
-  (item.children ?? []).map((child) => ({ ...child, parentKey: item.key })),
-);
+import { NAV_DESTINATIONS } from "@/components/shared/nav-items";
 
 interface MobileNavGridProps {
   open: boolean;
@@ -22,10 +18,10 @@ export function MobileNavGrid({ open, onClose, activeKey, activeChildKey }: Mobi
 
   return (
     <div className="fixed bottom-4 left-24 right-4 z-40 grid grid-cols-4 gap-x-3 gap-y-4 rounded-[32px] border-2 border-white bg-[#e6e6e6] p-4 shadow-[0px_24px_48px_-12px_rgba(0,0,0,0.25)] lg:hidden">
-      {ALL_CHILDREN
+      {NAV_DESTINATIONS
         // The active item is already shown by the menu button's own icon, so
         // it's left out of the grid.
-        .filter((child) => !(child.parentKey === activeKey && child.key === activeChildKey))
+        .filter((child) => !(child.parentKey === activeKey && (child.key === activeChildKey || child.key === activeKey)))
         .map((child) => (
           <Link
             key={`${child.parentKey}-${child.key}`}

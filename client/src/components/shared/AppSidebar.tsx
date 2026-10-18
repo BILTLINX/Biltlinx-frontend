@@ -109,16 +109,19 @@ export function AppSidebar({
     <aside
       ref={asideRef}
       className={cn(
-        "hidden h-full shrink-0 flex-col gap-[11px] border border-gray-200 bg-white py-4 transition-[width,padding] duration-200 ease-in-out lg:flex",
-        collapsed ? "w-20 px-3" : "w-[228px] px-[17px]",
+        "hidden h-full shrink-0 flex-col gap-3 border-r border-gray-200 bg-white pb-[17px] pt-6 transition-[width,padding] duration-200 ease-in-out lg:flex",
+        collapsed ? "w-20 px-3" : "w-[240px] px-[18px]",
       )}
       aria-label="Primary navigation"
     >
-      <nav className="no-scrollbar flex flex-1 flex-col items-start gap-0 overflow-y-auto">
+      <nav className="no-scrollbar flex flex-1 flex-col items-start gap-1 overflow-y-auto">
         {NAV_ITEMS.map((item) => {
           const hasChildren = !!item.children?.length;
           const isOpen = hasChildren && openKey === item.key;
           const isActive = item.key === activeKey;
+          // Expanded groups mark their active child instead of the header; childless items and the
+          // icon-only rail (which hides children) mark the item itself.
+          const highlighted = isActive && (!hasChildren || collapsed);
 
           return (
             <div
@@ -144,15 +147,16 @@ export function AppSidebar({
                   }
                 }}
                 className={cn(
-                  "group relative flex h-[53px] w-full items-center gap-1 rounded-[11px] py-[11px] text-[13px] font-medium",
-                  collapsed ? "justify-center px-1" : "justify-between px-[15px]",
-                  isActive ? "bg-brand-600 text-white" : "text-night-700 hover:bg-gray-50",
+                  "group relative flex h-12 w-full items-center rounded-xl text-sm",
+                  collapsed ? "justify-center px-1" : "gap-3 pl-4 pr-3",
+                  highlighted ? "bg-[#eff5ff] font-medium text-brand-900" : "text-[#334154] hover:bg-gray-50",
+                  isOpen && !collapsed && "font-medium text-[#0f172a]",
                 )}
               >
-                <span className="flex items-center gap-2">
-                  <NavIcon icon={item.icon} color={isActive ? "white" : "night"} size={19} />
-                  {!collapsed && <span className="whitespace-nowrap">{item.label}</span>}
+                <span className="flex size-5 shrink-0 items-center justify-center">
+                  <NavIcon icon={item.icon} color={highlighted ? "brand" : "night"} size={item.iconSize ?? 20} />
                 </span>
+                {!collapsed && <span className="min-w-0 flex-1 truncate">{item.label}</span>}
                 {hasChildren && (
                   <span
                     role="button"
@@ -171,30 +175,25 @@ export function AppSidebar({
                     }}
                     className={cn(
                       "relative flex shrink-0 items-center justify-center transition-transform duration-150",
-                      collapsed ? "size-4" : "size-[23px]",
+                      collapsed ? "size-4" : "size-5",
                       isOpen && "rotate-90",
                     )}
                   >
                     <Image
-                      src={isActive ? "/icons/chevron-right.svg" : "/icons/chevron-right-gray.svg"}
+                      src="/icons/chevron-right-gray.svg"
                       alt=""
-                      width={collapsed ? 5 : 7}
-                      height={collapsed ? 10 : 13}
-                      className={cn("w-auto object-contain", collapsed ? "h-[10px]" : "h-[13px]")}
+                      width={5}
+                      height={10}
+                      className="h-[10px] w-auto object-contain"
                     />
                   </span>
                 )}
               </Link>
 
               {isOpen && item.children && !collapsed && (
-                <div className="flex w-full flex-col items-start pb-1">
+                <div className="flex w-full flex-col items-start pl-[18px]">
                   {item.children.map((child) => (
-                    <ChildLink
-                      key={child.key}
-                      child={child}
-                      isActive={child.key === activeChildKey}
-                      onNavigate={() => setOpenKey(null)}
-                    />
+                    <SubItem key={child.key} child={child} isActive={isActive && child.key === activeChildKey} />
                   ))}
                 </div>
               )}
@@ -221,12 +220,12 @@ export function AppSidebar({
         onBlur={() => setCollapseHovered(false)}
         aria-label={collapsed ? "Expand sidebar" : "Collapse bar"}
         className={cn(
-          "flex w-full items-center gap-[10px] rounded-[11px] py-[11px] text-[13px] text-text-secondary-dark hover:bg-gray-50",
-          collapsed ? "justify-center px-1" : "px-[15px]",
+          "flex w-full items-center gap-2.5 rounded-xl py-3 text-sm text-text-secondary-dark hover:bg-gray-50",
+          collapsed ? "justify-center px-1" : "pl-4",
         )}
       >
-        <span className="relative block size-[23px] shrink-0">
-          <Image src="/icons/collapse-bar.svg" alt="" fill sizes="23px" />
+        <span className="relative block size-5 shrink-0">
+          <Image src="/icons/collapse-bar.svg" alt="" fill sizes="20px" />
         </span>
         {!collapsed && <span className="whitespace-nowrap">Collapse bar</span>}
       </button>
@@ -282,6 +281,25 @@ export function AppSidebar({
           document.body,
         )}
     </aside>
+  );
+}
+
+/** An inline child of an expanded group: a dot marker and label, tinted blue when it's the current page. */
+function SubItem({ child, isActive }: { child: NavChildItem; isActive: boolean }) {
+  return (
+    <Link
+      href={child.href}
+      aria-current={isActive ? "page" : undefined}
+      className={cn(
+        "flex h-9 w-full items-center gap-3.5 rounded-[10px] pl-2 text-sm",
+        isActive ? "bg-[#eff5ff] font-medium text-brand-900" : "text-[#334154] hover:bg-gray-50",
+      )}
+    >
+      <span className="flex size-3.5 shrink-0 items-center justify-center">
+        <span className={cn("size-1.5 rounded-full", isActive ? "bg-brand-600" : "bg-gray-200")} />
+      </span>
+      <span className="truncate">{child.label}</span>
+    </Link>
   );
 }
 

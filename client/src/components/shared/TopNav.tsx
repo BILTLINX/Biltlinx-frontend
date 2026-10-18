@@ -135,7 +135,7 @@ export function TopNav() {
             <button
               type="button"
               aria-label="Messages"
-              onClick={() => goComingSoon("Messages")}
+              onClick={() => router.push("/messages")}
               className="relative flex size-[38px] shrink-0 items-center justify-center rounded-full hover:bg-gray-50"
             >
               <span className="relative block size-[19px] shrink-0">
@@ -149,7 +149,7 @@ export function TopNav() {
             <button
               type="button"
               aria-label="Notifications"
-              onClick={() => goComingSoon("Notifications")}
+              onClick={() => router.push("/notifications")}
               className="relative flex size-[38px] shrink-0 items-center justify-center rounded-full hover:bg-gray-50"
             >
               <span className="relative block size-[19px] shrink-0">
@@ -182,8 +182,8 @@ export function TopNav() {
               <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-[266px] rounded-[26px] border border-[rgba(15,22,33,0.12)] bg-white/10 p-2.5 shadow-[0px_24px_60px_-15px_rgba(0,0,0,0.15)] backdrop-blur-[8px]">
                 <div className="flex flex-col gap-1 rounded-2xl bg-white/90 p-2.5">
                   <div className="sm:hidden">
-                    <VisibilityRow icon="/icons/message-programming.svg" label="Messages" selected={false} onClick={() => goComingSoon("Messages")} />
-                    <VisibilityRow icon="/icons/notification.svg" label="Notifications" selected={false} onClick={() => goComingSoon("Notifications")} />
+                    <VisibilityRow icon="/icons/message-programming.svg" label="Messages" selected={false} onClick={() => { setMenuOpen(false); router.push("/messages"); }} />
+                    <VisibilityRow icon="/icons/notification.svg" label="Notifications" selected={false} onClick={() => { setMenuOpen(false); router.push("/notifications"); }} />
                   </div>
                   <VisibilityRow
                     icon="/icons/menu-settings.svg"

@@ -28,6 +28,7 @@ function buildPost(input: NewPostInput): PostCardData {
     postedAt: "Just now",
     avatar: CURRENT_USER.avatar,
     verified: "individual" as const,
+    isOwn: true,
     likes: 0,
     comments: 0,
     showComposer: true,
@@ -181,6 +182,7 @@ function buildIncomingPosts(): PostCardData[] {
 interface PostsContextValue {
   posts: PostCardData[];
   addPost: (input: NewPostInput) => void;
+  removePost: (id: string) => void;
   /** Posts that have arrived but are held back until the user asks to see them. */
   newPostsCount: number;
   showNewPosts: () => void;
@@ -196,6 +198,10 @@ export function PostsProvider({ children }: { children: ReactNode }) {
     setPosts((current) => [buildPost(input), ...current]);
   }, []);
 
+  const removePost = useCallback((id: string) => {
+    setPosts((current) => current.filter((post) => post.id !== id));
+  }, []);
+
   // Demo stand-in for a real-time feed push (websocket/poll) until the backend feed API lands.
   useEffect(() => {
     const timer = setTimeout(() => setIncoming(buildIncomingPosts()), 6000);
@@ -209,7 +215,7 @@ export function PostsProvider({ children }: { children: ReactNode }) {
   }, [incoming]);
 
   return (
-    <PostsContext.Provider value={{ posts, addPost, newPostsCount: incoming.length, showNewPosts }}>
+    <PostsContext.Provider value={{ posts, addPost, removePost, newPostsCount: incoming.length, showNewPosts }}>
       {children}
     </PostsContext.Provider>
   );

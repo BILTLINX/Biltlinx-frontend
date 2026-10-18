@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { MobileNavGrid } from "@/components/shared/MobileNavGrid";
 import { NavIcon } from "@/components/shared/NavIcon";
-import { NAV_ITEMS } from "@/components/shared/nav-items";
+import { NAV_DESTINATIONS } from "@/components/shared/nav-items";
 
 interface MobileBottomNavProps {
   activeKey?: string;
@@ -19,8 +19,8 @@ interface MobileBottomNavProps {
 export function MobileBottomNav({ activeKey = "feed", activeChildKey = "home" }: MobileBottomNavProps) {
   const [open, setOpen] = useState(false);
 
-  const activeChild = NAV_ITEMS.find((item) => item.key === activeKey)?.children?.find(
-    (child) => child.key === activeChildKey,
+  const activeChild = NAV_DESTINATIONS.find(
+    (destination) => destination.parentKey === activeKey && (destination.key === activeChildKey || destination.key === activeKey),
   );
   const activeIcon = activeChild?.icon ?? "/icons/home-03.svg";
 

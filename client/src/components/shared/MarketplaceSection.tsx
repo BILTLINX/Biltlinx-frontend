@@ -11,7 +11,7 @@ export function MarketplaceSection() {
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-[16px] font-bold text-night-700">From your marketplace</h2>
         <Link
-          href={comingSoonHref("Marketplace")}
+          href="/marketplace"
           className="flex items-center gap-2 font-inter text-[13px] font-medium text-brand-600"
         >
           Marketplace

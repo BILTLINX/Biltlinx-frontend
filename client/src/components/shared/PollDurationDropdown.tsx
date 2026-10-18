@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useRef, useState } from "react";
+import { AnchoredPanel } from "@/components/shared/AnchoredPanel";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { VisibilityRow } from "@/components/shared/VisibilityRow";
 import { cn } from "@/lib/utils";
@@ -20,51 +20,6 @@ interface PollDurationDropdownProps {
 export function PollDurationDropdown({ value, onChange, options = DURATION_OPTIONS }: PollDurationDropdownProps) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
-  const panelRef = useRef<HTMLDivElement | null>(null);
-  const [position, setPosition] = useState<{ top?: number; bottom?: number; left: number; width: number } | null>(
-    null,
-  );
-
-  useEffect(() => {
-    if (!open) return;
-    function updatePosition() {
-      const rect = triggerRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      const estimatedPanelHeight = 40 + options.length * 40;
-      const spaceBelow = window.innerHeight - rect.bottom;
-      const left = Math.min(rect.left, window.innerWidth - rect.width - 8);
-      if (spaceBelow < estimatedPanelHeight && rect.top > estimatedPanelHeight) {
-        setPosition({ bottom: window.innerHeight - rect.top + 4, left, width: rect.width });
-      } else {
-        setPosition({ top: rect.bottom + 4, left, width: rect.width });
-      }
-    }
-    updatePosition();
-    window.addEventListener("resize", updatePosition);
-    window.addEventListener("scroll", updatePosition, true);
-    return () => {
-      window.removeEventListener("resize", updatePosition);
-      window.removeEventListener("scroll", updatePosition, true);
-    };
-  }, [open, options.length]);
-
-  useEffect(() => {
-    if (!open) return;
-    const handlePointerDown = (event: PointerEvent) => {
-      const target = event.target as Node;
-      if (triggerRef.current?.contains(target) || panelRef.current?.contains(target)) return;
-      setOpen(false);
-    };
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("pointerdown", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [open]);
 
   return (
     <>
@@ -84,30 +39,19 @@ export function PollDurationDropdown({ value, onChange, options = DURATION_OPTIO
         />
       </button>
 
-      {open &&
-        position &&
-        createPortal(
-          <div
-            ref={panelRef}
-            style={{ top: position.top, bottom: position.bottom, left: position.left, width: position.width }}
-            className="fixed z-[120] rounded-[26px] border border-[rgba(15,22,33,0.12)] bg-white/10 p-2.5 shadow-[0px_24px_60px_-15px_rgba(0,0,0,0.15)] backdrop-blur-[8px]"
-          >
-            <div className="flex flex-col gap-1 rounded-2xl bg-white/90 p-2.5">
-              {options.map((option) => (
-                <VisibilityRow
-                  key={option}
-                  label={option}
-                  selected={option === value}
-                  onClick={() => {
-                    onChange(option);
-                    setOpen(false);
-                  }}
-                />
-              ))}
-            </div>
-          </div>,
-          document.body,
-        )}
+      <AnchoredPanel open={open} onClose={() => setOpen(false)} triggerRef={triggerRef} estimatedHeight={40 + options.length * 40}>
+        {options.map((option) => (
+          <VisibilityRow
+            key={option}
+            label={option}
+            selected={option === value}
+            onClick={() => {
+              onChange(option);
+              setOpen(false);
+            }}
+          />
+        ))}
+      </AnchoredPanel>
     </>
   );
 }

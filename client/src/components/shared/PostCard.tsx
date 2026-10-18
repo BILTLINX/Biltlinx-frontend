@@ -1,14 +1,18 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/Button";
+import { BookmarkIcon } from "@/components/shared/BookmarkIcon";
 import { FollowButton } from "@/components/shared/FollowButton";
 import { LikesBottomSheet } from "@/components/shared/LikesBottomSheet";
 import { MediaLoadError } from "@/components/shared/MediaLoadError";
 import { NavIcon } from "@/components/shared/NavIcon";
+import { PostOptionsControl } from "@/components/shared/PostOptionsControl";
+import { RequestViewingModal } from "@/components/shared/RequestViewingModal";
 import { CommentsModal, DEFAULT_COMMENTS } from "@/components/shared/PostComments";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useMediaLoadState } from "@/hooks/useMediaLoadState";
@@ -16,12 +20,12 @@ import { Tooltip } from "@/components/shared/Tooltip";
 import { comingSoonHref } from "@/lib/coming-soon";
 import { renderWithHashtags } from "@/lib/hashtags";
 import { buildLikerNames } from "@/lib/likes";
-import { shareContent } from "@/lib/share";
+import { sharePost } from "@/lib/post-actions";
 import { cn } from "@/lib/utils";
 import type { CommentAttachments, CommentItem } from "@/types/comment";
 import type { MediaItem, PostCardData } from "@/types/post";
 
-function getMediaItems(post: PostCardData): MediaItem[] {
+export function getMediaItems(post: PostCardData): MediaItem[] {
   if (post.media) return post.media;
   if (post.video) return [{ url: post.video, isVideo: true }];
   if (post.images) return post.images.map((url) => ({ url }));
@@ -39,6 +43,7 @@ export function PostCard({ post }: PostCardProps) {
   const [comments, setComments] = useState<CommentItem[]>(post.commentsList ?? DEFAULT_COMMENTS);
   const [commentDraft, setCommentDraft] = useState("");
   const [textExpanded, setTextExpanded] = useState(false);
+  const [saved, setSaved] = useState(false);
   const mediaItems = getMediaItems(post);
 
   const submitComment = ({ image, audio }: CommentAttachments) => {
@@ -54,7 +59,7 @@ export function PostCard({ post }: PostCardProps) {
 
   return (
     <article className="flex w-full flex-col gap-[15px] rounded-[29px] border border-gray-200 bg-white p-[15px] sm:rounded-[15px]">
-      <PostHeader post={post} />
+      <PostHeader post={post} saved={saved} onToggleSave={() => setSaved((v) => !v)} />
 
       <div className="h-px w-full bg-gray-200" />
 
@@ -97,7 +102,7 @@ export function PostCard({ post }: PostCardProps) {
 
       <div className="h-px w-full bg-gray-200" />
 
-      <PostStatsBar post={post} showComments={showComments} onToggleComments={() => setShowComments((v) => !v)} />
+      <PostStatsBar post={post} saved={saved} onToggleSave={() => setSaved((v) => !v)} showComments={showComments} onToggleComments={() => setShowComments((v) => !v)} />
 
       <CommentsModal
         open={showComments}
@@ -117,8 +122,7 @@ export function PostCard({ post }: PostCardProps) {
   );
 }
 
-function PostHeader({ post }: { post: PostCardData }) {
-  const router = useRouter();
+function PostHeader({ post, saved, onToggleSave }: { post: PostCardData; saved: boolean; onToggleSave: () => void }) {
   const [following, setFollowing] = useState(false);
 
   return (
@@ -163,48 +167,50 @@ function PostHeader({ post }: { post: PostCardData }) {
       </div>
       <div className="flex items-center gap-4">
         {post.variant !== "poll" && (
-          <>
-            <Tooltip label={following ? "Following" : "Follow"} className="sm:hidden">
-              <button
-                type="button"
-                onClick={() => setFollowing((v) => !v)}
-                aria-label={following ? "Following" : "Follow"}
-                aria-pressed={following}
-                className="flex size-[38px] shrink-0 items-center justify-center rounded-lg"
-              >
-                <NavIcon
-                  icon={following ? "/icons/check-circle.svg" : "/icons/user-add-01.svg"}
-                  color="brand"
-                  size={20}
-                  className="shrink-0"
-                />
-              </button>
-            </Tooltip>
-            <FollowButton
-              following={following}
-              onToggle={() => setFollowing((v) => !v)}
-              name={post.authorName}
-              className="hidden sm:flex"
-            />
-          </>
+          <PostFollowButton following={following} onToggle={() => setFollowing((v) => !v)} name={post.authorName} />
         )}
-        <Tooltip label="Post options">
-          <button
-            type="button"
-            aria-label="Post options"
-            onClick={() => router.push(comingSoonHref("Post options"))}
-            className="relative block size-[23px] shrink-0"
-          >
-            <Image src="/icons/more-horizontal.svg" alt="" fill sizes="23px" className="sm:hidden" />
-            <Image src="/icons/menu-03.svg" alt="" fill sizes="23px" className="hidden sm:block" />
-          </button>
-        </Tooltip>
+        <PostOptionsControl
+          post={post}
+          saved={saved}
+          onToggleSave={onToggleSave}
+          following={following}
+          onToggleFollow={() => setFollowing((v) => !v)}
+          className="relative block size-[23px] shrink-0"
+        >
+          <Image src="/icons/more-horizontal.svg" alt="" fill sizes="23px" className="sm:hidden" />
+          <Image src="/icons/menu-03.svg" alt="" fill sizes="23px" className="hidden sm:block" />
+        </PostOptionsControl>
       </div>
     </div>
   );
 }
 
-function MediaCarousel({ items }: { items: MediaItem[] }) {
+/** Follow control used in post headers: an icon-only toggle on mobile, the standard pill from sm up. */
+export function PostFollowButton({ following, onToggle, name }: { following: boolean; onToggle: () => void; name: string }) {
+  return (
+    <>
+      <Tooltip label={following ? "Following" : "Follow"} className="sm:hidden">
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-label={following ? "Following" : "Follow"}
+          aria-pressed={following}
+          className="flex size-[38px] shrink-0 items-center justify-center rounded-lg"
+        >
+          <NavIcon
+            icon={following ? "/icons/check-circle.svg" : "/icons/user-add-01.svg"}
+            color="brand"
+            size={20}
+            className="shrink-0"
+          />
+        </button>
+      </Tooltip>
+      <FollowButton following={following} onToggle={onToggle} name={name} className="hidden sm:flex" />
+    </>
+  );
+}
+
+export function MediaCarousel({ items, className }: { items: MediaItem[]; className?: string }) {
   const [index, setIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const hasMultiple = items.length > 1;
@@ -214,7 +220,7 @@ function MediaCarousel({ items }: { items: MediaItem[] }) {
   const goTo = (next: number) => setIndex((next + items.length) % items.length);
 
   return (
-    <div className="relative h-[285px] w-full overflow-hidden rounded-[29px] sm:rounded-[15px]">
+    <div className={cn("relative h-[285px] w-full overflow-hidden rounded-[29px] sm:rounded-[15px]", className)}>
       {current.isVideo ? (
         <video src={current.url} controls className="size-full object-cover" />
       ) : media.failed ? (
@@ -508,7 +514,15 @@ function PriceRow({ post }: { post: PostCardData }) {
           {post.priceLine}
           {post.priceSuffix && <span className="text-[9px] font-normal sm:text-[10.5px]">{post.priceSuffix}</span>}
         </p>
-        <p className="text-[11px] font-light sm:text-[13px]">{post.subLine}</p>
+        <p className="text-[11px] font-light sm:text-[13px]">
+          {post.variant === "property" ? (
+            <Link href={`/properties/${post.id}`} className="hover:text-brand-900 hover:underline">
+              {post.subLine}
+            </Link>
+          ) : (
+            post.subLine
+          )}
+        </p>
       </div>
 
       {post.beds !== undefined && post.baths !== undefined ? (
@@ -546,14 +560,18 @@ function PriceRow({ post }: { post: PostCardData }) {
 
 function ActionsRow({ post }: { post: PostCardData }) {
   const router = useRouter();
+  const [viewingOpen, setViewingOpen] = useState(false);
   const [primary, secondary] = post.actions ?? [];
+  // Property posts open their own detail page; other variants' secondary actions aren't built yet.
+  const opensViewing = post.variant === "property" && primary?.label === "Request viewing";
+  const secondaryHref = post.variant === "property" ? `/properties/${post.id}` : comingSoonHref(secondary?.label ?? "");
   return (
     <div className="flex w-full flex-wrap items-center justify-between gap-2">
       <div className="flex flex-wrap items-center gap-2 sm:gap-4">
         {primary && (
           <Button
             variant="primary"
-            onClick={() => router.push(comingSoonHref(primary.label))}
+            onClick={() => (opensViewing ? setViewingOpen(true) : router.push(comingSoonHref(primary.label)))}
             className="h-auto w-auto rounded-xl px-3 py-1.5 text-[10px] sm:h-[38px] sm:rounded-lg sm:px-[15px] sm:py-0 sm:text-[13px]"
           >
             {primary.label}
@@ -562,7 +580,7 @@ function ActionsRow({ post }: { post: PostCardData }) {
         {secondary && (
           <Button
             variant={secondary.variant}
-            onClick={() => router.push(comingSoonHref(secondary.label))}
+            onClick={() => router.push(secondaryHref)}
             className="h-auto w-auto rounded-xl px-3 py-1.5 text-[10px] sm:h-[38px] sm:rounded-lg sm:px-[15px] sm:py-0 sm:text-[13px]"
           >
             {secondary.label}
@@ -578,29 +596,35 @@ function ActionsRow({ post }: { post: PostCardData }) {
           {post.messageHostLabel}
         </Button>
       )}
+      {opensViewing && (
+        <RequestViewingModal
+          open={viewingOpen}
+          onClose={() => setViewingOpen(false)}
+          property={{
+            title: post.subLine ?? "Property",
+            summary: `${post.priceLine ?? ""}${post.priceSuffix ?? ""}`,
+            image: post.images?.[0] ?? post.image ?? "/images/marketplace/property-sale.jpg",
+          }}
+        />
+      )}
     </div>
   );
 }
 
-async function sharePost(post: PostCardData) {
-  await shareContent({
-    title: post.authorName,
-    text: post.text ?? post.subLine ?? undefined,
-    path: `#post-${post.id}`,
-  });
-}
-
-function PostStatsBar({
+export function PostStatsBar({
   post,
+  saved,
+  onToggleSave,
   showComments,
   onToggleComments,
 }: {
   post: PostCardData;
+  saved: boolean;
+  onToggleSave: () => void;
   showComments: boolean;
   onToggleComments: () => void;
 }) {
   const [liked, setLiked] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [likesSheetOpen, setLikesSheetOpen] = useState(false);
 
   const likeCount = post.likes + (liked ? 1 : 0);
@@ -658,16 +682,9 @@ function PostStatsBar({
           type="button"
           className="flex items-center gap-2"
           aria-label={saved ? "Saved" : "Save"}
-          onClick={() => setSaved((v) => !v)}
+          onClick={onToggleSave}
         >
-          <svg width="23" height="23" viewBox="0 0 24 24" fill="none" aria-hidden="true" className={saved ? "text-brand-600" : "text-night-700"}>
-            <path
-              d="M5 4.6C5 3.84575 5 3.46863 5.23431 3.23431C5.46863 3 5.84575 3 6.6 3H17.4C18.1542 3 18.5314 3 18.7657 3.23431C19 3.46863 19 3.84575 19 4.6V19.4454C19 20.1263 19 20.4667 18.783 20.5784C18.5661 20.69 18.289 20.4922 17.735 20.0964L12.93 16.6643C12.4809 16.3435 12.2564 16.1831 12 16.1831C11.7436 16.1831 11.5191 16.3435 11.07 16.6643L6.26499 20.0964C5.71095 20.4922 5.43393 20.69 5.21697 20.5784C5 20.4667 5 20.1263 5 19.4454V4.6Z"
-              fill={saved ? "currentColor" : "none"}
-              stroke="currentColor"
-              strokeWidth="1.5"
-            />
-          </svg>
+          <BookmarkIcon saved={saved} />
           <span className="hidden text-[11px] font-bold text-brand-900 sm:inline">{saved ? "Saved" : "Save"}</span>
         </button>
       </div>
