@@ -20,6 +20,8 @@ export interface ListingCardData {
   /** Optional extra line, e.g. bedrooms or plot size. */
   detail?: { icon: "bed" | "plot"; text: string };
   badges?: ListingBadge[];
+  ownerId?: string;
+  ownerName?: string;
   cta: string;
   /** Renders a second, outlined button beside the main one. */
   secondaryCta?: string;

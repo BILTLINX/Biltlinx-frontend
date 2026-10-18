@@ -163,7 +163,7 @@ export default function ComparePage() {
         <RequestViewingModal
           open
           onClose={() => setViewing(null)}
-          property={{ title: viewing.title, summary: `${viewing.subtitle?.split(",")[0] ?? "Home"} · ${viewing.price}`, image: viewing.image }}
+          property={{ id: viewing.id, title: viewing.title, summary: `${viewing.subtitle?.split(",")[0] ?? "Home"} · ${viewing.price}`, image: viewing.image }}
         />
       )}
     </AppShell>

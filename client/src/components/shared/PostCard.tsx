@@ -564,6 +564,7 @@ function ActionsRow({ post }: { post: PostCardData }) {
           open={viewingOpen}
           onClose={() => setViewingOpen(false)}
           property={{
+            id: post.linkId ?? post.id,
             title: post.subLine ?? "Property",
             summary: `${post.priceLine ?? ""}${post.priceSuffix ?? ""}`,
             image: post.images?.[0] ?? post.image ?? "/images/marketplace/property-sale.jpg",

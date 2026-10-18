@@ -4,10 +4,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { BookmarkIcon } from "@/components/shared/BookmarkIcon";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { RequestViewingModal } from "@/components/shared/RequestViewingModal";
 import { Button } from "@/components/ui/Button";
+import { useStartConversation } from "@/hooks/useMessaging";
 import { comingSoonHref } from "@/lib/coming-soon";
 import { cn } from "@/lib/utils";
 import type { ListingCardData } from "@/types/listing";
@@ -20,8 +20,19 @@ const DETAIL_ICONS = { bed: "/icons/bed-sm.svg", plot: "/icons/map-pinpoint-01.s
 /** One listing (Figma nodes 1040:20554 and 1042:20628): image with category pill and save, price, title, location, optional detail line, trust badge and call(s) to action. */
 export function ListingCard({ listing }: { listing: ListingCardData }) {
   const router = useRouter();
-  const [saved, setSaved] = useState(false);
   const [viewingOpen, setViewingOpen] = useState(false);
+  const startMessage = useStartConversation();
+
+  function messageOwner() {
+    if (!listing.ownerId) {
+      router.push(comingSoonHref(listing.secondaryCta ?? "Message"));
+      return;
+    }
+    startMessage.mutate(
+      { recipientAccountId: listing.ownerId, contextType: "Property", contextId: listing.id, contextTitle: listing.title },
+      { onSuccess: (conversation) => router.push(`/messages?c=${conversation.id}`) },
+    );
+  }
 
   return (
     <article className="@container flex w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white">
@@ -37,15 +48,6 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
         <span className="absolute left-3 top-3 flex items-center rounded-full bg-white px-2.5 py-1 text-xs font-medium leading-4 text-[#0f172a]">
           {listing.kind}
         </span>
-        <button
-          type="button"
-          onClick={() => setSaved((v) => !v)}
-          aria-pressed={saved}
-          aria-label={saved ? "Remove from saved" : "Save listing"}
-          className="absolute right-3 top-3 flex size-8 items-center justify-center rounded-full bg-white"
-        >
-          <BookmarkIcon saved={saved} size={16} />
-        </button>
       </div>
 
       <div className="flex flex-1 flex-col items-start gap-2 p-4">
@@ -99,7 +101,8 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
           {listing.secondaryCta && (
             <Button
               variant="outline"
-              onClick={() => router.push(comingSoonHref(listing.secondaryCta!))}
+              disabled={startMessage.isPending}
+              onClick={() => messageOwner()}
               className="h-10 min-w-0 flex-1 whitespace-nowrap rounded-[10px] px-2 text-[13px] lg:rounded-[10px]"
             >
               {listing.secondaryCta}
@@ -111,7 +114,7 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
         <RequestViewingModal
           open={viewingOpen}
           onClose={() => setViewingOpen(false)}
-          property={{ title: listing.title, summary: `${listing.location.split(",")[0]} · ${listing.price}`, image: listing.image }}
+          property={{ id: listing.id, title: listing.title, summary: `${listing.location.split(",")[0]} · ${listing.price}`, image: listing.image }}
         />
       )}
     </article>
