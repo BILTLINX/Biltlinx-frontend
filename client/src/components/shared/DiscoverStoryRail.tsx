@@ -1,10 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { Tooltip } from "@/components/shared/Tooltip";
-import { comingSoonHref } from "@/lib/coming-soon";
-import { STORIES } from "@/lib/dummy-stories";
+import { MyStoryViewer } from "@/components/shared/StoriesRow";
+import { useStoryGroups, useStoryViewer } from "@/hooks/useMyStories";
 import { StoryRing } from "@/components/shared/StoryRing";
 import type { MyStory } from "@/types/story";
 
@@ -25,6 +24,8 @@ interface DiscoverStoryRailProps {
  * either as a narrow full-height aside or a horizontal bar. */
 export function DiscoverStoryRail({ activeStories, onYourStoryClick, layout = "vertical" }: DiscoverStoryRailProps) {
   const latestStory = activeStories[activeStories.length - 1];
+  const { others } = useStoryGroups();
+  const groupViewer = useStoryViewer();
   const yourStoryLabel = activeStories.length > 0 ? "View your story" : "Add to your story";
 
   const yourStoryButton = (
@@ -46,25 +47,46 @@ export function DiscoverStoryRail({ activeStories, onYourStoryClick, layout = "v
   );
 
   const channelAvatars = (sizeClass: string) =>
-    STORIES.slice(0, 5).map((story) => (
-      <Tooltip key={story.id} label={story.name} side="bottom" align="end">
-        <Link
-          href={comingSoonHref(`${story.name}'s Story`)}
-          aria-label={`${story.name}'s story`}
+    others.slice(0, 8).map((group) => (
+      <Tooltip key={group.author.id} label={group.author.username} side="bottom" align="end">
+        <button
+          type="button"
+          onClick={() => groupViewer.open(group)}
+          aria-label={`${group.author.username}'s story`}
           className="shrink-0 rounded-full"
         >
-          <StoryRing active className={sizeClass}>
-            <Image src={story.avatar} alt="" fill sizes="32px" className="object-cover" />
+          <StoryRing active={group.hasUnseen} className={sizeClass}>
+            <Image
+              src={group.author.profilePicUrl ?? group.stories[0]?.media.url ?? "/icons/avatar-placeholder-user.svg"}
+              alt=""
+              fill
+              sizes="32px"
+              className="object-cover"
+            />
           </StoryRing>
-        </Link>
+        </button>
       </Tooltip>
     ));
+
+  const viewer = groupViewer.viewing && groupViewer.stories.length > 0 && (
+    <MyStoryViewer
+      readOnly
+      label={`${groupViewer.viewing.author.username}'s story`}
+      stories={groupViewer.stories}
+      initialIndex={Math.max(0, groupViewer.viewing.stories.findIndex((story) => !story.seen))}
+      onViewed={groupViewer.markSeen}
+      onClose={groupViewer.close}
+      onDelete={() => undefined}
+      onAddAnother={() => undefined}
+    />
+  );
 
   if (layout === "horizontal") {
     return (
       <div className="no-scrollbar flex w-full items-center gap-[16px] overflow-x-auto border-b border-gray-200 bg-white px-[15px] py-[12px]">
         {yourStoryButton}
         {channelAvatars("size-[48px]")}
+        {viewer}
       </div>
     );
   }
@@ -75,6 +97,7 @@ export function DiscoverStoryRail({ activeStories, onYourStoryClick, layout = "v
         {channelAvatars("size-[32px]")}
         {yourStoryButton}
       </div>
+      {viewer}
     </div>
   );
 }

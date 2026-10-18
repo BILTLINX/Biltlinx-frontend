@@ -9,6 +9,11 @@ export interface CommentItem {
   image?: string;
   /** Object URL of an attached voice note. */
   audio?: string;
+  authorId?: string;
+  parentId?: string | null;
+  replyCount?: number;
+  likedByMe?: boolean;
+  isOwn?: boolean;
 }
 
 export interface CommentAttachments {

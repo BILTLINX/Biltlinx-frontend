@@ -1,36 +1,39 @@
+"use client";
+
+import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { comingSoonHref } from "@/lib/coming-soon";
-
-interface Hashtag {
-  tag: string;
-  posts: string;
-}
-
-const HASHTAGS: Hashtag[] = [
-  { tag: "#LuxuryLiving", posts: "2.1k posts" },
-  { tag: "#AccraRealEstate", posts: "1.8k posts" },
-  { tag: "#HomeGoals", posts: "1.6k posts" },
-  { tag: "#BuildWithBiltLinx", posts: "1.1k posts" },
-  { tag: "#InteriorInspo", posts: "980 posts" },
-];
+import { Skeleton } from "@/components/ui/Skeleton";
+import { getTrendingHashtags } from "@/lib/social-api";
 
 export function TrendingHashtagsCard() {
+  const { data, isPending, isError } = useQuery({
+    queryKey: ["trending-hashtags"],
+    queryFn: () => getTrendingHashtags(5),
+    staleTime: 5 * 60_000,
+  });
+
   return (
     <div className="flex w-full flex-col gap-[15px] rounded-[15px] border border-[#e6d7ef] bg-white p-[11px]">
       <div className="flex items-center justify-between">
         <p className="text-[15px] font-bold text-gray-700">Trending Hashtags</p>
-        <Link href={comingSoonHref("Trending Hashtags")} className="text-[12.5px] font-medium text-brand-600">
-          View all
-        </Link>
       </div>
-      <ul className="flex flex-col gap-2">
-        {HASHTAGS.map((hashtag) => (
-          <li key={hashtag.tag} className="flex items-center justify-between gap-2">
-            <p className="text-[11px] font-bold text-gray-700">{hashtag.tag}</p>
-            <p className="text-[9.5px] font-bold text-brand-900">{hashtag.posts}</p>
-          </li>
-        ))}
-      </ul>
+      {isPending && <Skeleton className="h-[90px] w-full rounded-lg" />}
+      {isError && <p className="text-[11px] text-gray-500">Trends are unavailable right now.</p>}
+      {data && data.length === 0 && <p className="text-[11px] text-gray-500">Nothing is trending yet.</p>}
+      {data && data.length > 0 && (
+        <ul className="flex flex-col gap-2">
+          {data.map((hashtag) => (
+            <li key={hashtag.tag} className="flex items-center justify-between gap-2">
+              <Link href={`/feed?hashtag=${encodeURIComponent(hashtag.tag)}`} className="text-[11px] font-bold text-gray-700 hover:text-brand-900">
+                #{hashtag.tag}
+              </Link>
+              <p className="text-[9.5px] font-bold text-brand-900">
+                {hashtag.postCount} {hashtag.postCount === 1 ? "post" : "posts"}
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

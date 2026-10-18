@@ -5,13 +5,11 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { NavIcon } from "@/components/shared/NavIcon";
-import { comingSoonHref } from "@/lib/coming-soon";
 import { shareContent } from "@/lib/share";
 import { cn } from "@/lib/utils";
-import { STORIES } from "@/lib/dummy-stories";
 import { StoryRing } from "@/components/shared/StoryRing";
 import { PostStoryModal } from "@/components/shared/PostStoryModal";
-import { useMyStories } from "@/hooks/useMyStories";
+import { useMyStories, useStoryGroups, useStoryViewer } from "@/hooks/useMyStories";
 import { useScrollRail } from "@/hooks/useScrollRail";
 import type { MyStory } from "@/types/story";
 
@@ -23,6 +21,8 @@ import type { MyStory } from "@/types/story";
  * posting, same as real stories. */
 export function StoriesRow() {
   const stories = useMyStories();
+  const { others, isPending } = useStoryGroups();
+  const groupViewer = useStoryViewer();
   const { ref: railRef, canScroll, atEnd, scroll: scrollRail } = useScrollRail<HTMLDivElement>();
   const { activeStories } = stories;
   const latestStory = activeStories[activeStories.length - 1];
@@ -57,12 +57,32 @@ export function StoriesRow() {
           hasStory={activeStories.length > 0}
           onClick={stories.openYourStory}
         />
-        {STORIES.map((story) => (
-          <StoryItem key={story.id} href={comingSoonHref(`${story.name}'s Story`)} label={story.name} avatar={story.avatar} />
+        {isPending && [0, 1, 2, 3].map((n) => <span key={n} className="size-14 shrink-0 animate-pulse rounded-full bg-gray-200" />)}
+        {others.map((group) => (
+          <StoryItem
+            key={group.author.id}
+            label={group.author.username}
+            avatar={group.author.profilePicUrl ?? group.stories[0]?.media.url ?? "/icons/avatar-placeholder-user.svg"}
+            hasStory={group.hasUnseen}
+            onClick={() => groupViewer.open(group)}
+          />
         ))}
       </div>
 
       <PostStoryModal open={stories.composerOpen} onClose={() => stories.setComposerOpen(false)} onPost={stories.addStory} />
+
+      {groupViewer.viewing && groupViewer.stories.length > 0 && (
+        <MyStoryViewer
+          readOnly
+          label={`${groupViewer.viewing.author.username}'s story`}
+          stories={groupViewer.stories}
+          initialIndex={Math.max(0, groupViewer.viewing.stories.findIndex((story) => !story.seen))}
+          onViewed={groupViewer.markSeen}
+          onClose={groupViewer.close}
+          onDelete={() => undefined}
+          onAddAnother={() => undefined}
+        />
+      )}
 
       {stories.viewerIndex !== null && activeStories.length > 0 && (
         <MyStoryViewer
@@ -98,7 +118,7 @@ function StoryItem({
   const content = (
     <>
       <span className="relative block size-14 shrink-0">
-        <StoryRing active={!addBadge || !!hasStory} className="size-full">
+        <StoryRing active={addBadge ? !!hasStory : (hasStory ?? true)} className="size-full">
           <Image src={avatar} alt="" fill className="object-cover" sizes="56px" />
         </StoryRing>
         {addBadge && (
@@ -136,12 +156,18 @@ export function MyStoryViewer({
   onClose,
   onDelete,
   onAddAnother,
+  readOnly = false,
+  label = "Your story",
+  onViewed,
 }: {
   stories: MyStory[];
   initialIndex: number;
   onClose: () => void;
   onDelete: (id: string) => void;
   onAddAnother: () => void;
+  readOnly?: boolean;
+  label?: string;
+  onViewed?: (id: string) => void;
 }) {
   const [requestedIndex, setIndex] = useState(initialIndex);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -160,6 +186,12 @@ export function MyStoryViewer({
     document.addEventListener("pointerdown", handlePointerDown);
     return () => document.removeEventListener("pointerdown", handlePointerDown);
   }, [menuOpen]);
+
+  const currentId = stories[index]?.id;
+  useEffect(() => {
+    if (currentId) onViewed?.(currentId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentId]);
 
   if (stories.length === 0) return null;
   const story = stories[index];
@@ -201,10 +233,11 @@ export function MyStoryViewer({
       onClick={onClose}
       role="dialog"
       aria-modal="true"
-      aria-label="Your story"
+      aria-label={label}
     >
       <div onClick={(event) => event.stopPropagation()} className="relative flex max-h-[85vh] w-full max-w-[420px] flex-col">
         <div className="absolute -top-11 left-0 right-0 flex items-center justify-between gap-2">
+          {readOnly ? <span aria-hidden="true" /> : (
           <button
             type="button"
             aria-label="Add another story"
@@ -215,8 +248,10 @@ export function MyStoryViewer({
               <path d="M10 3V17M3 10H17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
           </button>
+          )}
 
           <div className="flex items-center gap-2">
+            {!readOnly && (
             <div ref={menuRef} className="relative">
               <button
                 type="button"
@@ -258,6 +293,7 @@ export function MyStoryViewer({
                 </div>
               )}
             </div>
+            )}
 
             <button
               type="button"

@@ -1,14 +1,16 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { CommentComposer } from "@/components/shared/CommentComposer";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { useAnimatedSheet } from "@/hooks/useAnimatedSheet";
+import { useCommentLike, useComments } from "@/hooks/useComments";
 import { renderWithHashtags } from "@/lib/hashtags";
 import { cn } from "@/lib/utils";
-import type { CommentAttachments, CommentItem } from "@/types/comment";
+import type { CommentItem } from "@/types/comment";
+import type { PostCardData } from "@/types/post";
 import { MODAL_FRAME } from "@/lib/modal-styles";
 
 
@@ -26,15 +28,8 @@ export const DEFAULT_COMMENTS: CommentItem[] = [
 
 interface CommentsModalProps {
   open: boolean;
-  comments: CommentItem[];
-  commentDraft: string;
-  setCommentDraft: (value: string) => void;
-  submitComment: (attachments: CommentAttachments) => void;
-  showComposer: boolean;
-  likeCount: number;
-  commentsCount: number;
-  shareLabel?: string;
-  sharesCount?: number;
+  post: PostCardData;
+  like: { liked: boolean; count: number; toggle: () => void };
   onShare: () => void;
   onClose: () => void;
 }
@@ -43,23 +38,11 @@ interface CommentsModalProps {
  * variants) so they all get the exact same comments experience: a bottom
  * sheet on mobile (matching every other sheet's slide up/down + down-arrow
  * dismiss convention), a centered modal on desktop. */
-export function CommentsModal({
-  open,
-  comments,
-  commentDraft,
-  setCommentDraft,
-  submitComment,
-  showComposer,
-  likeCount: initialLikeCount,
-  commentsCount,
-  shareLabel,
-  sharesCount,
-  onShare,
-  onClose,
-}: CommentsModalProps) {
-  const [liked, setLiked] = useState(false);
-  const likeCount = initialLikeCount + (liked ? 1 : 0);
+export function CommentsModal({ open, post, like, onShare, onClose }: CommentsModalProps) {
   const { mounted, closing } = useAnimatedSheet(open);
+  const [draft, setDraft] = useState("");
+  const thread = useComments(post.id, { enabled: mounted });
+  const commentsCount = thread.isPending ? post.comments : thread.totalResults;
 
   useEffect(() => {
     if (!mounted) return;
@@ -76,48 +59,72 @@ export function CommentsModal({
 
   if (!mounted) return null;
 
+  async function submit() {
+    const text = draft.trim();
+    if (!text) return;
+    if (await thread.add(text)) setDraft("");
+  }
+
   const body = (
     <>
-      {showComposer && (
-        <CommentComposer draft={commentDraft} onDraftChange={setCommentDraft} onSubmit={submitComment} />
-      )}
+      <CommentComposer draft={draft} onDraftChange={setDraft} onSubmit={() => void submit()} textOnly />
 
       <div className="flex w-full items-center justify-between px-2.5">
         <button
           type="button"
-          aria-pressed={liked}
-          aria-label={`${likeCount} Likes`}
-          onClick={() => setLiked((v) => !v)}
+          aria-pressed={like.liked}
+          aria-label={`${like.count} Likes`}
+          onClick={like.toggle}
           className="flex items-center gap-2"
         >
           <NavIcon
-            key={liked ? "liked" : "unliked"}
-            icon={liked ? "/icons/heart-like-filled.svg" : "/icons/heart-like.svg"}
+            key={like.liked ? "liked" : "unliked"}
+            icon={like.liked ? "/icons/heart-like-filled.svg" : "/icons/heart-like.svg"}
             color="night"
             size={20}
-            className={liked ? "bg-like animate-like-pop" : undefined}
+            className={like.liked ? "bg-like animate-like-pop" : undefined}
           />
-          <span className={cn("text-xs font-bold", liked ? "text-like" : "text-brand-900")}>
-            {likeCount} Likes
-          </span>
+          <span className={cn("text-xs font-bold", like.liked ? "text-like" : "text-brand-900")}>{like.count} Likes</span>
         </button>
         <span className="flex items-center gap-4">
-          <button type="button" aria-label={shareLabel ?? "Share"} onClick={onShare} className="text-xs font-bold text-brand-900 underline">
-            {sharesCount ?? 12} Shares
+          <button type="button" aria-label="Share" onClick={onShare} className="text-xs font-bold text-brand-900 underline">
+            Share
           </button>
           <span className="text-xs font-bold text-brand-900">{commentsCount} Comments</span>
         </span>
       </div>
 
       <div className="flex w-full flex-col items-center">
-        {comments.map((comment) => (
-          <CommentRow key={comment.id} comment={comment} />
+        {thread.isPending && <p className="py-4 text-xs text-gray-500">Loading comments…</p>}
+        {thread.isError && (
+          <button type="button" onClick={() => void thread.refetch()} className="py-4 text-xs font-bold text-brand-900">
+            Could not load comments. Try again
+          </button>
+        )}
+        {!thread.isPending && !thread.isError && thread.comments.length === 0 && (
+          <p className="py-4 text-xs text-gray-500">No comments yet. Be the first to comment.</p>
+        )}
+        {thread.comments.map((comment) => (
+          <ThreadCommentRow
+            key={comment.id}
+            postId={post.id}
+            comment={comment}
+            onReply={thread.add}
+            onDelete={thread.remove}
+          />
         ))}
       </div>
 
-      <button type="button" className="text-left text-[11px] font-bold text-brand-900">
-        Load More Comments
-      </button>
+      {thread.hasNextPage && (
+        <button
+          type="button"
+          disabled={thread.isFetchingNextPage}
+          onClick={() => void thread.fetchNextPage()}
+          className="text-left text-[11px] font-bold text-brand-900"
+        >
+          {thread.isFetchingNextPage ? "Loading…" : "Load More Comments"}
+        </button>
+      )}
     </>
   );
 
@@ -184,6 +191,173 @@ export function CommentsModal({
       </div>
     </>,
     document.body,
+  );
+}
+
+function ThreadCommentRow({
+  postId,
+  comment,
+  onReply,
+  onDelete,
+}: {
+  postId: string;
+  comment: CommentItem;
+  onReply: (body: string, parentCommentId?: string) => Promise<boolean>;
+  onDelete: (id: string) => Promise<boolean>;
+}) {
+  const like = useCommentLike(comment);
+  const [replying, setReplying] = useState(false);
+  const [showReplies, setShowReplies] = useState(false);
+  const [replyDraft, setReplyDraft] = useState("");
+  const replies = useComments(postId, { parentCommentId: comment.id, enabled: showReplies });
+
+  async function submitReply() {
+    const text = replyDraft.trim();
+    if (!text) return;
+    if (await onReply(text, comment.id)) {
+      setReplyDraft("");
+      setReplying(false);
+      setShowReplies(true);
+    }
+  }
+
+  return (
+    <div className="flex w-full flex-col">
+      <CommentBubble comment={comment} like={like} onDelete={comment.isOwn ? () => void onDelete(comment.id) : undefined}>
+        <button
+          type="button"
+          aria-expanded={replying}
+          onClick={() => setReplying((v) => !v)}
+          className="text-[10px] font-bold leading-[18px] text-brand-900"
+        >
+          Reply
+        </button>
+        {(comment.replyCount ?? 0) > 0 && (
+          <button
+            type="button"
+            aria-expanded={showReplies}
+            onClick={() => setShowReplies((v) => !v)}
+            className="text-[10px] font-bold leading-[18px] text-gray-500"
+          >
+            {showReplies ? "Hide replies" : `View ${comment.replyCount} ${comment.replyCount === 1 ? "reply" : "replies"}`}
+          </button>
+        )}
+      </CommentBubble>
+
+      {(showReplies || replying) && (
+        <div className="ml-[65px] flex flex-col">
+          {showReplies && replies.isPending && <p className="py-2 text-[11px] text-gray-500">Loading replies…</p>}
+          {showReplies &&
+            replies.comments.map((reply) => (
+              <ReplyRow key={reply.id} reply={reply} onDelete={onDelete} />
+            ))}
+          {showReplies && replies.hasNextPage && (
+            <button type="button" onClick={() => void replies.fetchNextPage()} className="py-1 text-left text-[11px] font-bold text-brand-900">
+              More replies
+            </button>
+          )}
+          {replying && (
+            <div className="flex w-full items-center gap-2 rounded-3xl bg-gray-100 p-2">
+              <input
+                type="text"
+                autoFocus
+                value={replyDraft}
+                onChange={(event) => setReplyDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") void submitReply();
+                }}
+                placeholder={`Reply to ${comment.authorName}`}
+                className="min-w-0 flex-1 bg-transparent px-2 text-[11px] text-night-900/70 placeholder:text-night-900/40 focus:outline-none"
+              />
+              <button type="button" aria-label="Send reply" onClick={() => void submitReply()} className="relative block size-[23px] shrink-0">
+                <Image src="/icons/send-alt-filled.svg" alt="" fill sizes="23px" />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ReplyRow({ reply, onDelete }: { reply: CommentItem; onDelete: (id: string) => Promise<boolean> }) {
+  const like = useCommentLike(reply);
+  return <CommentBubble comment={reply} like={like} isReply onDelete={reply.isOwn ? () => void onDelete(reply.id) : undefined} />;
+}
+
+function CommentBubble({
+  comment,
+  like,
+  isReply = false,
+  onDelete,
+  children,
+}: {
+  comment: CommentItem;
+  like: { liked: boolean; count: number; toggle: () => void };
+  isReply?: boolean;
+  onDelete?: () => void;
+  children?: ReactNode;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const avatarSize = isReply ? 36 : 50;
+
+  return (
+    <div className="flex w-full items-start gap-[15px] py-2.5">
+      <span
+        className="relative block shrink-0 overflow-hidden rounded-full bg-[#eef2ff]"
+        style={{ width: avatarSize, height: avatarSize }}
+      >
+        {comment.avatar ? (
+          <Image src={comment.avatar} alt={comment.authorName} fill className="object-cover" sizes={`${avatarSize}px`} />
+        ) : (
+          <span className="absolute left-1/2 top-1/2 block size-6 -translate-x-1/2 -translate-y-1/2">
+            <Image src="/icons/avatar-placeholder-user.svg" alt="" fill sizes="24px" />
+          </span>
+        )}
+      </span>
+      <div className="flex min-w-0 flex-1 flex-col items-start">
+        <div className="flex w-full items-start justify-between gap-2">
+          <p className="text-[14px] font-bold text-brand-900">{comment.authorName}</p>
+          <p className="mt-0.5 shrink-0 font-rubik text-[10px] font-medium leading-5 text-[#646464]">{comment.postedAt}</p>
+        </div>
+        <div className="flex w-full items-end gap-1 font-rubik text-[14px] leading-[1.5] text-[#646464]">
+          <p className={cn("min-w-0 flex-1 whitespace-pre-line", !expanded && "line-clamp-4")}>{renderWithHashtags(comment.text)}</p>
+          {comment.text.length > 160 && (
+            <button type="button" onClick={() => setExpanded((v) => !v)} className="shrink-0 text-[11px] font-bold text-gray-400">
+              {expanded ? "less" : "more"}
+            </button>
+          )}
+        </div>
+        <div className="flex items-center gap-[15px]">
+          <button
+            type="button"
+            onClick={like.toggle}
+            aria-pressed={like.liked}
+            aria-label={like.liked ? "Unlike comment" : "Like comment"}
+            className="flex items-center gap-1"
+          >
+            <NavIcon
+              key={like.liked ? "liked" : "unliked"}
+              icon={like.liked || like.count > 0 ? "/icons/heart-like-filled.svg" : "/icons/heart-like.svg"}
+              color="brand"
+              size={14}
+              className={cn(like.liked || like.count > 0 ? "bg-like-soft" : "bg-gray-400", like.liked && "animate-like-pop")}
+            />
+            {like.count > 0 ? (
+              <span className="font-rubik text-[10px] font-bold uppercase text-brand-900">{like.count}</span>
+            ) : (
+              <span className="text-[10px] font-bold text-gray-400">Like</span>
+            )}
+          </button>
+          {children}
+          {onDelete && (
+            <button type="button" onClick={onDelete} className="text-[10px] font-bold leading-[18px] text-like">
+              Delete
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
