@@ -1,0 +1,205 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { DocumentUpload, type UploadedFile } from "@/components/shared/DocumentUpload";
+import { NavIcon } from "@/components/shared/NavIcon";
+import { OnboardingStepper } from "@/components/shared/OnboardingStepper";
+import { OnboardingTopBar } from "@/components/shared/OnboardingTopBar";
+import { DatePickerField, OptionSelectField, todayKey } from "@/components/shared/ViewingSlotPickers";
+import { MEMBERSHIP_BODIES, PROFESSIONAL_STEPS, REGISTRATION_BODIES, type BodyOption } from "@/lib/dummy-onboarding";
+import { loadProfessionalDraft, updateProfessionalDraft } from "@/lib/onboarding-draft";
+import { cn } from "@/lib/utils";
+
+const CARD = "flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-6";
+const INPUT = "flex items-center gap-2.5 rounded-[10px] border border-gray-200 bg-white px-3.5 py-[13px] text-sm leading-[1.45] text-[#0f172a] focus-within:border-brand-900";
+const DEFAULT_PROFESSION = "Architect";
+/** What steps 1 and 2 earned when nothing was saved. */
+const DEFAULT_STRENGTH = 50;
+
+/** Where a credential's issuer is picked from a list when one is known, and typed in when it is not. */
+function BodyField({ label, optional, options, value, onChange, placeholder }: { label: string; optional?: boolean; options: BodyOption[]; value: string; onChange: (value: string) => void; placeholder: string }) {
+  return (
+    <div className="flex min-w-0 flex-col gap-1.5">
+      <span className="flex items-center gap-1.5 leading-[1.45]">
+        <span className="text-[13px] font-medium text-[#334155]">{label}</span>
+        {optional && <span className="text-xs text-[#94a3b8]">Optional</span>}
+      </span>
+      {options.length > 0 ? (
+        <OptionSelectField value={value} options={options.map((option) => option.label)} onChange={onChange} placeholder={placeholder} />
+      ) : (
+        <span className={INPUT}>
+          <input value={value} maxLength={80} aria-label={label} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} className="min-w-0 flex-1 bg-transparent placeholder:text-[#94a3b8] focus:outline-none" />
+        </span>
+      )}
+    </div>
+  );
+}
+
+function BadgeRow({ icon, title, note }: { icon: string; title: string; note: string }) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#eff5ff]">
+        <NavIcon icon={icon} size={16} className="bg-brand-900" />
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col leading-[1.45]">
+        <span className="text-[13px] font-semibold text-[#0f172a]">{title}</span>
+        <span className="text-xs text-gray-500">{note}</span>
+      </span>
+    </div>
+  );
+}
+
+/** Onboarding · Professional · 3 Credentials (Figma node 1070:31731): registration and identity documents, and the badges they earn. */
+export default function ProfessionalCredentialsPage() {
+  const router = useRouter();
+  const [profession, setProfession] = useState(DEFAULT_PROFESSION);
+  const [body, setBody] = useState("");
+  const [number, setNumber] = useState("");
+  const [validUntil, setValidUntil] = useState("");
+  const [membership, setMembership] = useState("");
+  const [certificate, setCertificate] = useState<UploadedFile | null>(null);
+  const [identity, setIdentity] = useState<UploadedFile | null>(null);
+  const [today] = useState(() => todayKey());
+  const [baseStrength, setBaseStrength] = useState(DEFAULT_STRENGTH);
+
+  // Step 1's profession lives in the tab session, so it is read after mount.
+  useEffect(() => {
+    const draft = loadProfessionalDraft();
+    if (!draft) return;
+    setProfession(draft.profession);
+    setBaseStrength(draft.strength ?? DEFAULT_STRENGTH);
+  }, []);
+
+  useEffect(() => {
+    const known = REGISTRATION_BODIES[profession] ?? [];
+    setBody(known.length === 1 ? known[0].label : "");
+    setMembership("");
+  }, [profession]);
+
+  const bodies = REGISTRATION_BODIES[profession] ?? [];
+  const memberships = MEMBERSHIP_BODIES[profession] ?? [];
+  // With a single known regulator there is nothing to choose, so it is preselected; the badge names fall back to it too.
+  const bodyAbbreviation = bodies.find((option) => option.label === body)?.abbreviation ?? (body.trim() || bodies[0]?.abbreviation) ?? "";
+  const membershipAbbreviation = memberships.find((option) => option.label === membership)?.abbreviation ?? (membership.trim() || memberships[0]?.abbreviation) ?? "";
+  const validTo = validUntil ? new Date(`${validUntil}T00:00:00`).toLocaleDateString("en-GB", { month: "short", year: "numeric" }) : "";
+
+  function handleContinue() {
+    const strength = baseStrength + (number.trim() ? 10 : 0) + (certificate || identity ? 10 : 0);
+    updateProfessionalDraft({ strength, registration: { abbreviation: bodyAbbreviation, hasNumber: number.trim().length > 0 } });
+    router.push("/onboarding/professional/public-profile");
+  }
+
+  const registeredNote = number.trim() ? `Registration ${number.trim()}${validTo ? `, valid to ${validTo}` : ""}` : "Add your registration number to earn this";
+
+  return (
+    <div className="flex h-dvh flex-col overflow-hidden bg-[#f8fafc]">
+      <OnboardingTopBar title="Setting up your professional profile" actionLabel="Save and finish later" onAction={() => router.push("/home")} />
+
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="mx-auto grid w-full max-w-[1440px] grid-cols-1 gap-6 px-4 pb-12 pt-8 sm:px-12 lg:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)_340px] xl:gap-8">
+          <div className="lg:sticky lg:top-8 lg:self-start">
+            <OnboardingStepper
+              title="Professional setup"
+              duration="About 4 minutes"
+              icon="/icons/briefcase-01.svg"
+              steps={PROFESSIONAL_STEPS}
+              current={2}
+              note="You can publish before your credentials are checked. Badges appear once each check passes."
+            />
+          </div>
+
+          <main className="flex min-w-0 flex-col gap-6">
+            <div className="flex flex-col gap-1.5 leading-[1.45]">
+              <p className="text-xs font-bold uppercase tracking-[0.72px] text-brand-900">Step 3 of 4</p>
+              <h1 className="text-[28px] font-bold text-[#0f172a]">Add your credentials</h1>
+              <p className="text-[15px] text-gray-500">Each badge on Biltlinx says exactly what was checked. Your documents stay private and are only used for the check.</p>
+            </div>
+
+            <section className={CARD}>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex min-w-0 flex-col gap-1 leading-[1.45]">
+                  <h2 className="text-base font-bold text-[#0f172a]">Professional registration</h2>
+                  <p className="text-[13px] text-gray-500">Gives you the “{bodyAbbreviation || "Registered"}” badge</p>
+                </div>
+                <span className="shrink-0 rounded-full bg-[#eff5ff] px-2.5 py-1 text-xs font-semibold leading-[1.45] text-brand-900">Recommended</span>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <BodyField label="Registration body" options={bodies} value={body} onChange={setBody} placeholder="Choose your registration body" />
+                <label className="flex min-w-0 flex-col gap-1.5">
+                  <span className="text-[13px] font-medium leading-[1.45] text-[#334155]">Registration number</span>
+                  <span className={INPUT}>
+                    <input value={number} maxLength={40} placeholder="e.g. ARC/2017/0412" onChange={(event) => setNumber(event.target.value)} className="min-w-0 flex-1 bg-transparent placeholder:text-[#94a3b8] focus:outline-none" />
+                    {number.trim() && <NavIcon icon="/icons/onboarding-check-circle.svg" size={18} className="bg-[#16a34a]" />}
+                  </span>
+                </label>
+                <div className="flex min-w-0 flex-col gap-1.5">
+                  <span className="text-[13px] font-medium leading-[1.45] text-[#334155]">Valid until</span>
+                  <DatePickerField value={validUntil} onChange={setValidUntil} min={today} />
+                </div>
+                <BodyField label="Professional body membership" optional options={memberships} value={membership} onChange={setMembership} placeholder="Choose a membership" />
+              </div>
+
+              <DocumentUpload
+                title="Registration certificate"
+                hint="PDF, JPG or PNG, up to 10 MB."
+                file={certificate}
+                onFile={setCertificate}
+              />
+            </section>
+
+            <section className={CARD}>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex min-w-0 flex-col gap-1 leading-[1.45]">
+                  <h2 className="text-base font-bold text-[#0f172a]">Identity</h2>
+                  <p className="text-[13px] text-gray-500">Gives you the “ID verified” badge</p>
+                </div>
+                <span className="shrink-0 rounded-full bg-[#fef3c7] px-2.5 py-1 text-xs font-semibold leading-[1.45] text-[#b45309]">Needed for badges</span>
+              </div>
+              <DocumentUpload
+                title="Ghana Card, front and back"
+                hint="Photo or PDF. We also ask for a quick selfie to match it."
+                file={identity}
+                onFile={setIdentity}
+              />
+            </section>
+
+            <div className="flex items-center justify-between gap-3">
+              <button type="button" onClick={() => router.push("/onboarding/professional/services")} className="flex items-center gap-2 rounded-[10px] border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-[#0f172a] hover:bg-gray-50">
+                <NavIcon icon="/icons/onboarding-arrow-left.svg" size={10} className="bg-[#0f172a]" />
+                Back
+              </button>
+              <div className="flex items-center gap-3">
+                <button type="button" onClick={() => router.push("/onboarding/professional/public-profile")} className="whitespace-nowrap rounded-[10px] px-5 py-3 text-sm font-semibold text-brand-900">
+                  Do this later
+                </button>
+                <button type="button" onClick={handleContinue} className="flex items-center gap-2 rounded-[10px] bg-brand-900 px-5 py-3 text-sm font-semibold text-white hover:opacity-90">
+                  Continue
+                  <NavIcon icon="/icons/onboarding-arrow-right.svg" size={10} className="bg-white" />
+                </button>
+              </div>
+            </div>
+          </main>
+
+          <aside className="flex flex-col gap-4 lg:col-start-2 xl:sticky xl:top-8 xl:col-start-3 xl:self-start">
+            <div className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-6">
+              <p className="text-sm font-bold leading-[1.45] text-[#0f172a]">Your badges will read</p>
+              <BadgeRow icon="/icons/onboarding-id-verified.svg" title="ID verified" note="Checked against your Ghana Card" />
+              <BadgeRow icon="/icons/onboarding-license.svg" title={`${bodyAbbreviation || "Professionally"} registered`} note={registeredNote} />
+              <BadgeRow icon="/icons/onboarding-award.svg" title={`${membershipAbbreviation || "Association"} member`} note="Only if you add a membership number" />
+            </div>
+
+            <div className="flex items-start gap-3 rounded-[14px] bg-[#eff5ff] p-4">
+              <NavIcon icon="/icons/onboarding-user-shield.svg" size={20} className="shrink-0 bg-brand-900" />
+              <div className="flex min-w-0 flex-col gap-1 text-[13px] leading-[1.45]">
+                <p className="font-bold text-[#0f172a]">Paid plans never buy a badge</p>
+                <p className="text-[#334155]">Pro and Featured change visibility only. Verification is always a separate check.</p>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </div>
+  );
+}
