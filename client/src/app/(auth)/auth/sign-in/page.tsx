@@ -21,6 +21,7 @@ function SignInContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const method = searchParams.get("method") === "email" ? "email" : "phone";
+  const destination = searchParams.get("next") === "onboarding" ? "/onboarding" : "/home";
 
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -51,7 +52,7 @@ function SignInContent() {
         ),
       );
       showSuccessToast("Signed in! Welcome back to Biltlinx");
-      router.push("/home");
+      router.push(destination);
     } catch (error) {
       showErrorToast(error instanceof ApiError ? error.message : "Unable to sign in");
     }
