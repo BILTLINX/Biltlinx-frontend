@@ -1,23 +1,24 @@
 "use client";
 
+import { useDisplayName } from "@/hooks/useDisplayName";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { OnboardingDoneView, type DoneStep } from "@/components/shared/OnboardingDoneView";
 import { comingSoonHref } from "@/lib/coming-soon";
-import { NEW_ACCOUNT_NAME } from "@/lib/dummy-onboarding";
 import { feedSummary, loadPersonalDraft, shortBedrooms, type PersonalDraft } from "@/lib/onboarding-draft";
 
 const DEFAULT_STRENGTH = 60;
 
 /** Onboarding · Personal · Done (Figma node 1069:31557): the setup is finished and what happens next. */
 export default function PersonalDonePage() {
+  const accountName = useDisplayName();
   const router = useRouter();
   const [draft, setDraft] = useState<PersonalDraft | null>(null);
 
   // The choices from earlier steps live in the tab session, so they are read after mount.
   useEffect(() => setDraft(loadPersonalDraft()), []);
 
-  const firstName = (draft?.displayName?.split(" ")[0] || NEW_ACCOUNT_NAME).trim();
+  const firstName = (draft?.displayName?.split(" ")[0] || accountName).trim();
   const strength = Math.round(draft?.strength ?? DEFAULT_STRENGTH);
   const savedSearch = draft?.alerts && draft.areas.length > 0 ? `${draft.bedrooms ? `${shortBedrooms(draft.bedrooms)} ` : ""}rentals in ${draft.areas[0]}` : null;
 

@@ -86,7 +86,7 @@ export default function ProfessionalCredentialsPage() {
 
   function handleContinue() {
     const strength = baseStrength + (number.trim() ? 10 : 0) + (certificate || identity ? 10 : 0);
-    updateProfessionalDraft({ strength, registration: { abbreviation: bodyAbbreviation, hasNumber: number.trim().length > 0 } });
+    updateProfessionalDraft({ strength, registration: { abbreviation: bodyAbbreviation, hasNumber: number.trim().length > 0, body: body.trim() || bodyAbbreviation, number: number.trim() } });
     router.push("/onboarding/professional/public-profile");
   }
 
@@ -146,6 +146,7 @@ export default function ProfessionalCredentialsPage() {
                 hint="PDF, JPG or PNG, up to 10 MB."
                 file={certificate}
                 onFile={setCertificate}
+                slot="professional:certificate"
               />
             </section>
 
@@ -162,6 +163,7 @@ export default function ProfessionalCredentialsPage() {
                 hint="Photo or PDF. We also ask for a quick selfie to match it."
                 file={identity}
                 onFile={setIdentity}
+                slot="professional:identity"
               />
             </section>
 

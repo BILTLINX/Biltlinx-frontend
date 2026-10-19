@@ -1,20 +1,15 @@
 "use client";
 
+import { useSession } from "@/context/SessionContext";
+import { useDisplayName } from "@/hooks/useDisplayName";
+import { formatDate } from "@/lib/format";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { OnboardingStepper } from "@/components/shared/OnboardingStepper";
 import { OnboardingTopBar } from "@/components/shared/OnboardingTopBar";
 import { Switch } from "@/components/shared/SettingsParts";
-import {
-  INTRO_EXAMPLE,
-  INTRO_MAX_LENGTH,
-  NEW_ACCOUNT_PROFILE,
-  PERSONAL_INTERESTS,
-  PERSONAL_STEPS,
-  PROFILE_PHOTO_MAX_BYTES,
-  PROFILE_PHOTO_TYPES,
-} from "@/lib/dummy-onboarding";
+import { INTRO_EXAMPLE, INTRO_MAX_LENGTH, PERSONAL_INTERESTS, PERSONAL_STEPS, PROFILE_PHOTO_MAX_BYTES, PROFILE_PHOTO_TYPES } from "@/lib/dummy-onboarding";
 import { loadPersonalDraft, updatePersonalDraft } from "@/lib/onboarding-draft";
 import { initialsOf } from "@/lib/initials";
 import { cn } from "@/lib/utils";
@@ -45,9 +40,11 @@ function ContactRow({ icon, title, note, checked, onToggle }: { icon: string; ti
 
 /** Onboarding · Personal · 2 Profile (Figma node 1069:31382): optional photo, intro and how to be reached. */
 export default function PersonalProfilePage() {
+  const accountName = useDisplayName();
+  const { user } = useSession();
   const router = useRouter();
   const fileInput = useRef<HTMLInputElement | null>(null);
-  const [name, setName] = useState(NEW_ACCOUNT_PROFILE.displayName);
+  const [name, setName] = useState(accountName);
   const [location, setLocation] = useState("");
   const [intro, setIntro] = useState("");
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
@@ -175,8 +172,8 @@ export default function PersonalProfilePage() {
               <h2 className="text-base font-bold text-[#0f172a]">How should we reach you?</h2>
               <p className="text-[13px] text-gray-500">Messages about viewings, bookings and quotes.</p>
             </div>
-            <ContactRow icon="/icons/onboarding-phone.svg" title={`WhatsApp · ${NEW_ACCOUNT_PROFILE.whatsapp}`} note="Verified at sign up" checked={whatsapp} onToggle={() => setWhatsapp(!whatsapp)} />
-            <ContactRow icon="/icons/onboarding-mail.svg" title="Email" note={NEW_ACCOUNT_PROFILE.email} checked={email} onToggle={() => setEmail(!email)} />
+            <ContactRow icon="/icons/onboarding-phone.svg" title={`WhatsApp · ${user?.primaryContact ?? ""}`} note="Verified at sign up" checked={whatsapp} onToggle={() => setWhatsapp(!whatsapp)} />
+            <ContactRow icon="/icons/onboarding-mail.svg" title="Email" note={user?.otherContact ?? user?.accounts[0]?.email ?? ""} checked={email} onToggle={() => setEmail(!email)} />
             <ContactRow icon="/icons/onboarding-flash.svg" title="Push notifications" note="On this browser" checked={push} onToggle={() => setPush(!push)} />
           </section>
 
@@ -217,7 +214,7 @@ export default function PersonalProfilePage() {
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5 leading-[1.45]">
                   <p className="truncate text-base font-bold text-[#0f172a]">{name.trim() || "Your name"}</p>
                   <p className="truncate text-[13px] text-gray-500">
-                    {location.trim() ? `${location.trim()} · ` : ""}Joined {NEW_ACCOUNT_PROFILE.joined}
+                    {location.trim() ? `${location.trim()} · ` : ""}Joined {user ? formatDate(user.createdAt) : ""}
                   </p>
                 </div>
               </div>

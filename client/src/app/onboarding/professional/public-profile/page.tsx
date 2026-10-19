@@ -1,13 +1,17 @@
 "use client";
 
+import { useDisplayName } from "@/hooks/useDisplayName";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { showErrorToast } from "@/components/shared/AppToast";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { OnboardingStepper } from "@/components/shared/OnboardingStepper";
 import { OnboardingTopBar } from "@/components/shared/OnboardingTopBar";
 import { PortfolioUploader, type PortfolioImage } from "@/components/shared/PortfolioUploader";
-import { NEW_PROFESSIONAL, PROFESSIONAL_STEPS, PROFILE_PHOTO_MAX_BYTES, PROFILE_PHOTO_TYPES } from "@/lib/dummy-onboarding";
+import { PROFESSIONAL_STEPS, PROFILE_PHOTO_MAX_BYTES, PROFILE_PHOTO_TYPES } from "@/lib/dummy-onboarding";
 import { loadProfessionalDraft, updateProfessionalDraft, type ProfessionalDraft } from "@/lib/onboarding-draft";
+import { notifyError } from "@/lib/errors";
+import { finishProfessional } from "@/lib/onboarding-submit";
 import { initialsOf } from "@/lib/initials";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +25,7 @@ const DEFAULT_STRENGTH = 70;
 
 /** Onboarding · Professional · 4 Public profile (Figma node 1070:31928): photo, headline, about and portfolio. */
 export default function ProfessionalPublicProfilePage() {
+  const accountName = useDisplayName();
   const router = useRouter();
   const photoInput = useRef<HTMLInputElement | null>(null);
   const urls = useRef<string[]>([]);
@@ -30,6 +35,7 @@ export default function ProfessionalPublicProfilePage() {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [portfolio, setPortfolio] = useState<PortfolioImage[]>([]);
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
 
   // Earlier steps' choices live in the tab session, so they are read after mount.
   useEffect(() => {
@@ -64,17 +70,29 @@ export default function ProfessionalPublicProfilePage() {
     if (!problem) setPhotoUrl(previewUrl(file));
   }
 
-  function publish() {
+  async function publish() {
     if (portfolio.length < PORTFOLIO_MINIMUM) {
       setError(`Add at least ${PORTFOLIO_MINIMUM} images of your work to publish.`);
       return;
     }
-    updateProfessionalDraft({ strength });
-    router.push("/onboarding/professional/done");
+    if (!draft) {
+      setError("Start from the first step so we know your profession.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const problems = await finishProfessional({ draft, displayName: draft.firm.trim() || accountName, headline, about, portfolio: portfolio.map((image) => image.file) });
+      updateProfessionalDraft({ strength });
+      problems.forEach((problem) => showErrorToast(problem));
+      router.push("/onboarding/professional/done");
+    } catch (failure) {
+      notifyError(failure, "Your profile could not be saved.");
+      setSaving(false);
+    }
   }
 
   const profession = draft?.profession ?? "Architect";
-  const firm = draft?.firm ?? NEW_PROFESSIONAL.firm;
+  const firm = draft?.firm ?? "";
   const strength = Math.min(100, (draft?.strength ?? DEFAULT_STRENGTH) + (photoUrl ? 10 : 0) + (about.trim() ? 10 : 0) + (portfolio.length >= PORTFOLIO_MINIMUM ? 10 : 0));
   const registrationNote = draft?.registration?.hasNumber ? `${draft.registration.abbreviation || "Registration"} registration in review` : null;
   const worksIn = draft?.worksIn ?? ["Greater Accra", "Remote"];
@@ -110,7 +128,7 @@ export default function ProfessionalPublicProfilePage() {
                     // eslint-disable-next-line @next/next/no-img-element -- a local object URL, nothing for next/image to optimise
                     <img src={photoUrl} alt="Your profile photo" className="size-full object-cover" />
                   ) : (
-                    initialsOf(NEW_PROFESSIONAL.name)
+                    initialsOf(accountName)
                   )}
                 </span>
                 <div className="flex min-w-0 flex-1 flex-col gap-1.5 leading-[1.45]">
@@ -154,8 +172,8 @@ export default function ProfessionalPublicProfilePage() {
                 <NavIcon icon="/icons/onboarding-arrow-left.svg" size={10} className="bg-[#0f172a]" />
                 Back
               </button>
-              <button type="button" onClick={publish} className="whitespace-nowrap rounded-[10px] bg-brand-900 px-5 py-3 text-sm font-semibold text-white hover:opacity-90">
-                Publish profile
+              <button type="button" onClick={publish} disabled={saving} className="whitespace-nowrap disabled:opacity-60 rounded-[10px] bg-brand-900 px-5 py-3 text-sm font-semibold text-white hover:opacity-90">
+                {saving ? "Publishing…" : "Publish profile"}
               </button>
             </div>
           </main>
@@ -174,11 +192,11 @@ export default function ProfessionalPublicProfilePage() {
                       // eslint-disable-next-line @next/next/no-img-element -- a local object URL, nothing for next/image to optimise
                       <img src={photoUrl} alt="" className="size-full object-cover" />
                     ) : (
-                      initialsOf(NEW_PROFESSIONAL.name)
+                      initialsOf(accountName)
                     )}
                   </span>
                   <div className="flex min-w-0 flex-1 flex-col gap-0.5 leading-[1.45]">
-                    <p className="truncate text-base font-bold text-[#0f172a]">{NEW_PROFESSIONAL.name}</p>
+                    <p className="truncate text-base font-bold text-[#0f172a]">{accountName}</p>
                     <p className="truncate text-[13px] text-gray-500">{[profession, firm].filter(Boolean).join(" · ")}</p>
                   </div>
                 </div>

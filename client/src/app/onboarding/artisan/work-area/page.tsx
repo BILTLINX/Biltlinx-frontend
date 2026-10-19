@@ -1,5 +1,7 @@
 "use client";
 
+import { useDisplayName } from "@/hooks/useDisplayName";
+import { useSession } from "@/context/SessionContext";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { NavIcon } from "@/components/shared/NavIcon";
@@ -7,7 +9,7 @@ import { OnboardingStepper } from "@/components/shared/OnboardingStepper";
 import { OnboardingTopBar } from "@/components/shared/OnboardingTopBar";
 import { Switch } from "@/components/shared/SettingsParts";
 import { OptionSelectField } from "@/components/shared/ViewingSlotPickers";
-import { ARTISAN_STEPS, ARTISAN_WHATSAPP, MATCHING_ARTISAN_REQUESTS, NEW_ARTISAN, TRADE_REQUEST_WORD, TRAVEL_DISTANCES, WEEKDAYS, WORKING_HOURS } from "@/lib/dummy-onboarding";
+import { ARTISAN_STEPS, TRADE_REQUEST_WORD, TRAVEL_DISTANCES, WEEKDAYS, WORKING_HOURS } from "@/lib/dummy-onboarding";
 import { initialsOf } from "@/lib/initials";
 import { loadArtisanDraft, updateArtisanDraft, type ArtisanDraft } from "@/lib/onboarding-draft";
 import { cn } from "@/lib/utils";
@@ -66,9 +68,11 @@ function compactHours(hours: string) {
 
 /** Onboarding · Artisan · 2 Work area (Figma node 1071:31702): where and when they work and what they charge to turn up. */
 export default function ArtisanWorkAreaPage() {
+  const accountName = useDisplayName();
+  const accountContact = useSession().user?.primaryContact ?? "";
   const router = useRouter();
   const [draft, setDraft] = useState<ArtisanDraft | null>(null);
-  const [base, setBase] = useState(NEW_ARTISAN.basedIn);
+  const [base, setBase] = useState("");
   const [travel, setTravel] = useState(TRAVEL_DISTANCES[1]);
   const [days, setDays] = useState(WEEKDAYS.slice(0, 6));
   const [hours, setHours] = useState(WORKING_HOURS[1]);
@@ -167,7 +171,7 @@ export default function ArtisanWorkAreaPage() {
 
             <section className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-6">
               <ToggleRow icon="/icons/onboarding-flash.svg" title="Accept emergency call-outs" note="Urgent jobs outside your hours, for example a power fault at night" checked={emergency} onToggle={() => setEmergency(!emergency)} />
-              <ToggleRow icon="/icons/onboarding-phone.svg" title="Job alerts on WhatsApp" note={ARTISAN_WHATSAPP} checked={whatsapp} onToggle={() => setWhatsapp(!whatsapp)} />
+              <ToggleRow icon="/icons/onboarding-phone.svg" title="Job alerts on WhatsApp" note={accountContact} checked={whatsapp} onToggle={() => setWhatsapp(!whatsapp)} />
             </section>
 
             <div className="flex items-center justify-between gap-3">
@@ -191,9 +195,9 @@ export default function ArtisanWorkAreaPage() {
               <div className="h-16 bg-gradient-to-r from-[#0a1f44] to-brand-900" />
               <div className="flex flex-col gap-3 px-5 py-4">
                 <div className="flex items-center gap-3">
-                  <span className="flex size-14 shrink-0 items-center justify-center rounded-full border-[3px] border-white bg-[#eff5ff] text-lg font-bold text-brand-900">{initialsOf(NEW_ARTISAN.name)}</span>
+                  <span className="flex size-14 shrink-0 items-center justify-center rounded-full border-[3px] border-white bg-[#eff5ff] text-lg font-bold text-brand-900">{initialsOf(accountName)}</span>
                   <div className="flex min-w-0 flex-1 flex-col gap-0.5 leading-[1.45]">
-                    <p className="truncate text-base font-bold text-[#0f172a]">{NEW_ARTISAN.name}</p>
+                    <p className="truncate text-base font-bold text-[#0f172a]">{accountName}</p>
                     <p className="truncate text-[13px] text-gray-500">{[trade, base.trim()].filter(Boolean).join(" · ")}</p>
                   </div>
                 </div>
@@ -238,7 +242,7 @@ export default function ArtisanWorkAreaPage() {
               <div className="flex min-w-0 flex-col gap-1 text-[13px] leading-[1.45]">
                 <p className="font-bold text-[#0f172a]">Demand near you</p>
                 <p className="text-[#334155]">
-                  {MATCHING_ARTISAN_REQUESTS} open {requestWord} requests {travel === TRAVEL_DISTANCES[3] ? "in Greater Accra" : `within ${travel}${place ? ` of ${place}` : ""}`} on the Request Board right now.
+                  Customers who need {requestWord} work {travel === TRAVEL_DISTANCES[3] ? "in Greater Accra" : `within ${travel}${place ? ` of ${place}` : ""}`} can find you in the directory and send you a quote request.
                 </p>
               </div>
             </div>

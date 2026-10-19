@@ -244,9 +244,7 @@ export const PRICE_EXAMPLES: Record<string, string[]> = {
 export const BUSINESS_STEPS = [
   { id: "type", title: "Business type", note: "What kind of business" },
   { id: "details", title: "Business details", note: "Name, contacts and location" },
-  { id: "sell", title: "What you sell", note: "Products, delivery and prices" },
   { id: "verification", title: "Verification", note: "Registration and owner ID" },
-  { id: "plan", title: "Plan", note: "Start free or go Pro" },
 ];
 
 export interface BusinessType {
@@ -311,10 +309,7 @@ export const BUSINESS_PLANS: BusinessPlan[] = [
 
 export const ORGANIZATION_STEPS = [
   { id: "organization", title: "Organization", note: "Type, name and head office" },
-  { id: "branches", title: "Branches", note: "Offices, sites and locations" },
-  { id: "team", title: "Team", note: "Invite staff and set access" },
   { id: "verification", title: "Verification", note: "Incorporation and authority" },
-  { id: "plan", title: "Plan", note: "Pick what fits your team" },
 ];
 
 export const ORGANIZATION_TYPES = [

@@ -6,9 +6,10 @@ import { NavIcon } from "@/components/shared/NavIcon";
 import { OnboardingRadioDot } from "@/components/shared/OnboardingRadioDot";
 import { OnboardingStepper } from "@/components/shared/OnboardingStepper";
 import { OnboardingTopBar } from "@/components/shared/OnboardingTopBar";
-import { BUSINESS_STEPS, BUSINESS_TYPES, NEW_BUSINESS } from "@/lib/dummy-onboarding";
+import { BUSINESS_STEPS, BUSINESS_TYPES } from "@/lib/dummy-onboarding";
 import { initialsOf } from "@/lib/initials";
 import { saveBusinessDraft } from "@/lib/onboarding-draft";
+import { BUSINESS_CAPABILITY } from "@/lib/onboarding-submit";
 import { cn } from "@/lib/utils";
 
 /** The account itself earns 10% and choosing what kind of business it is adds 15%; one type is always selected. */
@@ -17,12 +18,15 @@ const STRENGTH = 25;
 /** Onboarding · Business · 1 Business type (Figma node 1073:31677): what kind of business they run. */
 export default function BusinessTypePage() {
   const router = useRouter();
-  const [typeId, setTypeId] = useState("supplies");
+  const [typeId, setTypeId] = useState("agency");
   const [otherNote, setOtherNote] = useState("");
 
   const type = BUSINESS_TYPES.find((option) => option.id === typeId) ?? BUSINESS_TYPES[0];
 
+  const supported = Boolean(BUSINESS_CAPABILITY[typeId]);
+
   function handleContinue() {
+    if (!supported) return;
     saveBusinessDraft({ typeId, otherNote: typeId === "other" ? otherNote.trim() : "" });
     router.push("/onboarding/business/details");
   }
@@ -36,7 +40,7 @@ export default function BusinessTypePage() {
           <div className="lg:sticky lg:top-8 lg:self-start">
             <OnboardingStepper
               title="Business setup"
-              duration="About 5 minutes"
+              duration="About 3 minutes"
               icon="/icons/onboarding-building.svg"
               iconClass="-scale-y-100"
               steps={BUSINESS_STEPS}
@@ -47,7 +51,7 @@ export default function BusinessTypePage() {
 
           <main className="flex min-w-0 flex-col gap-6">
             <div className="flex flex-col gap-1.5 leading-[1.45]">
-              <p className="text-xs font-bold uppercase tracking-[0.72px] text-brand-900">Step 1 of 5</p>
+              <p className="text-xs font-bold uppercase tracking-[0.72px] text-brand-900">Step 1 of 3</p>
               <h1 className="text-[28px] font-bold text-[#0f172a]">What kind of business do you run?</h1>
               <p className="text-[15px] text-gray-500">We set up your storefront, listings and Manage tools to match.</p>
             </div>
@@ -78,6 +82,12 @@ export default function BusinessTypePage() {
                 })}
               </div>
 
+              {!supported && (
+                <p className="rounded-xl bg-[#fef3c7] px-4 py-3 text-[13px] leading-[1.45] text-[#b45309]">
+                  Selling products, equipment hire and haulage are not on Biltlinx yet. Pick Estate agency or Stay operator to set up now, and check back for the rest.
+                </p>
+              )}
+
               {typeId === "other" && (
                 <label className="flex flex-col gap-1.5">
                   <span className="text-[13px] font-medium leading-[1.45] text-[#334155]">Tell us in a few words</span>
@@ -97,7 +107,7 @@ export default function BusinessTypePage() {
                 <NavIcon icon="/icons/onboarding-arrow-left.svg" size={10} className="bg-[#0f172a]" />
                 Change account type
               </button>
-              <button type="button" onClick={handleContinue} className="flex items-center gap-2 rounded-[10px] bg-brand-900 px-5 py-3 text-sm font-semibold text-white hover:opacity-90">
+              <button type="button" onClick={handleContinue} disabled={!supported} className="flex items-center gap-2 rounded-[10px] bg-brand-900 disabled:opacity-50 px-5 py-3 text-sm font-semibold text-white hover:opacity-90">
                 Continue
                 <NavIcon icon="/icons/onboarding-arrow-right.svg" size={10} className="bg-white" />
               </button>
@@ -113,11 +123,11 @@ export default function BusinessTypePage() {
               <div className="h-16 bg-gradient-to-r from-[#0a1f44] to-brand-900" />
               <div className="flex flex-col gap-3 px-5 py-4">
                 <div className="flex items-center gap-3">
-                  <span className="flex size-14 shrink-0 items-center justify-center rounded-xl border-[3px] border-white bg-[#eff5ff] text-lg font-bold text-brand-900">{initialsOf(NEW_BUSINESS.name)}</span>
+                  <span className="flex size-14 shrink-0 items-center justify-center rounded-xl border-[3px] border-white bg-[#eff5ff] text-lg font-bold text-brand-900">{initialsOf("Your business")}</span>
                   <div className="flex min-w-0 flex-1 flex-col gap-0.5 leading-[1.45]">
-                    <p className="truncate text-base font-bold text-[#0f172a]">{NEW_BUSINESS.name}</p>
+                    <p className="truncate text-base font-bold text-[#0f172a]">{"Your business"}</p>
                     <p className="truncate text-[13px] text-gray-500">
-                      {type.category} · {NEW_BUSINESS.location}
+                      {type.category} · {"your area"}
                     </p>
                   </div>
                 </div>

@@ -83,7 +83,7 @@ export interface ProfessionalDraft {
   /** Profile strength reached so far, 0 to 100. */
   strength?: number;
   /** Filled in by the credentials step. */
-  registration?: { abbreviation: string; hasNumber: boolean };
+  registration?: { abbreviation: string; hasNumber: boolean; body?: string; number?: string };
 }
 
 export function saveProfessionalDraft(draft: ProfessionalDraft) {

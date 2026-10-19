@@ -1,11 +1,12 @@
 "use client";
 
+import { useDisplayName } from "@/hooks/useDisplayName";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { showSuccessToast } from "@/components/shared/AppToast";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { OnboardingTopBar } from "@/components/shared/OnboardingTopBar";
-import { ACCOUNT_TYPES, NEW_ACCOUNT_NAME, type AccountType, type AccountTypeId } from "@/lib/dummy-onboarding";
+import { ACCOUNT_TYPES, type AccountType, type AccountTypeId } from "@/lib/dummy-onboarding";
 import { logout } from "@/lib/auth-api";
 import { cn } from "@/lib/utils";
 
@@ -56,6 +57,7 @@ function AccountTypeCard({ type, selected, onSelect }: { type: AccountType; sele
 
 /** Onboarding · Choose account type (Figma node 1068:31114): the first step after a new account is created. */
 export default function OnboardingPage() {
+  const accountName = useDisplayName();
   const router = useRouter();
   const [selected, setSelected] = useState<AccountTypeId>("professional");
   const selectedType = ACCOUNT_TYPES.find((type) => type.id === selected) ?? ACCOUNT_TYPES[0];
@@ -79,7 +81,7 @@ export default function OnboardingPage() {
           <div className={cn("flex flex-col items-center gap-2.5 text-center", `[@media(max-height:780px)]:gap-1.5`)}>
             <p className="flex items-center gap-1.5 rounded-full bg-[#dcfce7] px-3 py-1.5 text-[13px] font-semibold text-[#16a34a]">
               <NavIcon icon="/icons/onboarding-check-circle.svg" size={16} className="bg-[#16a34a]" />
-              Account created · Welcome, {NEW_ACCOUNT_NAME}
+              Account created · Welcome, {accountName}
             </p>
             <h1 className={cn("text-[28px] font-extrabold leading-[1.45] text-[#0f172a] sm:text-[32px]", `[@media(max-height:780px)]:text-2xl [@media(max-height:780px)]:leading-tight`)}>How will you use Biltlinx?</h1>
             <p className={cn("max-w-[640px] text-base leading-[1.45] text-gray-500", `[@media(max-height:780px)]:text-[13px]`)}>

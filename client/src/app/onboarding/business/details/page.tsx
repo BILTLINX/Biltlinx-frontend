@@ -7,7 +7,7 @@ import { OnboardingStepper } from "@/components/shared/OnboardingStepper";
 import { OnboardingTopBar } from "@/components/shared/OnboardingTopBar";
 import { OptionSelectField } from "@/components/shared/ViewingSlotPickers";
 import { comingSoonHref } from "@/lib/coming-soon";
-import { BUSINESS_CATEGORIES, BUSINESS_HOURS, BUSINESS_STEPS, BUSINESS_TYPES, LOGO_MIN_SIZE, NEW_BUSINESS, PROFILE_PHOTO_MAX_BYTES, PROFILE_PHOTO_TYPES } from "@/lib/dummy-onboarding";
+import { BUSINESS_CATEGORIES, BUSINESS_HOURS, BUSINESS_STEPS, BUSINESS_TYPES, LOGO_MIN_SIZE, PROFILE_PHOTO_MAX_BYTES, PROFILE_PHOTO_TYPES } from "@/lib/dummy-onboarding";
 import { initialsOf } from "@/lib/initials";
 import { loadBusinessDraft, updateBusinessDraft } from "@/lib/onboarding-draft";
 import { cn } from "@/lib/utils";
@@ -47,7 +47,7 @@ export default function BusinessDetailsPage() {
   const [baseStrength, setBaseStrength] = useState(DEFAULT_STRENGTH);
   const [logo, setLogo] = useState<string | null>(null);
   const [logoError, setLogoError] = useState("");
-  const [name, setName] = useState(NEW_BUSINESS.name);
+  const [name, setName] = useState("Your business");
   const [category, setCategory] = useState(BUSINESS_TYPES[1].category);
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -97,7 +97,7 @@ export default function BusinessDetailsPage() {
     setLogo(url);
   }
 
-  const place = placeOf(address) || NEW_BUSINESS.location;
+  const place = placeOf(address) || "your area";
   const strength = Math.min(100, baseStrength + (name.trim() && category ? 10 : 0) + (phone.trim() || email.trim() ? 5 : 0) + (address.trim() ? 10 : 0));
 
   function handleContinue() {
@@ -110,8 +110,7 @@ export default function BusinessDetailsPage() {
       return;
     }
     updateBusinessDraft({ strength, details: { name: name.trim(), category, place, hours: compactHours(hours) } });
-    // Only the building supplies flow is designed so far; the other kinds of business stop here.
-    router.push(typeId === "supplies" ? "/onboarding/business/what-you-sell" : comingSoonHref("Business setup · What you sell"));
+    router.push("/onboarding/business/verification");
   }
 
   return (
@@ -123,7 +122,7 @@ export default function BusinessDetailsPage() {
           <div className="lg:sticky lg:top-8 lg:self-start">
             <OnboardingStepper
               title="Business setup"
-              duration="About 5 minutes"
+              duration="About 3 minutes"
               icon="/icons/onboarding-building.svg"
               iconClass="-scale-y-100"
               steps={BUSINESS_STEPS}
@@ -134,7 +133,7 @@ export default function BusinessDetailsPage() {
 
           <main className="flex min-w-0 flex-col gap-6">
             <div className="flex flex-col gap-1.5 leading-[1.45]">
-              <p className="text-xs font-bold uppercase tracking-[0.72px] text-brand-900">Step 2 of 5</p>
+              <p className="text-xs font-bold uppercase tracking-[0.72px] text-brand-900">Step 2 of 3</p>
               <h1 className="text-[28px] font-bold text-[#0f172a]">Tell customers about your business</h1>
               <p className="text-[15px] text-gray-500">This is your public business page. Use the name customers know you by.</p>
             </div>

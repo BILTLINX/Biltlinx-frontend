@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { NavIcon } from "@/components/shared/NavIcon";
+import { rememberFile } from "@/lib/onboarding-files";
 import { CREDENTIAL_FILE_MAX_BYTES, CREDENTIAL_FILE_TYPES } from "@/lib/dummy-onboarding";
 import { cn } from "@/lib/utils";
 
@@ -19,10 +20,11 @@ interface DocumentUploadProps {
   hint: string;
   file: UploadedFile | null;
   onFile: (file: UploadedFile) => void;
+  slot?: string;
 }
 
 /** A document slot: dashed while empty, solid with the file's name once something is chosen. Checks type and size itself. */
-export function DocumentUpload({ title, hint, file, onFile }: DocumentUploadProps) {
+export function DocumentUpload({ title, hint, file, onFile, slot }: DocumentUploadProps) {
   const input = useRef<HTMLInputElement | null>(null);
   const [error, setError] = useState("");
 
@@ -37,6 +39,7 @@ export function DocumentUpload({ title, hint, file, onFile }: DocumentUploadProp
       return;
     }
     setError("");
+    if (slot) rememberFile(slot, picked);
     onFile({ name: picked.name, size: picked.size });
   }
 

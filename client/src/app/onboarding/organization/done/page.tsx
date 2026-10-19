@@ -3,86 +3,39 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { OnboardingDoneView, type DoneStep } from "@/components/shared/OnboardingDoneView";
-import { comingSoonHref } from "@/lib/coming-soon";
-import { NEW_ORGANIZATION } from "@/lib/dummy-onboarding";
 import { loadOrganizationDraft, type OrganizationDraft } from "@/lib/onboarding-draft";
 
 const DEFAULT_STRENGTH = 50;
 
-/** Onboarding · Organization · Done (Figma node 1074:33006): the organization page is live and what happens next. */
+/** Onboarding · Organization · Done: the role request and documents are with the review team, and what happens next. */
 export default function OrganizationDonePage() {
   const router = useRouter();
   const [draft, setDraft] = useState<OrganizationDraft | null>(null);
 
-  // The choices from earlier steps live in the tab session, so they are read after mount.
   useEffect(() => setDraft(loadOrganizationDraft()), []);
 
-  const name = draft?.name ?? NEW_ORGANIZATION.name;
-  // The design's title drops the legal suffix ("Kharis Developments is set up").
+  const name = draft?.name ?? "Your organization";
   const shortName = name.replace(/\s+(ltd|limited|llc|inc|plc)\.?$/i, "");
-  const locations = (draft?.branches?.length ?? 0) + 1;
-  const invited = draft?.invited ?? 0;
   const strength = Math.round(draft?.strength ?? DEFAULT_STRENGTH);
-  const verification = draft?.verification;
-  const hasIncorporation = Boolean(verification?.incorporation);
-  const hasLetter = Boolean(verification?.authority);
-  const hasOwnerId = Boolean(verification?.ownerId);
-  const toVerification = () => router.push("/verification");
-
-  const verificationStep: DoneStep =
-    hasIncorporation && hasLetter && hasOwnerId
-      ? { id: "verification", title: "Organization verification", note: "We are checking your documents", icon: "/icons/onboarding-user-shield.svg", tone: "pending", pill: "In review" }
-      : hasIncorporation && hasOwnerId
-        ? { id: "verification", title: "Organization verification", note: "Upload your authorisation letter to finish the check", icon: "/icons/onboarding-user-shield.svg", tone: "todo", action: { label: "Upload letter", onClick: toVerification } }
-        : { id: "verification", title: "Organization verification", note: "Add your incorporation documents and authorisation letter to get the badge", icon: "/icons/onboarding-user-shield.svg", tone: "todo", action: { label: "Verify now", onClick: toVerification } };
+  const sentDocuments = Boolean(draft?.verification?.incorporation || draft?.verification?.authority || draft?.verification?.ownerId);
 
   const steps: DoneStep[] = [
-    {
-      id: "page",
-      title: "Organization page published",
-      note: `Visible in search with ${locations} ${locations === 1 ? "location" : "locations"}`,
-      icon: "/icons/onboarding-city.svg",
-      iconClass: "-scale-y-100",
-      tone: "done",
-      pill: "Live",
-    },
-    invited > 0
-      ? {
-          id: "team",
-          title: `${invited} team ${invited === 1 ? "invite" : "invites"} sent`,
-          note: "Each person accepts with their own Biltlinx account",
-          icon: "/icons/onboarding-user-group.svg",
-          tone: "pending",
-          pill: "Waiting",
-        }
-      : {
-          id: "team",
-          title: "Invite your team",
-          note: "Each person accepts with their own Biltlinx account",
-          icon: "/icons/onboarding-user-group.svg",
-          tone: "todo",
-          action: { label: "Invite team", onClick: () => router.push("/onboarding/organization/team") },
-        },
-    verificationStep,
-    {
-      id: "project",
-      title: "Add your first project",
-      note: "Projects hold units, updates, documents and sales",
-      icon: "/icons/onboarding-crane.svg",
-      tone: "todo",
-      action: { label: "Add project", onClick: () => router.push(comingSoonHref("Add project")) },
-    },
+    { id: "request", title: "Role request sent", note: "The review team approves your role before you can create the organization account", icon: "/icons/onboarding-city.svg", iconClass: "-scale-y-100", tone: "pending", pill: "In review" },
+    sentDocuments
+      ? { id: "verification", title: "Documents received", note: "We are checking your incorporation papers and ID", icon: "/icons/onboarding-user-shield.svg", tone: "pending", pill: "In review" }
+      : { id: "verification", title: "Organization verification", note: "Add your incorporation documents to get the badge", icon: "/icons/onboarding-user-shield.svg", tone: "todo", action: { label: "Verify now", onClick: () => router.push("/verification") } },
+    { id: "team", title: "Create the account and invite your team", note: "Once approved, create it under Roles and teams and invite staff with the right access", icon: "/icons/onboarding-user-group.svg", tone: "todo", action: { label: "Open Roles and teams", onClick: () => router.push("/account-settings?tab=teams") } },
   ];
 
   return (
     <OnboardingDoneView
-      title={`${shortName} is set up`}
-      subtitle={`Your organization page is live${invited > 0 ? " and your team has been invited" : ""}. You can start adding projects, units and listings in Manage.`}
+      title={`${shortName} is on its way`}
+      subtitle="We have your request. You will see it under Needs your attention as soon as there is an update."
       strength={strength}
       steps={steps}
       primary={{ label: "Go to Manage", onClick: () => router.push("/manage") }}
-      secondary={{ label: "View organization page", onClick: () => router.push(comingSoonHref("Organization page")) }}
-      note={`Switch between Personal and ${shortName} from your name in the top bar.`}
+      secondary={{ label: "Open Roles and teams", onClick: () => router.push("/account-settings?tab=teams") }}
+      note="Your personal account keeps working while you wait."
       onClose={() => router.push("/home")}
     />
   );
