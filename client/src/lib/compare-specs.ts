@@ -1,7 +1,6 @@
-import type { CompareItem, CompareKind } from "@/context/CompareContext";
-
-// Stand-ins for the details a listing's own API record will carry. The three homes in the design have the values it
-// shows; anything else gets plausible values worked out from its id, so the same item always compares the same way.
+import { formatMoney, formatPricePeriod } from "@/lib/format";
+import { SHAPE_LABEL, STAY_TYPE_LABEL } from "@/lib/stay-mapper";
+import type { PropertyDto, ProviderDto, StayDetailDto } from "@/types/api/schema";
 
 export interface SpecCell {
   text: string;
@@ -14,138 +13,82 @@ export interface SpecRow {
   cells: SpecCell[];
 }
 
-function seedOf(id: string) {
-  return Array.from(id).reduce((sum, char, index) => sum + char.charCodeAt(0) * (index + 7), 0);
+const DASH: SpecCell = { text: "–" };
+
+function numeric(values: (number | null | undefined)[], format: (value: number) => string, better: "higher" | "lower" | "none"): SpecCell[] {
+  return values.map((value) => {
+    if (value === null || value === undefined) return DASH;
+    const rank = better === "none" ? undefined : better === "higher" ? value : -value;
+    return { text: format(value), rank };
+  });
 }
 
-function pick<T>(options: readonly T[], seed: number, offset: number): T {
-  return options[(seed + offset * 13) % options.length];
+function labels(values: (string | null | undefined)[]): SpecCell[] {
+  return values.map((value) => (value ? { text: value } : DASH));
 }
 
-function priceNumber(price: string) {
-  return Number(price.replace(/[^\d]/g, "")) || 0;
+function flag(values: boolean[], yes: string, no: string, goodIsYes = true): SpecCell[] {
+  return values.map((value) => ({ text: value ? yes : no, rank: (value === goodIsYes ? 1 : 0) }));
 }
 
-const ghs = (amount: number) => `GHS ${amount.toLocaleString("en-US")}`;
-
-const HOME_OVERRIDES: Record<string, HomeSpec> = {
-  p1: { area: 420, plot: 0.25, beds: 4, baths: 4, title: 2, year: 2023, bq: true, water: 2, power: "Generator", gated: 2, service: 300, commute: 25, listedBy: "Agent · licence checked ✓" },
-  p2: { area: 400, plot: 0.12, beds: 4, baths: 5, title: 1, year: 2025, bq: false, water: 0, power: "Solar + inverter", gated: 1, service: 650, commute: 30, listedBy: "Agent · ID verified ✓" },
-  p3: { area: 340, plot: 0.2, beds: 4, baths: 3, title: 0, year: 2019, bq: true, water: 1, power: "None", gated: 0, service: 0, commute: 20, listedBy: "Owner · ID verified ✓" },
-};
-
-interface HomeSpec {
-  area: number;
-  plot: number;
-  beds: number;
-  baths: number;
-  /** 0 not checked, 1 pending, 2 checked */
-  title: number;
-  year: number;
-  bq: boolean;
-  /** 0 mains only, 1 borehole, 2 borehole + tank */
-  water: number;
-  power: string;
-  /** 0 no, 1 yes, 2 yes with 24h security */
-  gated: number;
-  service: number;
-  commute: number;
-  listedBy: string;
+function withRanks(cells: SpecCell[]): SpecCell[] {
+  return cells.map((cell) => (cell.rank === undefined ? cell : { ...cell, rank: cell.text === DASH.text ? undefined : cell.rank }));
 }
 
-const TITLE_TEXT = ["Freehold · not checked", "Leasehold · pending", "Leasehold · checked ✓"];
-const WATER_TEXT = ["Mains only", "Borehole", "Borehole + tank"];
-const GATED_TEXT = ["No", "Yes", "Yes · 24h"];
-const POWER = ["Generator", "Solar + inverter", "None", "Generator + solar"];
-const LISTED_BY = ["Agent · licence checked ✓", "Agent · ID verified ✓", "Owner · ID verified ✓", "Developer · registered ✓"];
-
-function homeSpec(item: CompareItem): HomeSpec {
-  const override = HOME_OVERRIDES[item.id];
-  if (override) return override;
-  const seed = seedOf(item.id);
-  return {
-    area: 180 + (seed % 26) * 10,
-    plot: 0.1 + ((seed >> 2) % 6) * 0.05,
-    beds: 2 + (seed % 4),
-    baths: 2 + ((seed >> 1) % 4),
-    title: seed % 3,
-    year: 2015 + (seed % 11),
-    bq: seed % 2 === 0,
-    water: (seed >> 1) % 3,
-    power: pick(POWER, seed, 3),
-    gated: (seed >> 2) % 3,
-    service: pick([0, 300, 450, 650], seed, 5),
-    commute: 15 + (seed % 7) * 5,
-    listedBy: pick(LISTED_BY, seed, 7),
-  };
-}
-
-function homeRows(items: CompareItem[]): SpecRow[] {
-  const specs = items.map((item) => ({ item, spec: homeSpec(item) }));
-  const row = (label: string, cell: (entry: (typeof specs)[number]) => SpecCell): SpecRow => ({ label, cells: specs.map(cell) });
-
+export function homeRows(properties: PropertyDto[]): SpecRow[] {
+  const money = (property: PropertyDto) => (property.price > 0 ? property.price : null);
   return [
-    row("Price per m²", ({ item, spec }) => {
-      const perM2 = Math.round(priceNumber(item.price) / spec.area);
-      return { text: ghs(perM2), rank: -perM2 };
-    }),
-    row("Bedrooms / baths", ({ spec }) => ({ text: `${spec.beds} / ${spec.baths}` })),
-    row("Floor area", ({ spec }) => ({ text: `${spec.area} m²`, rank: spec.area })),
-    row("Plot size", ({ spec }) => ({ text: `${Number(spec.plot.toFixed(2))} acre`, rank: spec.plot })),
-    row("Title", ({ spec }) => ({ text: TITLE_TEXT[spec.title], rank: spec.title })),
-    row("Year built", ({ spec }) => ({ text: String(spec.year), rank: spec.year })),
-    row("Boys’ quarters", ({ spec }) => ({ text: spec.bq ? "Yes" : "No" })),
-    row("Water", ({ spec }) => ({ text: WATER_TEXT[spec.water], rank: spec.water })),
-    row("Power backup", ({ spec }) => ({ text: spec.power })),
-    row("Gated / security", ({ spec }) => ({ text: GATED_TEXT[spec.gated], rank: spec.gated })),
-    row("Service charge", ({ spec }) => ({ text: spec.service ? `${ghs(spec.service)} / month` : "None", rank: -spec.service })),
-    row("Commute to Airport", ({ spec }) => ({ text: `${spec.commute} min`, rank: -spec.commute })),
-    row("Listed by", ({ spec }) => ({ text: spec.listedBy })),
-  ];
+    { label: "Price", cells: properties.map((property) => ({ text: `${formatMoney(property.price, property.currency ?? "GHS")} ${formatPricePeriod(property.pricePeriod)}`.trim(), rank: -property.price })) },
+    { label: "Listing", cells: labels(properties.map((property) => `${property.listingType === "Rent" ? "For rent" : "For sale"} · ${property.propertyType}`)) },
+    { label: "Location", cells: labels(properties.map((property) => property.city)) },
+    { label: "Bedrooms", cells: numeric(properties.map((property) => property.bedrooms), String, "none") },
+    { label: "Bathrooms", cells: numeric(properties.map((property) => property.bathrooms), String, "none") },
+    { label: "Floor area", cells: numeric(properties.map((property) => property.floorAreaSqm), (value) => `${value.toLocaleString("en-GH")} m²`, "higher") },
+    { label: "Plot size", cells: numeric(properties.map((property) => property.landSizeSqm), (value) => `${value.toLocaleString("en-GH")} m²`, "higher") },
+    { label: "Price per m²", cells: numeric(properties.map((property) => (money(property) && property.floorAreaSqm ? Math.round(property.price / property.floorAreaSqm) : null)), (value) => `GHS ${value.toLocaleString("en-GH")}`, "lower") },
+    { label: "Deposit", cells: numeric(properties.map((property) => property.deposit), (value) => formatMoney(value), "lower") },
+    { label: "Service charge", cells: numeric(properties.map((property) => property.serviceCharge), (value) => formatMoney(value), "lower") },
+    { label: "Lease term", cells: numeric(properties.map((property) => property.leaseTermMonths), (value) => `${value} months`, "none") },
+    { label: "Negotiable", cells: properties.map((property) => (property.isNegotiable === null ? DASH : { text: property.isNegotiable ? "Yes" : "No" })) },
+    { label: "Listed by", cells: properties.map((property) => ({ text: `${property.owner.username ?? ""}${property.owner.isVerified ? " · verified ✓" : ""}`, rank: property.owner.isVerified ? 1 : 0 })) },
+    { label: "Last confirmed available", cells: properties.map((property) => ({ text: property.isStale ? "Over 30 days ago" : "Within 30 days", rank: property.isStale ? 0 : 1 })) },
+  ].map((row) => ({ ...row, cells: withRanks(row.cells) }));
 }
 
-function generic(items: CompareItem[], rows: { label: string; make: (seed: number) => SpecCell }[]): SpecRow[] {
-  return rows.map((entry) => ({ label: entry.label, cells: items.map((item) => entry.make(seedOf(item.id))) }));
+export function stayRows(stays: StayDetailDto[]): SpecRow[] {
+  const cheapest = (stay: StayDetailDto) => {
+    const rates = (stay.rooms ?? []).flatMap((room) => room.ratePlans ?? []);
+    return rates.length > 0 ? Math.min(...rates.map((rate) => rate.nightly)) : null;
+  };
+  return [
+    { label: "From per night", cells: numeric(stays.map(cheapest), (value) => formatMoney(value), "lower") },
+    { label: "Type", cells: labels(stays.map((stay) => STAY_TYPE_LABEL[stay.type ?? ""] ?? stay.type)) },
+    { label: "Location", cells: labels(stays.map((stay) => [stay.area, stay.city].filter(Boolean).join(", "))) },
+    { label: "Room types", cells: labels(stays.map((stay) => [...new Set((stay.rooms ?? []).map((room) => SHAPE_LABEL[room.shape ?? ""] ?? room.shape))].join(", "))) },
+    { label: "Amenities", cells: numeric(stays.map((stay) => stay.amenities?.length ?? 0), (value) => `${value} listed`, "higher") },
+    { label: "Cancellation", cells: stays.map((stay) => ({ text: stay.cancellationPolicy ?? "–", rank: stay.cancellationPolicy === "Flexible" ? 2 : stay.cancellationPolicy === "Moderate" ? 1 : 0 })) },
+    { label: "Cleaning fee", cells: numeric(stays.map((stay) => stay.cleaningFee), (value) => formatMoney(value, "GHS"), "lower") },
+    { label: "Security deposit", cells: numeric(stays.map((stay) => stay.securityDeposit), (value) => formatMoney(value, "GHS"), "lower") },
+    { label: "Check in", cells: labels(stays.map((stay) => stay.checkInFrom)) },
+    { label: "Check out", cells: labels(stays.map((stay) => stay.checkOutBy)) },
+    { label: "Host", cells: stays.map((stay) => ({ text: `${stay.operator.name ?? ""}${stay.operator.isVerified ? " · verified ✓" : ""}`, rank: stay.operator.isVerified ? 1 : 0 })) },
+  ].map((row) => ({ ...row, cells: withRanks(row.cells) }));
 }
 
-const STAY_ROWS = [
-  { label: "Rating", make: (s: number) => ({ text: `${(4.2 + (s % 8) / 10).toFixed(1)} ★`, rank: s % 8 }) },
-  { label: "Guests", make: (s: number) => ({ text: `Up to ${2 + (s % 4)}` }) },
-  { label: "Breakfast", make: (s: number) => ({ text: s % 2 ? "Included" : "Extra cost", rank: s % 2 }) },
-  { label: "Cancellation", make: (s: number) => ({ text: s % 3 ? "Free until 48 h before" : "Non-refundable", rank: s % 3 ? 1 : 0 }) },
-  { label: "Wi-Fi", make: (s: number) => ({ text: `${25 + (s % 5) * 25} Mbps`, rank: s % 5 }) },
-];
-const PROJECT_ROWS = [
-  { label: "Stage", make: (s: number) => ({ text: pick(["Selling now", "Under construction", "Planning"], s, 1) }) },
-  { label: "Handover", make: (s: number) => ({ text: `Q${1 + (s % 4)} ${2026 + (s % 3)}` }) },
-  { label: "Units", make: (s: number) => ({ text: String(40 + (s % 9) * 20) }) },
-  { label: "Payment plan", make: (s: number) => ({ text: s % 2 ? "Up to 24 months" : "Up to 12 months", rank: s % 2 }) },
-  { label: "Developer", make: (s: number) => ({ text: s % 3 ? "Registered · verified ✓" : "Registered", rank: s % 3 ? 1 : 0 }) },
-];
-const PROVIDER_ROWS = [
-  { label: "Rating", make: (s: number) => ({ text: `${(4.3 + (s % 7) / 10).toFixed(1)} ★`, rank: s % 7 }) },
-  { label: "Experience", make: (s: number) => ({ text: `${4 + (s % 12)} years`, rank: s % 12 }) },
-  { label: "Completed jobs", make: (s: number) => ({ text: String(20 + (s % 30) * 10), rank: s % 30 }) },
-  { label: "Replies", make: (s: number) => ({ text: pick(["within 1 hr", "within 2 hrs", "same day"], s, 2), rank: -(s % 3) }) },
-  { label: "Verification", make: (s: number) => ({ text: s % 2 ? "ID + credential checked ✓" : "ID checked ✓", rank: s % 2 }) },
-];
-
-/** Every row of the comparison table for what is in the tray; all of the same kind. */
-export function buildSpecRows(kind: CompareKind, items: CompareItem[]): SpecRow[] {
-  switch (kind) {
-    case "home":
-      return homeRows(items);
-    case "stay":
-      return generic(items, STAY_ROWS);
-    case "project":
-      return generic(items, PROJECT_ROWS);
-    case "professional":
-    case "artisan":
-      return generic(items, PROVIDER_ROWS);
-  }
+export function providerRows(providers: ProviderDto[]): SpecRow[] {
+  return [
+    { label: "Works as", cells: labels(providers.map((provider) => provider.professional.profession ?? provider.artisan.trade)) },
+    { label: "Based in", cells: labels(providers.map((provider) => provider.city)) },
+    { label: "Also serves", cells: labels(providers.map((provider) => (provider.serviceAreas ?? []).join(", "))) },
+    { label: "Experience", cells: numeric(providers.map((provider) => provider.professional.yearsExperience ?? provider.artisan.yearsExperience), (value) => `${value} years`, "higher") },
+    { label: "Credential", cells: flag(providers.map((provider) => provider.credentialVerified), "Verified ✓", "Not verified") },
+    { label: "Identity", cells: flag(providers.map((provider) => provider.owner.isVerified), "Verified ✓", "Not verified") },
+    { label: "Urgent jobs", cells: providers.map((provider) => ({ text: provider.urgentAvailable ? "Yes" : "No" })) },
+    { label: "Services listed", cells: numeric(providers.map((provider) => provider.publishedServices), String, "higher") },
+    { label: "Past work", cells: numeric(providers.map((provider) => provider.portfolio?.length ?? 0), (value) => `${value} projects`, "higher") },
+  ].map((row) => ({ ...row, cells: withRanks(row.cells) }));
 }
 
-/** The cell(s) that win a row: the highest rank, unless every cell ties. */
 export function bestCells(row: SpecRow): Set<number> {
   const ranks = row.cells.map((cell) => cell.rank);
   if (ranks.some((rank) => rank === undefined)) return new Set();
@@ -154,7 +97,6 @@ export function bestCells(row: SpecRow): Set<number> {
   return new Set(ranks.flatMap((rank, index) => (rank === top ? [index] : [])));
 }
 
-/** Whether the cells of a row do not all say the same thing. */
 export function rowDiffers(row: SpecRow): boolean {
   return new Set(row.cells.map((cell) => cell.text)).size > 1;
 }

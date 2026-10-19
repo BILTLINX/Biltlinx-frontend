@@ -3,7 +3,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useRef } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { AppShell } from "@/components/shared/AppShell";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { Spinner } from "@/components/shared/Spinner";
@@ -30,7 +30,7 @@ function PaymentReturn() {
   const params = useSearchParams();
   const reference = params.get("reference") ?? params.get("trxref") ?? "";
   const queryClient = useQueryClient();
-  const startedAt = useRef(Date.now());
+  const [startedAt] = useState(() => Date.now());
 
   const payment = useQuery({
     queryKey: ["payment-verify", reference],
@@ -50,7 +50,7 @@ function PaymentReturn() {
     refetchInterval: (query) => {
       const status = query.state.data?.status;
       const waiting = status === "Held" || status === "PendingPayment";
-      return waiting && Date.now() - startedAt.current < POLL_LIMIT_MS ? POLL_MS : false;
+      return waiting && Date.now() - startedAt < POLL_LIMIT_MS ? POLL_MS : false;
     },
   });
 

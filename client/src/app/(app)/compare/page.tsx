@@ -11,14 +11,16 @@ import { RequestViewingModal } from "@/components/shared/RequestViewingModal";
 import { Button } from "@/components/ui/Button";
 import { COMPARE_KIND_PLURAL, MAX_COMPARE, useCompare, type CompareItem, type CompareKind } from "@/context/CompareContext";
 import { comingSoonHref } from "@/lib/coming-soon";
-import { bestCells, buildSpecRows, rowDiffers } from "@/lib/compare-specs";
+import { useCompareRows } from "@/hooks/useCompare";
+import { bestCells, rowDiffers } from "@/lib/compare-specs";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { shareContent } from "@/lib/share";
 import { cn } from "@/lib/utils";
 
 const NAV: Record<CompareKind, { key: string; child: string; addLabel: string; action: string }> = {
   home: { key: "property", child: "properties", addLabel: "Add a home", action: "Request viewing" },
   stay: { key: "property", child: "stay", addLabel: "Add a stay", action: "View stay" },
-  project: { key: "property", child: "projects", addLabel: "Add a project", action: "View project" },
+  project: { key: "property", child: "properties", addLabel: "Add a project", action: "View project" },
   professional: { key: "people", child: "professionals", addLabel: "Add a professional", action: "View profile" },
   artisan: { key: "people", child: "artisans", addLabel: "Add an artisan", action: "View profile" },
 };
@@ -44,6 +46,7 @@ export default function ComparePage() {
   const addRef = useRef<HTMLButtonElement | null>(null);
 
   const kind = items[0]?.kind ?? "home";
+  const spec = useCompareRows(kind, items);
   const plural = COMPARE_KIND_PLURAL[kind];
   const nav = NAV[kind];
 
@@ -53,7 +56,7 @@ export default function ComparePage() {
         <PageContainer>
           <h1 className="text-2xl font-bold leading-8 text-[#0f172a]">Compare</h1>
           <div className="flex flex-col items-start gap-3 rounded-2xl border border-gray-200 bg-white p-8">
-            <p className="text-sm leading-5 text-gray-500">Nothing to compare yet. Use “Add to compare” on a listing, a project or a provider to line them up here.</p>
+            <p className="text-sm leading-5 text-gray-500">Nothing to compare yet. Use “Add to compare” on a listing, a stay or a provider to line them up here.</p>
             <Link href="/properties" className="text-sm font-medium text-brand-900">
               Browse properties ›
             </Link>
@@ -63,7 +66,7 @@ export default function ComparePage() {
     );
   }
 
-  const allRows = buildSpecRows(kind, items);
+  const allRows = spec.rows;
   const rows = onlyDifferences ? allRows.filter(rowDiffers) : allRows;
   const columns = { gridTemplateColumns: `220px repeat(${items.length}, minmax(240px, 1fr))` };
 
@@ -79,7 +82,7 @@ export default function ComparePage() {
           <div className="flex min-w-[220px] flex-1 flex-col gap-1">
             <h1 className="text-2xl font-bold leading-8 text-[#0f172a]">Compare {plural}</h1>
             <p className="text-sm leading-5 text-gray-500">
-              {items.length} {items.length === 1 ? plural.replace(/s$/, "") : plural} from your feed and saved list · differences highlighted
+              {items.length} {items.length === 1 ? plural.replace(/s$/, "") : plural} · differences highlighted
             </p>
           </div>
           <Switch checked={onlyDifferences} onToggle={() => setOnlyDifferences((value) => !value)} label="Only show differences" />
@@ -130,7 +133,9 @@ export default function ComparePage() {
               ))}
             </div>
 
-            {rows.length === 0 && <p className="border-t border-gray-200 p-6 text-center text-sm text-gray-500">These {plural} match on everything we compare.</p>}
+            {spec.loading && <Skeleton className="m-4 h-40" />}
+            {spec.failed && <p className="border-t border-gray-200 p-6 text-center text-sm text-gray-500">Could not load the details for one of these. Remove it and try again.</p>}
+            {!spec.loading && !spec.failed && rows.length === 0 && <p className="border-t border-gray-200 p-6 text-center text-sm text-gray-500">These {plural} match on everything we compare.</p>}
             {rows.map((row, rowIndex) => {
               const best = bestCells(row);
               return (
@@ -146,15 +151,6 @@ export default function ComparePage() {
               );
             })}
           </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-3 rounded-xl bg-[#eff5ff] p-3.5">
-          <p className="min-w-[220px] flex-1 text-[13px] font-medium leading-[19px] text-brand-900">
-            Not sure which to pick? Concierge can arrange viewings for all {items.length === 3 ? "three" : items.length} on one day and send a surveyor.
-          </p>
-          <Button variant="primary" onClick={() => router.push("/concierge/new")} className="h-9 w-auto rounded-[10px] px-4 lg:rounded-[10px]">
-            Ask Concierge
-          </Button>
         </div>
       </PageContainer>
 

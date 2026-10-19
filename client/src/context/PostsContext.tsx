@@ -2,9 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createContext, useCallback, useContext, useMemo, type ReactNode } from "react";
-import { showErrorToast } from "@/components/shared/AppToast";
 import { FEED_KEY } from "@/hooks/useFeed";
-import type { PropertyListing, ServiceListing, StayListing } from "@/lib/dummy-listings";
 import { notifyError } from "@/lib/errors";
 import { createPost, deletePost } from "@/lib/social-api";
 import { uploadAll } from "@/lib/upload";
@@ -13,17 +11,14 @@ import type { CreatePostInput, MediaInput } from "@/types/api/social";
 export type NewPostInput =
   | { kind: "media"; text: string; files: File[] }
   | { kind: "poll"; question: string; options: string[] }
-  | { kind: "article"; headline: string; body: string; files?: File[] }
-  | { kind: "property"; note: string; listing: PropertyListing }
-  | { kind: "stay"; note: string; listing: StayListing }
-  | { kind: "service"; note: string; files: File[]; listing?: ServiceListing };
+  | { kind: "article"; headline: string; body: string; files?: File[] };
 
 async function uploadFiles(files: File[]): Promise<MediaInput[]> {
   const uploaded = await uploadAll(files);
   return uploaded.map(({ path, contentType, name }) => ({ path, contentType, name }));
 }
 
-async function toRequest(input: NewPostInput): Promise<CreatePostInput | null> {
+async function toRequest(input: NewPostInput): Promise<CreatePostInput> {
   switch (input.kind) {
     case "media":
       return { kind: "Text", description: input.text.trim(), media: await uploadFiles(input.files) };
@@ -40,10 +35,6 @@ async function toRequest(input: NewPostInput): Promise<CreatePostInput | null> {
         description: input.question.trim(),
         pollOptions: input.options.map((option) => option.trim()).filter(Boolean),
       };
-    case "service":
-      return { kind: "Text", description: input.note.trim(), media: await uploadFiles(input.files) };
-    default:
-      return null;
   }
 }
 
@@ -60,9 +51,7 @@ export function PostsProvider({ children }: { children: ReactNode }) {
 
   const create = useMutation({
     mutationFn: async (input: NewPostInput) => {
-      const request = await toRequest(input);
-      if (!request) return false;
-      await createPost(request);
+      await createPost(await toRequest(input));
       return true;
     },
     onSuccess: (created) => {
@@ -77,10 +66,6 @@ export function PostsProvider({ children }: { children: ReactNode }) {
 
   const addPost = useCallback(
     async (input: NewPostInput) => {
-      if (input.kind === "property" || input.kind === "stay") {
-        showErrorToast("Listings are posted from the listing wizard, which is coming soon.");
-        return false;
-      }
       try {
         return await create.mutateAsync(input);
       } catch (error) {

@@ -79,8 +79,14 @@ export function MessageThread({ conversation, onBack, className }: MessageThread
   const [editing, setEditing] = useState<{ id: string; body: string } | null>(null);
   const [reportFor, setReportFor] = useState<ThreadMessage | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
   const endRef = useRef<HTMLDivElement | null>(null);
   const fileInput = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "end" });
@@ -191,7 +197,7 @@ export function MessageThread({ conversation, onBack, className }: MessageThread
         {thread.messages.map((message) => {
           const mine = message.senderAccountId === user?.id;
           const isCard = message.card.refType !== null;
-          const canEdit = mine && !isCard && !message.deleted && !message.pending && message.attachments?.length === 0 && Date.now() - new Date(message.createdAt.endsWith("Z") ? message.createdAt : `${message.createdAt}Z`).getTime() < EDIT_WINDOW_MS;
+          const canEdit = mine && !isCard && !message.deleted && !message.pending && message.attachments?.length === 0 && now - new Date(message.createdAt.endsWith("Z") ? message.createdAt : `${message.createdAt}Z`).getTime() < EDIT_WINDOW_MS;
 
           if (isCard) {
             const info = describeCard(message);
