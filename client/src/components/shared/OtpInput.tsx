@@ -31,6 +31,17 @@ export function OtpInput({ value, onChange, error }: OtpInputProps) {
     }
   }
 
+  function handlePaste(index: number, event: React.ClipboardEvent<HTMLInputElement>) {
+    const digits = event.clipboardData.getData("text").replace(/\D/g, "");
+    if (!digits) return;
+    event.preventDefault();
+    const next = [...value];
+    const filled = digits.slice(0, LENGTH - index);
+    for (let i = 0; i < filled.length; i++) next[index + i] = filled[i];
+    onChange(next);
+    inputRefs.current[Math.min(index + filled.length, LENGTH - 1)]?.focus();
+  }
+
   function handleSelectExisting(event: { currentTarget: HTMLInputElement }) {
     // Select any existing digit so typing (or tapping on mobile) immediately
     // replaces it instead of being blocked by maxLength once the box is full.
@@ -48,6 +59,7 @@ export function OtpInput({ value, onChange, error }: OtpInputProps) {
             value={value[index] ?? ""}
             onChange={(e) => handleChange(index, e.target.value)}
             onKeyDown={(e) => handleKeyDown(index, e)}
+            onPaste={(e) => handlePaste(index, e)}
             onFocus={handleSelectExisting}
             onClick={handleSelectExisting}
             inputMode="numeric"

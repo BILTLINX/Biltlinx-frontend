@@ -9,6 +9,9 @@ export interface PersonalDraft {
   /** Filled in by the profile step. */
   displayName?: string;
   strength?: number;
+  location?: string;
+  intro?: string;
+  contact?: { whatsapp: boolean; email: boolean; push: boolean };
 }
 
 export function savePersonalDraft(draft: PersonalDraft) {
@@ -32,6 +35,9 @@ export function loadPersonalDraft(): PersonalDraft | null {
       alerts: parsed.alerts === true,
       displayName: parsed.displayName,
       strength: parsed.strength,
+      location: parsed.location,
+      intro: parsed.intro,
+      contact: parsed.contact,
     };
   } catch {
     return null;

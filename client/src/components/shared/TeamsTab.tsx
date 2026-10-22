@@ -26,7 +26,8 @@ import { errorMessage, notifyError } from "@/lib/errors";
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-const FIELD = "h-10 min-w-0 rounded-[10px] border border-gray-200 bg-white px-3 text-[13px] text-[#0f172a] focus:border-brand-900 focus:outline-none";
+const PERSONAL_ORGANIZATION_ID = "fac586f8-1ffa-4cca-9bb0-224736bbc5a4";
+const FIELD ="h-10 min-w-0 rounded-[10px] border border-gray-200 bg-white px-3 text-[13px] text-[#0f172a] focus:border-brand-900 focus:outline-none";
 const PRIMARY = "h-10 rounded-[10px] bg-brand-900 px-4 text-sm font-medium text-white hover:bg-brand-900/90 disabled:opacity-50";
 const STATUS_TONE: Record<string, string> = {
   Approved: "bg-[#dcfce7] text-[#16a34a]",
@@ -244,7 +245,7 @@ function Team() {
 export function TeamsTab() {
   const { user } = useSession();
   const { activeOrganizationId, switchOrganization } = useOrganization();
-  const accounts = user?.accounts ?? [];
+  const accounts = (user?.accounts ?? []).filter((account) => account.organization.id !== PERSONAL_ORGANIZATION_ID);
 
   return (
     <div className="flex flex-col gap-4 px-2 pb-2 sm:px-4 sm:pb-4">

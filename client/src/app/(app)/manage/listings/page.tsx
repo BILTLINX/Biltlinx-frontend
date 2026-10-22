@@ -4,8 +4,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { showSuccessToast } from "@/components/shared/AppToast";
+import { AnchoredPanel } from "@/components/shared/AnchoredPanel";
 import { AppShell } from "@/components/shared/AppShell";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { ListingActionDialog } from "@/components/shared/ListingActionDialog";
@@ -52,6 +53,32 @@ function rowActions(property: PropertyDto): { label: string; action: RowAction }
   if (property.availability === "Available") actions.push({ label: property.listingType === "Rent" ? "Mark as rented" : "Mark as sold", action: "close" });
   actions.push({ label: "Archive", action: "archive" });
   return actions;
+}
+
+function RowMenu({ open, onToggle, onClose, items }: { open: boolean; onToggle: () => void; onClose: () => void; items: { label: string; run: () => void }[] }) {
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  return (
+    <>
+      <button ref={triggerRef} type="button" aria-label="More actions" aria-expanded={open} onClick={onToggle} className="px-1 text-lg leading-none text-gray-500">
+        ⋯
+      </button>
+      <AnchoredPanel open={open} onClose={onClose} triggerRef={triggerRef} estimatedHeight={items.length * 36 + 40} minWidth={176}>
+        {items.map((item) => (
+          <button
+            key={item.label}
+            type="button"
+            onClick={() => {
+              item.run();
+              onClose();
+            }}
+            className="h-9 rounded-lg px-3 text-left text-[13px] text-[#334155] hover:bg-gray-50"
+          >
+            {item.label}
+          </button>
+        ))}
+      </AnchoredPanel>
+    </>
+  );
 }
 
 /** Manage · Listings (Figma node 1059:29461): the lister's portfolio with status, freshness and impact-checked actions. */
@@ -237,37 +264,13 @@ export default function ManageListingsPage() {
                         <button type="button" onClick={() => confirm.mutate(property.id)} className="text-[13px] font-medium text-brand-900">
                           Still available
                         </button>
-                        <button type="button" aria-label="More actions" aria-expanded={menuFor === property.id} onClick={() => setMenuFor(menuFor === property.id ? null : property.id)} className="px-1 text-lg leading-none text-gray-500">
-                          ⋯
-                        </button>
+                        <RowMenu
+                          open={menuFor === property.id}
+                          onToggle={() => setMenuFor(menuFor === property.id ? null : property.id)}
+                          onClose={() => setMenuFor(null)}
+                          items={[{ label: "Documents", run: () => setDocumentsFor(property) }, ...rowActions(property).map((item) => ({ label: item.label, run: () => setAction({ property, action: item.action }) }))]}
+                        />
                       </div>
-                      {menuFor === property.id && (
-                        <div className="absolute right-4 top-11 z-10 flex w-44 flex-col rounded-xl border border-gray-200 bg-white p-1.5 shadow-lg">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setDocumentsFor(property);
-                              setMenuFor(null);
-                            }}
-                            className="h-9 rounded-lg px-3 text-left text-[13px] text-[#334155] hover:bg-gray-50"
-                          >
-                            Documents
-                          </button>
-                          {rowActions(property).map((item) => (
-                            <button
-                              key={item.action}
-                              type="button"
-                              onClick={() => {
-                                setAction({ property, action: item.action });
-                                setMenuFor(null);
-                              }}
-                              className="h-9 rounded-lg px-3 text-left text-[13px] text-[#334155] hover:bg-gray-50"
-                            >
-                              {item.label}
-                            </button>
-                          ))}
-                        </div>
-                      )}
                     </td>
                   </tr>
                 ))}

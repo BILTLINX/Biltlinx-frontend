@@ -11,6 +11,7 @@ import { DURATION_OPTIONS, PollDurationDropdown } from "@/components/shared/Poll
 import { DEFAULT_VISIBILITY, getVisibilityIcon, type PostVisibility } from "@/components/shared/VisibilityMenu";
 import { usePostsFeed } from "@/context/PostsContext";
 import { useAnimatedSheet } from "@/hooks/useAnimatedSheet";
+import { useAccountBadge } from "@/hooks/useDisplayName";
 import { cn } from "@/lib/utils";
 
 const MEDIA_ACCEPT = ["image/png", "image/jpeg", "image/gif", "video/mp4", "video/quicktime", "video/webm"];
@@ -36,6 +37,7 @@ interface MobileQuickPostModalProps {
 
 export function MobileQuickPostModal({ open, onClose, initialMode = "post" }: MobileQuickPostModalProps) {
   const { addPost } = usePostsFeed();
+  const badge = useAccountBadge();
   const [mode, setMode] = useState<QuickComposerMode>(initialMode);
   const [text, setText] = useState("");
   const [bodyEmpty, setBodyEmpty] = useState(true);
@@ -222,15 +224,15 @@ export function MobileQuickPostModal({ open, onClose, initialMode = "post" }: Mo
         <div className="flex w-full shrink-0 items-center gap-2.5">
           <span className="relative block size-12 shrink-0">
             <span className="relative block size-full overflow-hidden rounded-full bg-[#eef2ff]">
-              <Image src="/icons/avatar-sample.jpg" alt="" fill className="object-cover" sizes="48px" />
+              <Image src={badge.avatar} alt="" fill className="object-cover" sizes="48px" />
             </span>
             <span className="absolute -bottom-0.5 -right-0.5 block size-[17px]">
               <Image src="/icons/avatar-verified-badge-green.svg" alt="" fill sizes="17px" />
             </span>
           </span>
           <div className="flex flex-col">
-            <p className="text-[15px] font-bold text-night-900">Madeline Price</p>
-            <p className="text-xs text-gray-500">Researcher</p>
+            <p className="text-[15px] font-bold text-night-900">{badge.name}</p>
+            <p className="text-xs capitalize text-gray-500">{badge.role}</p>
           </div>
         </div>
 

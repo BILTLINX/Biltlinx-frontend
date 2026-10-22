@@ -12,8 +12,13 @@ import { Switch } from "@/components/shared/SettingsParts";
 import { INTRO_EXAMPLE, INTRO_MAX_LENGTH, PERSONAL_INTERESTS, PERSONAL_STEPS, PROFILE_PHOTO_MAX_BYTES, PROFILE_PHOTO_TYPES } from "@/lib/dummy-onboarding";
 import { loadPersonalDraft, updatePersonalDraft } from "@/lib/onboarding-draft";
 import { initialsOf } from "@/lib/initials";
+import { forgetFiles, recallFile, rememberFile } from "@/lib/onboarding-files";
+import { updateProfile } from "@/lib/account-api";
+import { notifyError } from "@/lib/errors";
+import { uploadMedia } from "@/lib/upload";
 import { cn } from "@/lib/utils";
 
+const PHOTO_SLOT = "personal:photo";
 const CARD = "flex flex-col gap-5 rounded-2xl border border-gray-200 bg-white p-6";
 const INPUT = "flex items-center gap-2.5 rounded-[10px] border border-gray-200 bg-white px-3.5 py-[13px] text-sm leading-[1.45] text-[#0f172a] focus-within:border-brand-900";
 
@@ -41,13 +46,14 @@ function ContactRow({ icon, title, note, checked, onToggle }: { icon: string; ti
 /** Onboarding · Personal · 2 Profile (Figma node 1069:31382): optional photo, intro and how to be reached. */
 export default function PersonalProfilePage() {
   const accountName = useDisplayName();
-  const { user } = useSession();
+  const { user, refresh } = useSession();
   const router = useRouter();
   const fileInput = useRef<HTMLInputElement | null>(null);
   const [name, setName] = useState(accountName);
-  const [location, setLocation] = useState("");
-  const [intro, setIntro] = useState("");
+  const [location, setLocation] = useState(user?.location ?? "");
+  const [intro, setIntro] = useState(user?.bio ?? "");
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const [photoError, setPhotoError] = useState("");
   const [whatsapp, setWhatsapp] = useState(true);
   const [email, setEmail] = useState(true);
@@ -59,7 +65,17 @@ export default function PersonalProfilePage() {
     const draft = loadPersonalDraft();
     if (!draft) return;
     setLookingFor(PERSONAL_INTERESTS.filter((interest) => draft.interests.includes(interest.id)).map((interest) => interest.short).join(" · "));
-    if (draft.areas[0]) setLocation(`${draft.areas[0]}, Accra`);
+    if (draft.displayName) setName(draft.displayName);
+    if (draft.location !== undefined) setLocation(draft.location);
+    else if (draft.areas[0] && !user?.location) setLocation(`${draft.areas[0]}, Accra`);
+    if (draft.intro !== undefined) setIntro(draft.intro);
+    if (draft.contact) {
+      setWhatsapp(draft.contact.whatsapp);
+      setEmail(draft.contact.email);
+      setPush(draft.contact.push);
+    }
+    const saved = recallFile(PHOTO_SLOT);
+    if (saved) setPhotoUrl(URL.createObjectURL(saved));
   }, []);
 
   useEffect(() => () => {
@@ -77,19 +93,50 @@ export default function PersonalProfilePage() {
       return;
     }
     setPhotoError("");
+    rememberFile(PHOTO_SLOT, file);
     setPhotoUrl(URL.createObjectURL(file));
   }
 
-  function finish() {
-    updatePersonalDraft({ displayName: name.trim(), strength });
+  function saveProfile() {
+    updatePersonalDraft({ displayName: name.trim(), strength, location, intro, contact: { whatsapp, email, push } });
+  }
+
+  async function persist(destination: string) {
+    saveProfile();
+    setSaving(true);
+    try {
+      const file = recallFile(PHOTO_SLOT);
+      const uploaded = file ? await uploadMedia(file, { allowVideo: false }) : null;
+      await updateProfile({ displayName: name.trim(), bio: intro, location, ...(uploaded ? { photoPath: uploaded.path } : {}) });
+      if (file) forgetFiles(PHOTO_SLOT);
+      await refresh();
+      router.push(destination);
+    } catch (error) {
+      notifyError(error, "Your profile could not be saved. Please try again.");
+      setSaving(false);
+    }
+  }
+
+  function skip() {
+    saveProfile();
     router.push("/onboarding/personal/done");
   }
 
-  const strength = profileStrength({ name, photo: photoUrl !== null, intro });
+  function finish() {
+    void persist("/onboarding/personal/done");
+  }
+
+  function back() {
+    saveProfile();
+    router.push("/onboarding/personal");
+  }
+
+  const shownPhoto = photoUrl ?? user?.profilePicUrl ?? null;
+  const strength = profileStrength({ name, photo: shownPhoto !== null, intro });
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-[#f8fafc]">
-      <OnboardingTopBar title="Setting up your personal account" actionLabel="Save and finish later" onAction={() => router.push("/home")} />
+      <OnboardingTopBar title="Setting up your personal account" actionLabel="Save and finish later" onAction={() => void persist("/home")} />
 
       <div className="min-h-0 flex-1 overflow-y-auto">
       <div className="mx-auto grid w-full max-w-[1440px] grid-cols-1 gap-6 px-4 pb-12 pt-8 sm:px-12 lg:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)_340px] xl:gap-8">
@@ -112,9 +159,9 @@ export default function PersonalProfilePage() {
                 onClick={() => fileInput.current?.click()}
                 className="flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-full border border-dashed border-[#94a3b8] bg-[#f1f5f9]"
               >
-                {photoUrl ? (
+                {shownPhoto ? (
                   // eslint-disable-next-line @next/next/no-img-element -- a local object URL, nothing for next/image to optimise
-                  <img src={photoUrl} alt="Your profile photo" className="size-full object-cover" />
+                  <img src={shownPhoto} alt="Your profile photo" className="size-full object-cover" />
                 ) : (
                   <NavIcon icon="/icons/onboarding-camera.svg" size={32} className="bg-[#64748b]" />
                 )}
@@ -125,7 +172,7 @@ export default function PersonalProfilePage() {
                 <input ref={fileInput} type="file" accept={PROFILE_PHOTO_TYPES.join(",")} className="hidden" aria-label="Upload profile photo" onChange={(event) => handlePhoto(event.target.files?.[0])} />
                 <button type="button" onClick={() => fileInput.current?.click()} className="flex items-center gap-2 rounded-[10px] border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-[#0f172a] hover:bg-gray-50">
                   <NavIcon icon="/icons/onboarding-upload.svg" size={18} className="bg-[#0f172a]" />
-                  {photoUrl ? "Change photo" : "Upload photo"}
+                  {shownPhoto ? "Change photo" : "Upload photo"}
                 </button>
                 {photoError && <p className="text-xs text-[#dc2626]">{photoError}</p>}
               </div>
@@ -178,16 +225,16 @@ export default function PersonalProfilePage() {
           </section>
 
           <div className="flex items-center justify-between gap-3">
-            <button type="button" onClick={() => router.push("/onboarding/personal")} className="flex items-center gap-2 rounded-[10px] border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-[#0f172a] hover:bg-gray-50">
+            <button type="button" onClick={back} className="flex items-center gap-2 rounded-[10px] border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-[#0f172a] hover:bg-gray-50">
               <NavIcon icon="/icons/onboarding-arrow-left.svg" size={10} className="bg-[#0f172a]" />
               Back
             </button>
             <div className="flex items-center gap-3">
-              <button type="button" onClick={finish} className="whitespace-nowrap rounded-[10px] px-5 py-3 text-sm font-semibold text-brand-900">
+              <button type="button" disabled={saving} onClick={skip} className="whitespace-nowrap rounded-[10px] px-5 py-3 text-sm font-semibold text-brand-900 disabled:opacity-50">
                 Skip for now
               </button>
-              <button type="button" onClick={finish} className="flex items-center gap-2 whitespace-nowrap rounded-[10px] bg-brand-900 px-5 py-3 text-sm font-semibold text-white hover:opacity-90">
-                Finish setup
+              <button type="button" disabled={saving} onClick={finish} className="flex items-center gap-2 whitespace-nowrap rounded-[10px] bg-brand-900 px-5 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50">
+                {saving ? "Saving…" : "Finish setup"}
                 <NavIcon icon="/icons/onboarding-arrow-right.svg" size={10} className="bg-white" />
               </button>
             </div>
@@ -204,9 +251,9 @@ export default function PersonalProfilePage() {
             <div className="flex flex-col gap-3 px-5 py-4">
               <div className="flex items-center gap-3">
                 <span className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-full border-[3px] border-white bg-[#eff5ff] text-lg font-bold text-brand-900">
-                  {photoUrl ? (
+                  {shownPhoto ? (
                     // eslint-disable-next-line @next/next/no-img-element -- a local object URL, nothing for next/image to optimise
-                    <img src={photoUrl} alt="" className="size-full object-cover" />
+                    <img src={shownPhoto} alt="" className="size-full object-cover" />
                   ) : (
                     initialsOf(name)
                   )}

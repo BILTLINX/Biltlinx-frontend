@@ -2,9 +2,11 @@
 
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ComparePicker } from "@/components/shared/ComparePicker";
 import { COMPARE_KIND_PLURAL, MAX_COMPARE, useCompare } from "@/context/CompareContext";
+
+const BROWSE_ROUTES = ["/home", "/feed", "/discover", "/post", "/marketplace", "/properties", "/stay", "/professionals", "/artisans", "/compare"];
 
 /**
  * The compare tray (Figma node 1054:33396). It rises from the bottom of the screen once something is added to compare,
@@ -14,12 +16,26 @@ import { COMPARE_KIND_PLURAL, MAX_COMPARE, useCompare } from "@/context/CompareC
 export function CompareTray() {
   const router = useRouter();
   const pathname = usePathname();
-  const { items, remove } = useCompare();
+  const { items, remove, clear } = useCompare();
   const [pickerOpen, setPickerOpen] = useState(false);
   const addRef = useRef<HTMLButtonElement | null>(null);
 
-  // The comparison page lists the same items itself.
-  if (items.length === 0 || pathname === "/compare") return null;
+  const browsing = BROWSE_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`));
+
+  useEffect(() => {
+    if (!browsing) clear();
+  }, [browsing, clear]);
+
+  const visible = items.length > 0 && browsing && pathname !== "/compare";
+
+  useEffect(() => {
+    if (!visible) return;
+    const root = document.documentElement;
+    root.style.setProperty("--compare-tray-space", "7rem");
+    return () => root.style.removeProperty("--compare-tray-space");
+  }, [visible]);
+
+  if (!visible) return null;
 
   const plural = COMPARE_KIND_PLURAL[items[0].kind];
   const canCompare = items.length >= 2;

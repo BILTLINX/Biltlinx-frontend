@@ -37,6 +37,8 @@ export interface CurrentUser {
   primaryContact: string;
   otherContact: string | null;
   profilePicUrl: string | null;
+  bio: string | null;
+  location: string | null;
   isVerified: boolean;
   status: string;
   createdAt: string;

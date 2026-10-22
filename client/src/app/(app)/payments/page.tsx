@@ -33,7 +33,7 @@ export default function PaymentsPage() {
   return (
     <AppShell contentFullWidth>
       <PageContainer>
-        <Breadcrumbs crumbs={[{ label: "You" }, { label: "Payments" }]} />
+        <Breadcrumbs crumbs={[{ label: "You", href: "/account-settings" }, { label: "Payments" }]} />
         <h1 className="text-2xl font-bold leading-8 text-[#0f172a]">Payments</h1>
 
         <div role="tablist" aria-label="Filter" className="flex flex-wrap gap-2">

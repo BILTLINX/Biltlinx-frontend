@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { NavIcon } from "@/components/shared/NavIcon";
-import { rememberFile } from "@/lib/onboarding-files";
+import { recallFile, rememberFile } from "@/lib/onboarding-files";
 import { CREDENTIAL_FILE_MAX_BYTES, CREDENTIAL_FILE_TYPES } from "@/lib/dummy-onboarding";
 import { cn } from "@/lib/utils";
 
@@ -43,9 +43,24 @@ export function DocumentUpload({ title, hint, file, onFile, slot }: DocumentUplo
     onFile({ name: picked.name, size: picked.size });
   }
 
+  function handlePreview() {
+    const stored = slot ? recallFile(slot) : null;
+    if (!stored) return;
+    const url = URL.createObjectURL(stored);
+    window.open(url, "_blank", "noopener");
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  }
+
   return (
     <div className="flex flex-col gap-1.5">
-      <div className={cn("flex flex-wrap items-center gap-3.5 rounded-xl px-4 py-3.5 sm:flex-nowrap", file ? "border border-gray-200 bg-white" : "border border-dashed border-[#94a3b8] bg-[#f8fafc]")}>
+      <div
+        onClick={file ? handlePreview : undefined}
+        className={cn(
+          "flex flex-wrap items-center gap-3.5 rounded-xl px-4 py-3.5 sm:flex-nowrap",
+          file ? "border border-gray-200 bg-white" : "border border-dashed border-[#94a3b8] bg-[#f8fafc]",
+          file && slot && recallFile(slot) && "cursor-pointer hover:bg-gray-50",
+        )}
+      >
         <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-[10px]", file ? "bg-[#dcfce7]" : "bg-white")}>
           <NavIcon icon={file ? "/icons/onboarding-file-verified.svg" : "/icons/onboarding-upload.svg"} size={20} className={file ? "bg-[#16a34a]" : "bg-[#334155]"} />
         </span>
@@ -55,7 +70,14 @@ export function DocumentUpload({ title, hint, file, onFile, slot }: DocumentUplo
         </span>
         <input ref={input} type="file" accept={CREDENTIAL_FILE_TYPES.join(",")} aria-label={title} className="hidden" onChange={(event) => handlePick(event.target.files?.[0])} />
         {file ? (
-          <button type="button" onClick={() => input.current?.click()} className="shrink-0 text-[13px] font-semibold text-brand-900">
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              input.current?.click();
+            }}
+            className="shrink-0 text-[13px] font-semibold text-brand-900"
+          >
             Replace
           </button>
         ) : (

@@ -8,7 +8,7 @@ import { OnboardingTopBar } from "@/components/shared/OnboardingTopBar";
 import { Switch } from "@/components/shared/SettingsParts";
 import { OptionSelectField } from "@/components/shared/ViewingSlotPickers";
 import { BEDROOM_OPTIONS, PERSONAL_AREAS, PERSONAL_INTERESTS, PERSONAL_STEPS, RENT_BUDGETS } from "@/lib/dummy-onboarding";
-import { savePersonalDraft } from "@/lib/onboarding-draft";
+import { updatePersonalDraft } from "@/lib/onboarding-draft";
 import { cn } from "@/lib/utils";
 
 const CARD = "flex flex-col gap-5 rounded-2xl border border-gray-200 bg-white p-6";
@@ -54,7 +54,7 @@ export default function PersonalInterestsPage() {
   }
 
   function handleContinue() {
-    savePersonalDraft({ interests, areas, bedrooms, alerts });
+    updatePersonalDraft({ interests, areas, bedrooms, alerts });
     router.push("/onboarding/personal/profile");
   }
 

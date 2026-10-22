@@ -1,4 +1,5 @@
 import { apiRequest, apiRequestWithMeta, type QueryValue } from "@/lib/api";
+import type { CurrentUser } from "@/types/api/auth";
 import type { ActionNeededItem } from "@/types/api/common";
 import type {
   AuditEntryDto,
@@ -27,6 +28,17 @@ export const CAPABILITIES = [
   { value: "Professional", label: "Professional", note: "Architects, surveyors, engineers, lawyers" },
   { value: "Artisan", label: "Artisan", note: "Electricians, plumbers, masons and other trades" },
 ] as const;
+
+export interface ProfileChanges {
+  displayName?: string;
+  bio?: string;
+  location?: string;
+  photoPath?: string;
+}
+
+export function updateProfile(changes: ProfileChanges) {
+  return apiRequest<CurrentUser>("/account/profile", { method: "PUT", body: changes });
+}
 
 export function listCapabilities() {
   return apiRequest<CapabilityDto[]>("/capabilities");

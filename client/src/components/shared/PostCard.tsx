@@ -17,6 +17,7 @@ import { CommentsModal } from "@/components/shared/PostComments";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useMediaLoadState } from "@/hooks/useMediaLoadState";
 import { useFollowAccount } from "@/hooks/useFollowAccount";
+import { useIsClamped } from "@/hooks/useIsClamped";
 import { useLikers } from "@/hooks/useLikers";
 import { usePostLike, usePostPoll } from "@/hooks/usePostState";
 import { Tooltip } from "@/components/shared/Tooltip";
@@ -42,6 +43,7 @@ interface PostCardProps {
 export function PostCard({ post }: PostCardProps) {
   const [showComments, setShowComments] = useState(false);
   const [textExpanded, setTextExpanded] = useState(false);
+  const { ref: textRef, clamped: textClamped } = useIsClamped<HTMLParagraphElement>(textExpanded, post.text);
   const [saved, setSaved] = useState(false);
   const like = usePostLike(post);
   const mediaItems = getMediaItems(post);
@@ -62,10 +64,10 @@ export function PostCard({ post }: PostCardProps) {
             <div className="flex w-full flex-col-reverse gap-[15px] sm:flex-col">
               {post.text && (
                 <div className="flex w-full items-end gap-0.5 text-[12px] leading-5 sm:text-sm">
-                  <p className={cn("min-w-0 flex-1 whitespace-pre-line text-[#1e293b]", !textExpanded && "line-clamp-4")}>
+                  <p ref={textRef} className={cn("min-w-0 flex-1 whitespace-pre-line text-[#1e293b]", !textExpanded && "line-clamp-4")}>
                     {renderWithHashtags(post.text)}
                   </p>
-                  {post.truncated !== false && (
+                  {textClamped && (
                     <button
                       type="button"
                       onClick={() => setTextExpanded((v) => !v)}
@@ -319,7 +321,9 @@ function MediaLightbox({
         onClick={onClose}
         className="absolute right-4 top-4 z-10 flex size-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
       >
-        <span className="text-2xl leading-none">&times;</span>
+        <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+          <path d="M6 6l12 12M18 6L6 18" />
+        </svg>
       </button>
 
       <div className="relative h-full w-full max-w-4xl" onClick={(event) => event.stopPropagation()}>
@@ -383,6 +387,7 @@ function MediaLightbox({
 function PollBody({ post }: { post: PostCardData }) {
   const { poll, vote, pending } = usePostPoll(post);
   const [questionExpanded, setQuestionExpanded] = useState(false);
+  const { ref: questionRef, clamped: questionClamped } = useIsClamped<HTMLParagraphElement>(questionExpanded, post.question);
 
   const options = poll?.options ?? [];
   const counts = options.map((option) => option.voteCount);
@@ -407,17 +412,19 @@ function PollBody({ post }: { post: PostCardData }) {
 
       {post.question && (
         <div className="flex w-full items-end gap-0.5 text-[12px] leading-5 sm:text-[13px]">
-          <p className={cn("min-w-0 flex-1 whitespace-pre-line text-[#1e293b]", !questionExpanded && "line-clamp-4")}>
+          <p ref={questionRef} className={cn("min-w-0 flex-1 whitespace-pre-line text-[#1e293b]", !questionExpanded && "line-clamp-4")}>
             {post.question}{" "}
             {post.hashtags && <span className="font-semibold text-[#f088b6]">{post.hashtags}</span>}
           </p>
-          <button
-            type="button"
-            onClick={() => setQuestionExpanded((v) => !v)}
-            className="shrink-0 font-bold text-gray-400"
-          >
-            {questionExpanded ? "less" : "more"}
-          </button>
+          {questionClamped && (
+            <button
+              type="button"
+              onClick={() => setQuestionExpanded((v) => !v)}
+              className="shrink-0 font-bold text-gray-400"
+            >
+              {questionExpanded ? "less" : "more"}
+            </button>
+          )}
         </div>
       )}
 

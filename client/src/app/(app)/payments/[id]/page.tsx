@@ -21,7 +21,7 @@ export default function PaymentDetailPage({ params }: { params: Promise<{ id: st
   return (
     <AppShell contentFullWidth>
       <PageContainer>
-        <Breadcrumbs crumbs={[{ label: "You" }, { label: "Payments", href: "/payments" }, { label: data?.receiptNumber ?? "Payment" }]} />
+        <Breadcrumbs crumbs={[{ label: "You", href: "/account-settings" }, { label: "Payments", href: "/payments" }, { label: data?.receiptNumber ?? "Payment" }]} />
         {payment.isPending && <Skeleton className="h-64 w-full max-w-[640px] rounded-2xl" />}
         {payment.isError && <p className="text-sm text-[#dc2626]">{errorMessage(payment.error)}</p>}
         {data && (

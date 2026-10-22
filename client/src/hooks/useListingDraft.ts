@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { notifyError } from "@/lib/errors";
 import { fromDraftData, toDraftData, type ListingForm } from "@/lib/listing-form";
@@ -35,6 +35,7 @@ export function useListingDraft(initialDraftId: string | null, onDraftCreated: (
     queryKey: ["readiness", draftId, savedAt],
     queryFn: () => getReadiness(draftId as string),
     enabled: Boolean(draftId) && savedAt > 0,
+    placeholderData: keepPreviousData,
   });
 
   const persist = useCallback(

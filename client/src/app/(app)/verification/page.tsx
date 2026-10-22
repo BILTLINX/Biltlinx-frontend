@@ -54,7 +54,7 @@ export default function VerificationCentrePage() {
   return (
     <AppShell contentFullWidth>
       <PageContainer>
-        <Breadcrumbs crumbs={[{ label: "You" }, { label: "Verification centre" }]} />
+        <Breadcrumbs crumbs={[{ label: "You", href: "/account-settings" }, { label: "Verification centre" }]} />
 
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-bold leading-8 text-[#0f172a]">Verification centre</h1>
