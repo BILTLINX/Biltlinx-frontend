@@ -443,25 +443,29 @@ function PollBody({ post }: { post: PostCardData }) {
                   disabled={pending || poll.isClosed}
                   aria-pressed={voted}
                   aria-label={`Vote for ${option.label}`}
-                  className="flex w-full items-center justify-between text-[12px] sm:text-[13px]"
+                  className={cn(
+                    "relative flex h-10 w-full items-center overflow-hidden rounded-lg bg-gray-100 text-left text-[12px] text-night-900 sm:text-[13px]",
+                    voted && "ring-2 ring-brand-600 ring-offset-1",
+                  )}
                 >
-                  <div
+                  <span
+                    aria-hidden
                     className={cn(
-                      "flex items-center gap-2 rounded-lg px-2 py-2 transition-all",
-                      leading ? "bg-brand-900 text-white" : "bg-gray-100 text-night-900",
-                      voted && "ring-2 ring-brand-600 ring-offset-1",
+                      "absolute inset-y-0 left-0 rounded-lg transition-all",
+                      leading ? "bg-brand-600/25" : "bg-gray-200",
                     )}
-                    style={{ width: `${Math.max(percent, 18)}%` }}
-                  >
+                    style={{ width: `${percent}%` }}
+                  />
+                  <span className="relative flex w-full items-center gap-2 px-3">
                     <span className="font-semibold">{percent}%</span>
-                    <span className={cn(leading ? "text-white" : "text-gray-600")}>{option.label}</span>
+                    <span className="min-w-0 flex-1 truncate">{option.label}</span>
                     {voted && (
                       <span className="relative block size-[19px] shrink-0">
                         <Image src="/icons/check-circle.svg" alt="" fill sizes="19px" />
                       </span>
                     )}
-                  </div>
-                  <span className="font-medium text-gray-400">{counts[index].toLocaleString()}</span>
+                    <span className="shrink-0 font-medium text-gray-500">{counts[index].toLocaleString()}</span>
+                  </span>
                 </button>
               );
             })}
