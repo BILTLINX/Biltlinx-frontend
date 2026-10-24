@@ -32,7 +32,9 @@ export function CompareTray() {
     if (!visible) return;
     const root = document.documentElement;
     root.style.setProperty("--compare-tray-space", "7rem");
-    return () => root.style.removeProperty("--compare-tray-space");
+    return () => {
+      root.style.removeProperty("--compare-tray-space");
+    };
   }, [visible]);
 
   if (!visible) return null;
