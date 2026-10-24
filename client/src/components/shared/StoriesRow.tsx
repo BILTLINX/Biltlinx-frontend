@@ -236,13 +236,13 @@ export function MyStoryViewer({
       aria-label={label}
     >
       <div onClick={(event) => event.stopPropagation()} className="relative flex max-h-[85vh] w-full max-w-[420px] flex-col">
-        <div className="absolute -top-11 left-0 right-0 flex items-center justify-between gap-2">
+        <div className="absolute inset-x-3 top-5 z-20 flex items-center justify-between gap-2">
           {readOnly ? <span aria-hidden="true" /> : (
           <button
             type="button"
             aria-label="Add another story"
             onClick={onAddAnother}
-            className="flex size-8 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+            className="flex size-8 items-center justify-center rounded-full bg-black/40 text-white hover:bg-black/60"
           >
             <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true">
               <path d="M10 3V17M3 10H17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -258,7 +258,7 @@ export function MyStoryViewer({
                 aria-label="Story options"
                 aria-expanded={menuOpen}
                 onClick={() => setMenuOpen((v) => !v)}
-                className="flex size-8 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+                className="flex size-8 items-center justify-center rounded-full bg-black/40 text-white hover:bg-black/60"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <circle cx="5" cy="12" r="2" fill="currentColor" />
@@ -299,7 +299,7 @@ export function MyStoryViewer({
               type="button"
               aria-label="Close"
               onClick={onClose}
-              className="flex size-8 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+              className="flex size-8 items-center justify-center rounded-full bg-black/40 text-white hover:bg-black/60"
             >
               <svg width="14" height="14" viewBox="0 0 12 12" fill="none" aria-hidden="true">
                 <path d="M1 1L11 11M11 1L1 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
