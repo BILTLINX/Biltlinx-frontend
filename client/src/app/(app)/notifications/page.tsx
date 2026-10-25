@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { AppShell } from "@/components/shared/AppShell";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -29,7 +30,13 @@ export default function NotificationsPage() {
         )}
         {error && <p className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500">{errorMessage(error)}</p>}
         {!isPending && !error && cards.length === 0 && (
-          <p className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500">You’re all caught up.</p>
+          <EmptyState
+            mood="celebrate"
+            icon="bell-celebrate"
+            title="You’re all caught up"
+            body="Nothing new. We’ll let you know about messages, viewings, payments and jobs as they happen."
+            primary={{ label: "Notification settings", href: "/account-settings" }}
+          />
         )}
         {cards.length > 0 && (
           <ul className="overflow-hidden rounded-2xl border border-gray-200 bg-white">

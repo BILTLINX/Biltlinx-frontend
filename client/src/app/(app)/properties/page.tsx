@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/shared/AppShell";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { ListingCard } from "@/components/shared/ListingCard";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { PageContainer } from "@/components/shared/PageContainer";
@@ -56,6 +57,15 @@ export default function PropertiesPage() {
   const [bedrooms, setBedrooms] = useState("");
   const [sort, setSort] = useState<NonNullable<PropertyQuery["sort"]>>("newest");
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  function clearFilters() {
+    setText("");
+    setSearch("");
+    setMinPrice("");
+    setMaxPrice("");
+    setBedrooms("");
+    setSort("newest");
+  }
 
   useEffect(() => {
     const timer = window.setTimeout(() => setSearch(text.trim()), 350);
@@ -211,7 +221,14 @@ export default function PropertiesPage() {
         )}
 
         {!isPending && !isError && cards.length === 0 && (
-          <p className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500">No properties match these filters.</p>
+          <EmptyState
+            mood="sad"
+            icon="home-sad"
+            title="No homes match these filters"
+            body="Widen the price range or remove a feature or two. Turn on alerts and we’ll send new homes as they’re listed."
+            primary={{ label: "Clear filters", onClick: clearFilters }}
+            secondary={{ label: "Turn on alerts", href: comingSoonHref("Property alerts") }}
+          />
         )}
 
         {cards.length > 0 && (

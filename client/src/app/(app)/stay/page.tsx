@@ -1,8 +1,9 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useMemo } from "react";
+import { Suspense, useMemo, useRef } from "react";
 import { AppShell } from "@/components/shared/AppShell";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { ListingCard } from "@/components/shared/ListingCard";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { StayRail } from "@/components/shared/StayRail";
@@ -29,6 +30,7 @@ function numberParam(value: string | null) {
 function StayContent() {
   const router = useRouter();
   const params = useSearchParams();
+  const searchBar = useRef<HTMLDivElement | null>(null);
 
   const query = useMemo<Omit<StaySearchQuery, "page" | "results">>(
     () => ({
@@ -70,6 +72,10 @@ function StayContent() {
     update({ amenities: next.length > 0 ? next.join(",") : undefined });
   }
 
+  function clearFilters() {
+    update({ type: undefined, amenities: undefined, breakfast: undefined, sort: undefined });
+  }
+
   const { cards, total, isPending, isError, error, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } = useStaySearch(query);
   const nights = nightsBetween(query.checkIn, query.checkOut);
 
@@ -91,11 +97,13 @@ function StayContent() {
           </div>
         </div>
 
-        <StaySearchBar
-          key={params.toString()}
-          value={{ destination: query.destination ?? "", checkIn: query.checkIn, checkOut: query.checkOut, guests: query.guests, rooms: query.rooms }}
-          onSearch={search}
-        />
+        <div ref={searchBar}>
+          <StaySearchBar
+            key={params.toString()}
+            value={{ destination: query.destination ?? "", checkIn: query.checkIn, checkOut: query.checkOut, guests: query.guests, rooms: query.rooms }}
+            onSearch={search}
+          />
+        </div>
 
         <div className="flex flex-wrap gap-2">
           <button
@@ -179,7 +187,14 @@ function StayContent() {
           </div>
         )}
         {!isPending && !isError && cards.length === 0 && (
-          <p className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500">No stays match these filters.</p>
+          <EmptyState
+            mood="sad"
+            icon="stay-sad"
+            title="No stays for these dates"
+            body="Try other dates or a nearby area. Popular weekends in Accra fill up fast."
+            primary={{ label: "Change dates", onClick: () => searchBar.current?.scrollIntoView({ behavior: "smooth", block: "center" }) }}
+            secondary={{ label: "Clear filters", onClick: clearFilters }}
+          />
         )}
         {cards.length > 0 && (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(min(260px,100%),1fr))] gap-4">

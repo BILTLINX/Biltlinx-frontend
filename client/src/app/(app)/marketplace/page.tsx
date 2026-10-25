@@ -4,11 +4,13 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { keepPreviousData } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AppShell } from "@/components/shared/AppShell";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { ListingCard } from "@/components/shared/ListingCard";
 import { MarketplaceRail } from "@/components/shared/MarketplaceRail";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { comingSoonHref } from "@/lib/coming-soon";
 import { errorMessage } from "@/lib/errors";
 import { getFacets, KIND_LABEL, offerToCard, searchMarketplace } from "@/lib/marketplace-api";
 import { cn } from "@/lib/utils";
@@ -31,6 +33,17 @@ export default function MarketplacePage() {
   const [unit, setUnit] = useState("");
   const [sort, setSort] = useState("");
   const sentinel = useRef<HTMLDivElement | null>(null);
+
+  function clearFilters() {
+    setKind("");
+    setText("");
+    setSearch("");
+    setCity("");
+    setMinPrice("");
+    setMaxPrice("");
+    setUnit("");
+    setSort("");
+  }
 
   useEffect(() => {
     const timer = window.setTimeout(() => setSearch(text.trim()), 350);
@@ -151,7 +164,16 @@ export default function MarketplacePage() {
             </button>
           </div>
         )}
-        {!result.isPending && !result.isError && cards.length === 0 && <p className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500">No listings match your search.</p>}
+        {!result.isPending && !result.isError && cards.length === 0 && (
+          <EmptyState
+            mood="sad"
+            icon="search-sad"
+            title="No listings match your search"
+            body="Try a wider area, another category or fewer filters. Or save this search and we’ll tell you when something lands."
+            primary={{ label: "Clear filters", onClick: clearFilters }}
+            secondary={{ label: "Save this search", href: comingSoonHref("Saved searches") }}
+          />
+        )}
         {cards.length > 0 && (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(min(240px,100%),1fr))] gap-4">
             {cards.map((listing) => (

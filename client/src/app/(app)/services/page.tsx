@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/shared/AppShell";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { OfferingCard } from "@/components/shared/OfferingCard";
 import { PageContainer } from "@/components/shared/PageContainer";
@@ -31,6 +32,16 @@ export default function ServicesPage() {
   const [maxPrice, setMaxPrice] = useState("");
   const [sort, setSort] = useState<(typeof SORTS)[number]["value"]>("");
   const [problem, setProblem] = useState("");
+
+  function clearFilters() {
+    setText("");
+    setSearch("");
+    setCategory("");
+    setCity("");
+    setMaxPrice("");
+    setSort("");
+    setProblem("");
+  }
   const suggestions = useTradeSuggestions(problem);
   const sentinel = useRef<HTMLDivElement | null>(null);
 
@@ -139,7 +150,16 @@ export default function ServicesPage() {
             </button>
           </div>
         )}
-        {!isPending && !isError && items.length === 0 && <p className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500">No services match your search.</p>}
+        {!isPending && !isError && items.length === 0 && (
+          <EmptyState
+            mood="sad"
+            icon="services-sad"
+            title="No services match"
+            body="Try a different category or price. If it isn’t listed, describe it and providers will quote."
+            primary={{ label: "Request a service", href: "/request-board/new" }}
+            secondary={{ label: "Clear filters", onClick: clearFilters }}
+          />
+        )}
         {items.length > 0 && (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(min(280px,100%),1fr))] gap-4">
             {items.map((offering) => (

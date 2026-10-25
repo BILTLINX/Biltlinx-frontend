@@ -4,11 +4,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AppShell } from "@/components/shared/AppShell";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { RequestBoardRail } from "@/components/shared/RequestBoardRail";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useIncomingQuoteRequests, useMyQuoteRequests } from "@/hooks/useServices";
+import { comingSoonHref } from "@/lib/coming-soon";
 import { errorMessage } from "@/lib/errors";
 import { formatDate, formatRelative } from "@/lib/format";
 import { QUOTE_REQUEST_TONE } from "@/lib/services-labels";
@@ -82,7 +84,18 @@ export default function RequestBoardPage() {
 
         {active.isPending && <Skeleton className="h-24 w-full rounded-2xl" />}
         {active.isError && <p className="text-sm text-[#dc2626]">{errorMessage(active.error)}</p>}
-        {active.data?.length === 0 && <p className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500">{empty}</p>}
+        {active.data?.length === 0 &&
+          (tab === "mine" ? (
+            <EmptyState icon="requests" title="No requests yet" body={empty ?? ""} primary={{ label: "Post a request", href: "/request-board/new" }} />
+          ) : (
+            <EmptyState
+              icon="requests"
+              title="No open requests right now"
+              body="When someone nearby needs a builder, a survey or a truck of sand, their request shows up here."
+              primary={{ label: "Post a request", href: "/request-board/new" }}
+              secondary={{ label: "Turn on alerts", href: comingSoonHref("Request alerts") }}
+            />
+          ))}
         <div className="flex flex-col gap-3">
           {active.data?.map((request) => (
             <RequestRow key={request.id} request={request} mine={tab === "mine"} />

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AppShell } from "@/components/shared/AppShell";
+import { EmptyState, type EmptyIcon } from "@/components/shared/EmptyState";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { ProviderCard } from "@/components/shared/ProviderCard";
@@ -11,6 +12,21 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { useProviders, useTaxonomy } from "@/hooks/useServices";
 import { errorMessage } from "@/lib/errors";
 import { cn } from "@/lib/utils";
+
+const NO_RESULTS: Record<ProviderDirectoryProps["kind"], { icon: EmptyIcon; title: string; body: string; post: string }> = {
+  professional: {
+    icon: "professional-sad",
+    title: "No professionals found",
+    body: "Try another discipline or widen the location. Or post a request and let professionals come to you.",
+    post: "Post a request",
+  },
+  artisan: {
+    icon: "wrench-sad",
+    title: "No artisans nearby for this trade",
+    body: "Widen the area or try a related trade. Post the job and nearby artisans can send you quotes.",
+    post: "Post a job",
+  },
+};
 
 interface ProviderDirectoryProps {
   kind: "professional" | "artisan";
@@ -31,6 +47,15 @@ export function ProviderDirectory({ kind, title, subtitle, searchPlaceholder, ac
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [urgent, setUrgent] = useState(false);
   const sentinel = useRef<HTMLDivElement | null>(null);
+
+  function clearFilters() {
+    setText("");
+    setSearch("");
+    setCity("");
+    setCategory("");
+    setVerifiedOnly(false);
+    setUrgent(false);
+  }
 
   useEffect(() => {
     const timer = window.setTimeout(() => setSearch(text.trim()), 350);
@@ -125,7 +150,16 @@ export function ProviderDirectory({ kind, title, subtitle, searchPlaceholder, ac
             </button>
           </div>
         )}
-        {!isPending && !isError && items.length === 0 && <p className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500">No one matches these filters yet.</p>}
+        {!isPending && !isError && items.length === 0 && (
+          <EmptyState
+            mood="sad"
+            icon={NO_RESULTS[kind].icon}
+            title={NO_RESULTS[kind].title}
+            body={NO_RESULTS[kind].body}
+            primary={{ label: NO_RESULTS[kind].post, href: "/request-board/new" }}
+            secondary={{ label: "Clear filters", onClick: clearFilters }}
+          />
+        )}
         {items.length > 0 && (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(min(320px,100%),1fr))] gap-4">
             {items.map((provider) => (
