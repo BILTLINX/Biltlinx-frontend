@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { Button } from "@/components/ui/Button";
 import { comingSoonHref } from "@/lib/coming-soon";
+import { CREATE_ORGANISATION_HREF } from "@/lib/dummy-manage";
 
 /** The dark "Business plan" banner at the bottom of an overview page. */
 export function ManageUpgradeBanner({ title, text }: { title: string; text: string }) {
@@ -20,7 +21,7 @@ export function ManageUpgradeBanner({ title, text }: { title: string; text: stri
       <div className="flex shrink-0 flex-wrap gap-3">
         <button
           type="button"
-          onClick={() => router.push(comingSoonHref("Set up organisation"))}
+          onClick={() => router.push(CREATE_ORGANISATION_HREF)}
           className="h-10 whitespace-nowrap rounded-[10px] bg-white px-4 text-sm font-medium text-brand-900 hover:bg-gray-100"
         >
           Set up organisation

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { showSuccessToast } from "@/components/shared/AppToast";
+import { AddRoleModal } from "@/components/shared/AddRoleModal";
 import { CreateMenu } from "@/components/shared/CreateMenu";
 import { MobileQuickPostModal, type QuickComposerMode } from "@/components/shared/MobileQuickPostModal";
 import { NavIcon } from "@/components/shared/NavIcon";
@@ -17,6 +18,7 @@ import { comingSoonHref } from "@/lib/coming-soon";
 export function TopNav() {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [addRoleOpen, setAddRoleOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [createMenuOpen, setCreateMenuOpen] = useState(false);
   const createMenuRef = useRef<HTMLDivElement | null>(null);
@@ -194,6 +196,15 @@ export function TopNav() {
                       router.push("/account-settings");
                     }}
                   />
+                  <VisibilityRow
+                    icon="/icons/user-add-01.svg"
+                    label="Add a role"
+                    selected={false}
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setAddRoleOpen(true);
+                    }}
+                  />
                   <div className="mt-1 border-t border-[#e2e8f0] pt-1">
                     <VisibilityRow icon="/icons/menu-power.svg" label="Log out" selected={false} destructive onClick={handleLogout} />
                   </div>
@@ -205,6 +216,7 @@ export function TopNav() {
       </div>
 
       {modals}
+      <AddRoleModal open={addRoleOpen} onClose={() => setAddRoleOpen(false)} />
       <MobileQuickPostModal
         open={mobileQuickOpen}
         onClose={() => setMobileQuickOpen(false)}

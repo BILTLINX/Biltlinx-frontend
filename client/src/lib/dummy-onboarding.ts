@@ -10,6 +10,8 @@ export interface AccountType {
   features: string[];
   duration: string;
   hint?: string;
+  /** One line for the compact role picker. */
+  tagline?: string;
   /** First screen of this type's setup; types without a designed setup go straight to the app. */
   setupHref?: string;
 }
@@ -27,6 +29,7 @@ export const ACCOUNT_TYPES: AccountType[] = [
   },
   {
     id: "professional",
+    tagline: "Licensed experts who offer services and quotes",
     title: "Professional",
     description: "Architects, engineers, surveyors, lawyers, valuers, agents and other licensed experts.",
     icon: "/icons/briefcase-01.svg",
@@ -36,6 +39,7 @@ export const ACCOUNT_TYPES: AccountType[] = [
   },
   {
     id: "artisan",
+    tagline: "Trades who take jobs and show a portfolio",
     title: "Artisan",
     description: "Electricians, plumbers, masons, carpenters, tilers, painters and other trades.",
     icon: "/icons/onboarding-wrench.svg",
@@ -45,6 +49,7 @@ export const ACCOUNT_TYPES: AccountType[] = [
   },
   {
     id: "business",
+    tagline: "A storefront for an agency, supplier or stay operator",
     title: "Business",
     description: "Estate agencies, building suppliers, equipment hire and stay operators.",
     icon: "/icons/onboarding-building.svg",
@@ -55,6 +60,7 @@ export const ACCOUNT_TYPES: AccountType[] = [
   },
   {
     id: "organization",
+    tagline: "A company or institution with branches and staff",
     title: "Organization",
     description: "Developers, property managers, estates and institutions that work as a team.",
     icon: "/icons/onboarding-city.svg",

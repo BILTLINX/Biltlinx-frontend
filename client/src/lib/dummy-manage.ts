@@ -1152,3 +1152,26 @@ export const PROFESSIONAL_CREDENTIALS = [
   { id: "pc2", label: "Energy Commission licence · Class 2 ✓", verified: true },
   { id: "pc3", label: "ARC licence · pending check", verified: false },
 ];
+
+/** Where every "set up an organisation" button goes. */
+export const CREATE_ORGANISATION_HREF = "/manage/organisation/new";
+
+export const CREATE_ORGANISATION_STEPS = [
+  { title: "Organisation details", note: "Name, type and contact" },
+  { title: "Verification", note: "Prove the business is real" },
+  { title: "Structure", note: "Branches and locations (optional)" },
+  { title: "Plan & confirm", note: "Business plan, review and create" },
+];
+
+export const ORGANISATION_KINDS = ["Real estate agency", "Property manager", "Developer", "Contractor", "Professional firm", "Supplier", "Hotel / Stay"];
+
+export const ORGANISATION_PLAN = {
+  name: "Biltlinx Business",
+  badge: "Required for organisations",
+  features: "Operate & Scale · 5 team seats included · roles & permissions · branches · shared pipeline · audit logs",
+  monthly: "GHS 599",
+  annual: "GHS 5,990",
+  trialDays: 14,
+};
+
+export const ORGANISATION_PAY_METHODS = ["Mobile Money", "Card", "Bank transfer"];
