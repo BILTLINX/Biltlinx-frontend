@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { showErrorToast } from "@/components/shared/AppToast";
 import { EmojiPicker } from "@/components/shared/EmojiPicker";
+import { useSession } from "@/context/SessionContext";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 import { cn } from "@/lib/utils";
 import type { CommentAttachments } from "@/types/comment";
@@ -14,6 +15,7 @@ interface CommentComposerProps {
   draft: string;
   onDraftChange: (value: string) => void;
   onSubmit: (attachments: CommentAttachments) => void;
+  textOnly?: boolean;
 }
 
 function formatClock(totalSeconds: number) {
@@ -32,7 +34,8 @@ function formatClock(totalSeconds: number) {
  * leak the previous version had: it created object URLs ad hoc and only
  * ever revoked them on explicit removal, never on unmount or after a
  * successful submit. */
-export function CommentComposer({ draft, onDraftChange, onSubmit }: CommentComposerProps) {
+export function CommentComposer({ draft, onDraftChange, onSubmit, textOnly = false }: CommentComposerProps) {
+  const { user } = useSession();
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | undefined>(undefined);
   const handedOffRef = useRef<Set<string>>(new Set());
@@ -113,10 +116,18 @@ export function CommentComposer({ draft, onDraftChange, onSubmit }: CommentCompo
 
       <div className="flex w-full items-center gap-3">
         <span className="relative block size-10 shrink-0">
-          <Image src="/icons/avatar-andy.png" alt="" fill className="rounded-full object-cover" sizes="40px" />
-          <span className="absolute -bottom-0.5 -right-0.5 block size-4">
-            <Image src="/icons/avatar-verified-lg.svg" alt="" fill sizes="16px" />
-          </span>
+          <Image
+            src={user?.profilePicUrl ?? "/icons/avatar-placeholder-user.svg"}
+            alt=""
+            fill
+            className="rounded-full bg-[#eef2ff] object-cover"
+            sizes="40px"
+          />
+          {user?.isVerified && (
+            <span className="absolute -bottom-0.5 -right-0.5 block size-4">
+              <Image src="/icons/avatar-verified-lg.svg" alt="" fill sizes="16px" />
+            </span>
+          )}
         </span>
 
         {recorder.isRecording ? (
@@ -152,6 +163,7 @@ export function CommentComposer({ draft, onDraftChange, onSubmit }: CommentCompo
           <EmojiPicker onSelect={(emoji) => onDraftChange(draft + emoji)} side="bottom">
             <Image src="/icons/emoji-add.svg" alt="" width={16} height={16} />
           </EmojiPicker>
+          {!textOnly && (
           <button
             type="button"
             aria-label="Add photo"
@@ -160,6 +172,8 @@ export function CommentComposer({ draft, onDraftChange, onSubmit }: CommentCompo
           >
             <Image src="/icons/gallery-01.svg" alt="" width={11} height={11} />
           </button>
+          )}
+          {!textOnly && (
           <button
             type="button"
             aria-label={recorder.isRecording ? "Stop recording" : "Record voice note"}
@@ -173,6 +187,7 @@ export function CommentComposer({ draft, onDraftChange, onSubmit }: CommentCompo
               <Image src="/icons/mic-02.svg" alt="" width={10} height={13} />
             )}
           </button>
+          )}
         </div>
 
         <input

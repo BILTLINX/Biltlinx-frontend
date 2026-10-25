@@ -153,6 +153,7 @@ export function AppShell({
             ) : (
               <div className="mx-auto w-full max-w-[762px] 4xl:max-w-[920px] 5xl:max-w-[1100px]">{children}</div>
             )}
+            <div aria-hidden className="shrink-0" style={{ height: "var(--compare-tray-space, 0px)" }} />
           </div>
         </main>
         {railAccessory && (

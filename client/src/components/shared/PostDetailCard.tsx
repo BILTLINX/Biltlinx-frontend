@@ -6,6 +6,8 @@ import { useState } from "react";
 import { getMediaItems, MediaCarousel, PostFollowButton, PostStatsBar } from "@/components/shared/PostCard";
 import { Button } from "@/components/ui/Button";
 import { PostOptionsControl } from "@/components/shared/PostOptionsControl";
+import { usePostLike } from "@/hooks/usePostState";
+import { useFollowAccount } from "@/hooks/useFollowAccount";
 import { comingSoonHref } from "@/lib/coming-soon";
 import { renderWithHashtags } from "@/lib/hashtags";
 import type { PostCardData } from "@/types/post";
@@ -18,8 +20,9 @@ interface PostDetailCardProps {
 /** Full post on the detail page (Figma node 1055:28102): header, complete text, media, listing attachment and engagement row. */
 export function PostDetailCard({ post, commentsCount }: PostDetailCardProps) {
   const router = useRouter();
-  const [following, setFollowing] = useState(false);
+  const { following, toggle: toggleFollow } = useFollowAccount(post.authorId, post.authorFollowed);
   const [saved, setSaved] = useState(false);
+  const like = usePostLike(post);
   const mediaItems = getMediaItems(post);
   const [primary, secondary] = post.actions ?? [];
   const body = post.variant === "poll" ? post.question : post.text;
@@ -47,13 +50,13 @@ export function PostDetailCard({ post, commentsCount }: PostDetailCardProps) {
           </div>
           <p className="truncate text-xs leading-[17px] text-gray-500">{subtitle}</p>
         </div>
-        <PostFollowButton following={following} onToggle={() => setFollowing((v) => !v)} name={post.authorName} />
+        {!post.isOwn && <PostFollowButton following={following} onToggle={toggleFollow} name={post.authorName} />}
         <PostOptionsControl
           post={post}
           saved={saved}
           onToggleSave={() => setSaved((v) => !v)}
           following={following}
-          onToggleFollow={() => setFollowing((v) => !v)}
+          onToggleFollow={toggleFollow}
           className="relative block size-[23px] shrink-0"
         >
           <Image src="/icons/more-horizontal.svg" alt="" fill sizes="23px" className="sm:hidden" />
@@ -99,6 +102,7 @@ export function PostDetailCard({ post, commentsCount }: PostDetailCardProps) {
       <div className="px-4 py-3.5 sm:px-5">
         <PostStatsBar
           post={{ ...post, comments: commentsCount }}
+          like={like}
           saved={saved}
           onToggleSave={() => setSaved((v) => !v)}
           showComments={false}

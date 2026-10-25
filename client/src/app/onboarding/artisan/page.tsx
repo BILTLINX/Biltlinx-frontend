@@ -1,5 +1,6 @@
 "use client";
 
+import { useDisplayName } from "@/hooks/useDisplayName";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { NavIcon } from "@/components/shared/NavIcon";
@@ -7,7 +8,7 @@ import { OnboardingRadioDot } from "@/components/shared/OnboardingRadioDot";
 import { OnboardingStepper } from "@/components/shared/OnboardingStepper";
 import { OnboardingTopBar } from "@/components/shared/OnboardingTopBar";
 import { OptionSelectField } from "@/components/shared/ViewingSlotPickers";
-import { ARTISAN_STEPS, EXPERIENCE_OPTIONS, NEW_ARTISAN, TEAM_SIZES, TRADES } from "@/lib/dummy-onboarding";
+import { ARTISAN_STEPS, EXPERIENCE_OPTIONS, TEAM_SIZES, TRADES } from "@/lib/dummy-onboarding";
 import { initialsOf } from "@/lib/initials";
 import { saveArtisanDraft } from "@/lib/onboarding-draft";
 import { cn } from "@/lib/utils";
@@ -31,10 +32,11 @@ function teamCount(size: string) {
 
 /** Onboarding · Artisan · 1 Trade (Figma node 1071:31503): what trade, experience and whether they work alone. */
 export default function ArtisanTradePage() {
+  const accountName = useDisplayName();
   const router = useRouter();
   const [trade, setTrade] = useState(TRADES[0]);
   const [experience, setExperience] = useState("11 years");
-  const [basedIn, setBasedIn] = useState(NEW_ARTISAN.basedIn);
+  const [basedIn, setBasedIn] = useState("");
   const [team, setTeam] = useState<(typeof TEAM_OPTIONS)[number]["id"]>("team");
   const [teamSize, setTeamSize] = useState(TEAM_SIZES[1]);
 
@@ -167,9 +169,9 @@ export default function ArtisanTradePage() {
               <div className="h-16 bg-gradient-to-r from-[#0a1f44] to-brand-900" />
               <div className="flex flex-col gap-3 px-5 py-4">
                 <div className="flex items-center gap-3">
-                  <span className="flex size-14 shrink-0 items-center justify-center rounded-full border-[3px] border-white bg-[#eff5ff] text-lg font-bold text-brand-900">{initialsOf(NEW_ARTISAN.name)}</span>
+                  <span className="flex size-14 shrink-0 items-center justify-center rounded-full border-[3px] border-white bg-[#eff5ff] text-lg font-bold text-brand-900">{initialsOf(accountName)}</span>
                   <div className="flex min-w-0 flex-1 flex-col gap-0.5 leading-[1.45]">
-                    <p className="truncate text-base font-bold text-[#0f172a]">{NEW_ARTISAN.name}</p>
+                    <p className="truncate text-base font-bold text-[#0f172a]">{accountName}</p>
                     <p className="truncate text-[13px] text-gray-500">{[trade, where].filter(Boolean).join(" · ")}</p>
                   </div>
                 </div>

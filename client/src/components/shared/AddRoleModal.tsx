@@ -5,7 +5,7 @@ import { useState } from "react";
 import { CenteredDialog } from "@/components/shared/CenteredDialog";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { OnboardingRadioDot } from "@/components/shared/OnboardingRadioDot";
-import { CREATE_ORGANISATION_HREF } from "@/lib/dummy-manage";
+import { CREATE_ORGANISATION_HREF } from "@/lib/organisation-flow";
 import { ACCOUNT_TYPES, NEW_ACCOUNT_NAME, type AccountTypeId } from "@/lib/dummy-onboarding";
 import { cn } from "@/lib/utils";
 

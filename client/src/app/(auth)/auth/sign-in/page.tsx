@@ -11,8 +11,10 @@ import { Checkbox } from "@/components/ui/Checkbox";
 import { Input } from "@/components/ui/Input";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { useHangTight } from "@/hooks/useHangTight";
-import { ApiError } from "@/lib/api";
-import { login } from "@/lib/auth-api";
+import { useSession } from "@/context/SessionContext";
+import { ApiError, safeNextPath } from "@/lib/api";
+import { completeMfaLogin, login, sendMfaOtp } from "@/lib/auth-api";
+import type { MfaChallenge, MfaMethod } from "@/types/api/auth";
 import { isNonEmpty, validateIdentifier } from "@/lib/validation";
 
 const TAGLINE = { highlight: "Welcome Back to", rest: "the Built Environment" };
@@ -21,13 +23,25 @@ function SignInContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const method = searchParams.get("method") === "email" ? "email" : "phone";
-  const destination = searchParams.get("next") === "onboarding" ? "/onboarding" : "/home";
 
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [errors, setErrors] = useState<{ identifier?: string; password?: string }>({});
+  const [challenge, setChallenge] = useState<MfaChallenge | null>(null);
+  const [mfaMethod, setMfaMethod] = useState<MfaMethod>("totp");
+  const [code, setCode] = useState("");
+  const [codeError, setCodeError] = useState<string | undefined>();
+  const [otpSent, setOtpSent] = useState(false);
   const { pending, runAsync } = useHangTight();
+  const { refresh } = useSession();
+  const nextPath = safeNextPath(searchParams.get("next")) ?? "/home";
+
+  async function finishSignIn() {
+    await refresh();
+    showSuccessToast("Signed in! Welcome back to Biltlinx");
+    router.replace(nextPath);
+  }
 
   function useOtherMethod() {
     router.push("/auth");
@@ -44,18 +58,57 @@ function SignInContent() {
     if (nextErrors.identifier || nextErrors.password) return;
 
     try {
-      await runAsync(() =>
+      const result = await runAsync(() =>
         login(
           method === "email"
             ? { email: identifier, password, rememberMe }
             : { phone: identifier, password, rememberMe },
         ),
       );
-      showSuccessToast("Signed in! Welcome back to Biltlinx");
-      router.push(destination);
+      if (result.mfaRequired) {
+        setChallenge(result);
+        setMfaMethod(result.methods.includes("totp") ? "totp" : result.methods[0]);
+        return;
+      }
+      await finishSignIn();
     } catch (error) {
       showErrorToast(error instanceof ApiError ? error.message : "Unable to sign in");
     }
+  }
+
+  async function handleMfaSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    if (!challenge) return;
+    if (!isNonEmpty(code)) {
+      setCodeError("Enter your code");
+      return;
+    }
+    setCodeError(undefined);
+    try {
+      await runAsync(() => completeMfaLogin({ challengeToken: challenge.challengeToken, code: code.trim(), method: mfaMethod }));
+      await finishSignIn();
+    } catch (error) {
+      setCodeError(error instanceof ApiError ? error.message : "That code didn't work");
+    }
+  }
+
+  async function handleSendOtp() {
+    if (!challenge) return;
+    try {
+      await sendMfaOtp({ challengeToken: challenge.challengeToken, channel: method === "email" ? "email" : "sms" });
+      setMfaMethod("otp");
+      setOtpSent(true);
+      setCode("");
+      showSuccessToast(`We sent a code to your ${method === "email" ? "email" : "phone"}`);
+    } catch (error) {
+      showErrorToast(error instanceof ApiError ? error.message : "Unable to send a code");
+    }
+  }
+
+  function chooseMethod(next: MfaMethod) {
+    setMfaMethod(next);
+    setCode("");
+    setCodeError(undefined);
   }
 
   if (pending) {
@@ -67,6 +120,73 @@ function SignInContent() {
           footer="You'll be allowed in soon..."
         />
       </div>
+    );
+  }
+
+  if (challenge) {
+    const prompt =
+      mfaMethod === "recovery"
+        ? "Enter one of your recovery codes"
+        : mfaMethod === "otp"
+          ? "Enter the code we sent you"
+          : "Enter the code from your authenticator app";
+    return (
+      <>
+        <div className="flex flex-col items-center gap-3 text-center">
+          <h1 className="text-[36px] font-bold leading-[40px] tracking-[-1.08px] text-black dark:text-white">
+            Two-step check
+          </h1>
+          <p className="text-sm leading-5 text-black dark:text-white">{prompt}</p>
+        </div>
+        <form onSubmit={handleMfaSubmit} className="flex flex-col gap-6">
+          <Input
+            id="mfa-code"
+            label={mfaMethod === "recovery" ? "Recovery code" : "Code"}
+            inputMode={mfaMethod === "recovery" ? "text" : "numeric"}
+            autoComplete="one-time-code"
+            autoFocus
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            error={codeError}
+          />
+          <Button type="submit" variant="primary">
+            Verify and sign in
+          </Button>
+          <div className="flex flex-col items-center gap-2 text-xs font-medium text-brand-900">
+            {mfaMethod !== "totp" && (
+              <button type="button" onClick={() => chooseMethod("totp")} className="hover:underline">
+                Use my authenticator app
+              </button>
+            )}
+            {mfaMethod !== "otp" && challenge.methods.includes("otp") && (
+              <button type="button" onClick={handleSendOtp} className="hover:underline">
+                Send me a code instead
+              </button>
+            )}
+            {mfaMethod === "otp" && otpSent && (
+              <button type="button" onClick={handleSendOtp} className="hover:underline">
+                Send the code again
+              </button>
+            )}
+            {mfaMethod !== "recovery" && challenge.methods.includes("recovery") && (
+              <button type="button" onClick={() => chooseMethod("recovery")} className="hover:underline">
+                Use a recovery code
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setChallenge(null);
+                setCode("");
+                setCodeError(undefined);
+              }}
+              className="text-gray-500 hover:underline"
+            >
+              Back to sign in
+            </button>
+          </div>
+        </form>
+      </>
     );
   }
 

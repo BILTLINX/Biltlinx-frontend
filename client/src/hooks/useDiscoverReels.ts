@@ -1,65 +1,81 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useDeferredValue, useMemo, useState } from "react";
+import { FEED_KEY, useFeed } from "@/hooks/useFeed";
 import { DISCOVER_TABS, type DiscoverTab } from "@/lib/discover-tabs";
-import { DISCOVER_REELS } from "@/lib/dummy-reels";
+import { notifyError } from "@/lib/errors";
+import { createPost } from "@/lib/social-api";
+import { uploadMedia } from "@/lib/upload";
+import type { PostCardData } from "@/types/post";
 import type { DiscoverReel } from "@/types/reel";
 import type { PostedStory } from "@/types/story";
 
-const FAKE_FETCH_MS = 500;
-
-const CURRENT_USER = {
-  authorName: "Andy Ansong",
-  authorAvatar: "/images/avatar-kasapa.png",
-} as const;
-
-function makeReelId(): string {
-  return typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `reel-${Date.now()}`;
+function toReel(post: PostCardData): DiscoverReel | null {
+  const video = post.media?.find((item) => item.isVideo);
+  if (!video) return null;
+  return {
+    id: post.id,
+    authorId: post.authorId ?? "",
+    authorName: post.authorName,
+    authorAvatar: post.avatar,
+    verified: Boolean(post.verified),
+    following: post.authorFollowed ?? false,
+    isOwn: post.isOwn ?? false,
+    caption: post.text ?? "",
+    video: video.url,
+    poster: post.avatar,
+    likes: post.likes,
+    likedByMe: post.likedByMe ?? false,
+    comments: post.comments,
+    shares: 0,
+    reposts: 0,
+    saves: 0,
+  };
 }
 
-/** Data layer for the Discover screen: loading state, the reels you've posted,
- * and tab + search filtering. Backed by dummy data for now — when the feed API
- * lands, only this hook changes; the page and cards don't. */
+/** Data layer for the Discover screen: reels are feed posts that carry a
+ * video, filtered server-side, with tab and search driving the query. */
 export function useDiscoverReels() {
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<DiscoverTab>(DISCOVER_TABS[0]);
-  const [myReels, setMyReels] = useState<DiscoverReel[]>([]);
+  const search = useDeferredValue(query.trim());
 
-  // Simulates the brief fetch a real reels feed would need, so the skeleton
-  // state is actually reachable instead of being dead code.
-  useEffect(() => {
-    const timer = window.setTimeout(() => setLoading(false), FAKE_FETCH_MS);
-    return () => window.clearTimeout(timer);
-  }, []);
+  const feed = useFeed({
+    hasVideo: true,
+    q: search || undefined,
+    scope: activeTab === "Following" ? "following" : undefined,
+  });
 
-  function addReel({ url, caption }: PostedStory) {
-    setMyReels((current) => [
-      {
-        id: makeReelId(),
-        ...CURRENT_USER,
-        verified: true,
-        following: true,
-        caption: caption ? `${caption} (More)` : "New reel",
-        video: url,
-        poster: CURRENT_USER.authorAvatar,
-        likes: 0,
-        comments: 0,
-        shares: 0,
-        reposts: 0,
-        saves: 0,
-      },
-      ...current,
-    ]);
-  }
+  const reels = useMemo(() => feed.posts.map(toReel).filter((reel): reel is DiscoverReel => reel !== null), [feed.posts]);
 
-  const reels = useMemo(() => {
-    const allReels = [...myReels, ...DISCOVER_REELS];
-    const byTab = activeTab === "Following" ? allReels.filter((reel) => reel.following) : allReels;
-    const q = query.trim().toLowerCase();
-    if (!q) return byTab;
-    return byTab.filter((reel) => reel.authorName.toLowerCase().includes(q) || reel.caption.toLowerCase().includes(q));
-  }, [activeTab, query, myReels]);
+  const create = useMutation({
+    mutationFn: async ({ file, caption }: PostedStory) => {
+      if (!file) throw new Error("Missing video");
+      const media = await uploadMedia(file);
+      await createPost({
+        kind: "Text",
+        description: caption ?? "",
+        media: [{ path: media.path, contentType: media.contentType, name: media.name }],
+      });
+    },
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: FEED_KEY }),
+    onError: (error) => notifyError(error, "Your reel could not be posted."),
+  });
 
-  return { reels, loading, query, setQuery, activeTab, setActiveTab, addReel };
+  return {
+    reels,
+    loading: feed.isPending,
+    isError: feed.isError,
+    refetch: feed.refetch,
+    hasNextPage: feed.hasNextPage,
+    fetchNextPage: feed.fetchNextPage,
+    isFetchingNextPage: feed.isFetchingNextPage,
+    query,
+    setQuery,
+    activeTab,
+    setActiveTab,
+    addReel: (story: PostedStory) => create.mutate(story),
+  };
 }

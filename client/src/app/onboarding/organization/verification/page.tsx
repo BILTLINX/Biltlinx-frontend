@@ -3,12 +3,15 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DocumentUpload, type UploadedFile } from "@/components/shared/DocumentUpload";
+import { showErrorToast } from "@/components/shared/AppToast";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { OnboardingStepper } from "@/components/shared/OnboardingStepper";
 import { OnboardingTopBar } from "@/components/shared/OnboardingTopBar";
-import { NEW_ORGANIZATION, ORGANIZATION_STEPS, ORGANIZATION_TYPES } from "@/lib/dummy-onboarding";
+import { ORGANIZATION_STEPS, ORGANIZATION_TYPES } from "@/lib/dummy-onboarding";
 import { initialsOf } from "@/lib/initials";
 import { loadOrganizationDraft, updateOrganizationDraft, type OrganizationDraft } from "@/lib/onboarding-draft";
+import { notifyError } from "@/lib/errors";
+import { finishOrganization } from "@/lib/onboarding-submit";
 import { cn } from "@/lib/utils";
 
 const CARD = "flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-6";
@@ -29,6 +32,7 @@ function CardHeading({ title, note }: { title: string; note: string }) {
 export default function OrganizationVerificationPage() {
   const router = useRouter();
   const [draft, setDraft] = useState<OrganizationDraft | null>(null);
+  const [saving, setSaving] = useState(false);
   const [registration, setRegistration] = useState("");
   const [tin, setTin] = useState("");
   const [certificate, setCertificate] = useState<UploadedFile | null>(null);
@@ -38,7 +42,7 @@ export default function OrganizationVerificationPage() {
   // Earlier steps' choices live in the tab session, so they are read after mount.
   useEffect(() => setDraft(loadOrganizationDraft()), []);
 
-  const orgName = draft?.name ?? NEW_ORGANIZATION.name;
+  const orgName = draft?.name ?? "Your organization";
   const type = ORGANIZATION_TYPES.find((option) => option.id === draft?.typeId) ?? ORGANIZATION_TYPES[0];
   const headOffice = draft?.headOffice ?? "";
   const branchCount = (draft?.branches?.length ?? 0) + 1;
@@ -47,9 +51,18 @@ export default function OrganizationVerificationPage() {
   const strength = Math.min(100, (draft?.strength ?? DEFAULT_STRENGTH) + (incorporation ? 5 : 0) + (letter ? 5 : 0) + (ownerId ? 5 : 0));
   const pending = incorporation || letter !== null || ownerId !== null;
 
-  function handleContinue() {
-    updateOrganizationDraft({ strength, verification: { incorporation, authority: letter !== null, ownerId: ownerId !== null } });
-    router.push("/onboarding/organization/plan");
+  async function handleContinue() {
+    if (!draft) return;
+    setSaving(true);
+    try {
+      updateOrganizationDraft({ strength, verification: { incorporation, authority: letter !== null, ownerId: ownerId !== null } });
+      const problems = await finishOrganization(draft, [registration.trim() && `Reg ${registration.trim()}`, tin.trim() && `TIN ${tin.trim()}`].filter(Boolean).join(", "));
+      problems.forEach((problem) => showErrorToast(problem));
+      router.push("/onboarding/organization/done");
+    } catch (error) {
+      notifyError(error, "Your organization could not be set up.");
+      setSaving(false);
+    }
   }
 
   return (
@@ -61,18 +74,18 @@ export default function OrganizationVerificationPage() {
           <div className="lg:sticky lg:top-8 lg:self-start">
             <OnboardingStepper
               title="Organization setup"
-              duration="About 6 minutes"
+              duration="About 3 minutes"
               icon="/icons/onboarding-city.svg"
               iconClass="-scale-y-100"
               steps={ORGANIZATION_STEPS}
-              current={3}
+              current={1}
               note="You become the first Admin. Your personal account stays separate from the organization."
             />
           </div>
 
           <main className="flex min-w-0 flex-col gap-6">
             <div className="flex flex-col gap-1.5 leading-[1.45]">
-              <p className="text-xs font-bold uppercase tracking-[0.72px] text-brand-900">Step 4 of 5</p>
+              <p className="text-xs font-bold uppercase tracking-[0.72px] text-brand-900">Step 2 of 2</p>
               <h1 className="text-[28px] font-bold text-[#0f172a]">Verify the organization</h1>
               <p className="text-[15px] text-gray-500">Gives you the “Organization verified” badge. It confirms the company and your authority to act for it, not every staff member or listing.</p>
             </div>
@@ -97,26 +110,26 @@ export default function OrganizationVerificationPage() {
                   </span>
                 </label>
               </div>
-              <DocumentUpload title="Certificate of incorporation" hint="PDF, JPG or PNG, up to 10 MB." file={certificate} onFile={setCertificate} />
+              <DocumentUpload title="Certificate of incorporation" hint="PDF, JPG or PNG, up to 10 MB." file={certificate} onFile={setCertificate} slot="organization:certificate" />
             </section>
 
             <section className={CARD}>
               <CardHeading title="Your authority to act for the organization" note="A board resolution or a letter signed by a director" />
-              <DocumentUpload title="Authorisation letter" hint="PDF on company letterhead, signed and stamped" file={letter} onFile={setLetter} />
-              <DocumentUpload title="Your Ghana Card, front and back" hint="Photo or PDF. We also ask for a quick selfie." file={ownerId} onFile={setOwnerId} />
+              <DocumentUpload title="Authorisation letter" hint="PDF on company letterhead, signed and stamped" file={letter} onFile={setLetter} slot="organization:letter" />
+              <DocumentUpload title="Your Ghana Card, front and back" hint="Photo or PDF. We also ask for a quick selfie." file={ownerId} onFile={setOwnerId} slot="organization:owner" />
             </section>
 
             <div className="flex items-center justify-between gap-3">
-              <button type="button" onClick={() => router.push("/onboarding/organization/team")} className="flex items-center gap-2 rounded-[10px] border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-[#0f172a] hover:bg-gray-50">
+              <button type="button" onClick={() => router.push("/onboarding/organization")} className="flex items-center gap-2 rounded-[10px] border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-[#0f172a] hover:bg-gray-50">
                 <NavIcon icon="/icons/onboarding-arrow-left.svg" size={10} className="bg-[#0f172a]" />
                 Back
               </button>
               <div className="flex items-center gap-3">
-                <button type="button" onClick={() => router.push("/onboarding/organization/plan")} className="whitespace-nowrap rounded-[10px] px-5 py-3 text-sm font-semibold text-brand-900">
+                <button type="button" disabled={saving} onClick={handleContinue} className="whitespace-nowrap rounded-[10px] px-5 py-3 text-sm font-semibold text-brand-900">
                   Do this later
                 </button>
-                <button type="button" onClick={handleContinue} className="flex items-center gap-2 rounded-[10px] bg-brand-900 px-5 py-3 text-sm font-semibold text-white hover:opacity-90">
-                  Continue
+                <button type="button" disabled={saving} onClick={handleContinue} className="flex items-center gap-2 rounded-[10px] bg-brand-900 disabled:opacity-60 px-5 py-3 text-sm font-semibold text-white hover:opacity-90">
+                  {saving ? "Sending…" : "Send for review"}
                   <NavIcon icon="/icons/onboarding-arrow-right.svg" size={10} className="bg-white" />
                 </button>
               </div>

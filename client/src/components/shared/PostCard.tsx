@@ -13,16 +13,18 @@ import { MediaLoadError } from "@/components/shared/MediaLoadError";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { PostOptionsControl } from "@/components/shared/PostOptionsControl";
 import { RequestViewingModal } from "@/components/shared/RequestViewingModal";
-import { CommentsModal, DEFAULT_COMMENTS } from "@/components/shared/PostComments";
+import { CommentsModal } from "@/components/shared/PostComments";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useMediaLoadState } from "@/hooks/useMediaLoadState";
+import { useFollowAccount } from "@/hooks/useFollowAccount";
+import { useIsClamped } from "@/hooks/useIsClamped";
+import { useLikers } from "@/hooks/useLikers";
+import { usePostLike, usePostPoll } from "@/hooks/usePostState";
 import { Tooltip } from "@/components/shared/Tooltip";
 import { comingSoonHref } from "@/lib/coming-soon";
 import { renderWithHashtags } from "@/lib/hashtags";
-import { buildLikerNames } from "@/lib/likes";
 import { sharePost } from "@/lib/post-actions";
 import { cn } from "@/lib/utils";
-import type { CommentAttachments, CommentItem } from "@/types/comment";
 import type { MediaItem, PostCardData } from "@/types/post";
 
 export function getMediaItems(post: PostCardData): MediaItem[] {
@@ -40,22 +42,11 @@ interface PostCardProps {
 
 export function PostCard({ post }: PostCardProps) {
   const [showComments, setShowComments] = useState(false);
-  const [comments, setComments] = useState<CommentItem[]>(post.commentsList ?? DEFAULT_COMMENTS);
-  const [commentDraft, setCommentDraft] = useState("");
   const [textExpanded, setTextExpanded] = useState(false);
+  const { ref: textRef, clamped: textClamped } = useIsClamped<HTMLParagraphElement>(textExpanded, post.text);
   const [saved, setSaved] = useState(false);
+  const like = usePostLike(post);
   const mediaItems = getMediaItems(post);
-
-  const submitComment = ({ image, audio }: CommentAttachments) => {
-    const text = commentDraft.trim();
-    if (!text && !image && !audio) return;
-    setComments((current) => [
-      { id: `local-${Date.now()}`, authorName: "You", postedAt: "Just now", text, image, audio },
-      ...current,
-    ]);
-    setCommentDraft("");
-    setShowComments(true);
-  };
 
   return (
     <article className="flex w-full flex-col gap-[15px] rounded-[29px] border border-gray-200 bg-white p-[15px] sm:rounded-[15px]">
@@ -73,10 +64,10 @@ export function PostCard({ post }: PostCardProps) {
             <div className="flex w-full flex-col-reverse gap-[15px] sm:flex-col">
               {post.text && (
                 <div className="flex w-full items-end gap-0.5 text-[12px] leading-5 sm:text-sm">
-                  <p className={cn("min-w-0 flex-1 whitespace-pre-line text-[#1e293b]", !textExpanded && "line-clamp-4")}>
+                  <p ref={textRef} className={cn("min-w-0 flex-1 whitespace-pre-line text-[#1e293b]", !textExpanded && "line-clamp-4")}>
                     {renderWithHashtags(post.text)}
                   </p>
-                  {post.truncated !== false && (
+                  {textClamped && (
                     <button
                       type="button"
                       onClick={() => setTextExpanded((v) => !v)}
@@ -102,19 +93,12 @@ export function PostCard({ post }: PostCardProps) {
 
       <div className="h-px w-full bg-gray-200" />
 
-      <PostStatsBar post={post} saved={saved} onToggleSave={() => setSaved((v) => !v)} showComments={showComments} onToggleComments={() => setShowComments((v) => !v)} />
+      <PostStatsBar post={post} like={like} saved={saved} onToggleSave={() => setSaved((v) => !v)} showComments={showComments} onToggleComments={() => setShowComments((v) => !v)} />
 
       <CommentsModal
         open={showComments}
-        comments={comments}
-        commentDraft={commentDraft}
-        setCommentDraft={setCommentDraft}
-        submitComment={submitComment}
-        showComposer={post.showComposer ?? false}
-        likeCount={post.likes}
-        commentsCount={post.comments}
-        shareLabel={post.shareLabel}
-        sharesCount={post.shares}
+        post={post}
+        like={like}
         onShare={() => sharePost(post)}
         onClose={() => setShowComments(false)}
       />
@@ -123,7 +107,7 @@ export function PostCard({ post }: PostCardProps) {
 }
 
 function PostHeader({ post, saved, onToggleSave }: { post: PostCardData; saved: boolean; onToggleSave: () => void }) {
-  const [following, setFollowing] = useState(false);
+  const { following, toggle: toggleFollow } = useFollowAccount(post.authorId, post.authorFollowed);
 
   return (
     <div className="flex w-full items-center justify-between">
@@ -166,15 +150,15 @@ function PostHeader({ post, saved, onToggleSave }: { post: PostCardData; saved: 
         </div>
       </div>
       <div className="flex items-center gap-4">
-        {post.variant !== "poll" && (
-          <PostFollowButton following={following} onToggle={() => setFollowing((v) => !v)} name={post.authorName} />
+        {post.variant !== "poll" && !post.isOwn && (
+          <PostFollowButton following={following} onToggle={toggleFollow} name={post.authorName} />
         )}
         <PostOptionsControl
           post={post}
           saved={saved}
           onToggleSave={onToggleSave}
           following={following}
-          onToggleFollow={() => setFollowing((v) => !v)}
+          onToggleFollow={toggleFollow}
           className="relative block size-[23px] shrink-0"
         >
           <Image src="/icons/more-horizontal.svg" alt="" fill sizes="23px" className="sm:hidden" />
@@ -337,7 +321,9 @@ function MediaLightbox({
         onClick={onClose}
         className="absolute right-4 top-4 z-10 flex size-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
       >
-        <span className="text-2xl leading-none">&times;</span>
+        <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+          <path d="M6 6l12 12M18 6L6 18" />
+        </svg>
       </button>
 
       <div className="relative h-full w-full max-w-4xl" onClick={(event) => event.stopPropagation()}>
@@ -398,33 +384,16 @@ function MediaLightbox({
   );
 }
 
-function parseVoteCount(votes: string) {
-  return Number(votes.replace(/,/g, "")) || 0;
-}
-
 function PollBody({ post }: { post: PostCardData }) {
-  const [counts, setCounts] = useState(() => post.pollOptions?.map((option) => parseVoteCount(option.votes)) ?? []);
-  const [votedIndex, setVotedIndex] = useState<number | null>(null);
+  const { poll, vote, pending } = usePostPoll(post);
   const [questionExpanded, setQuestionExpanded] = useState(false);
+  const { ref: questionRef, clamped: questionClamped } = useIsClamped<HTMLParagraphElement>(questionExpanded, post.question);
 
-  const total = counts.reduce((sum, count) => sum + count, 0);
-  const leadingIndex = counts.length
-    ? counts.reduce((leader, count, index) => (count > counts[leader] ? index : leader), 0)
-    : -1;
-
-  function handleVote(index: number) {
-    setCounts((current) => {
-      const next = [...current];
-      if (votedIndex === index) {
-        next[index] -= 1;
-      } else {
-        if (votedIndex !== null) next[votedIndex] -= 1;
-        next[index] += 1;
-      }
-      return next;
-    });
-    setVotedIndex((current) => (current === index ? null : index));
-  }
+  const options = poll?.options ?? [];
+  const counts = options.map((option) => option.voteCount);
+  const total = poll?.totalVotes ?? 0;
+  const leadingCount = counts.reduce((best, count) => Math.max(best, count), 0);
+  const votedId = poll?.myVoteOptionId ?? null;
 
   return (
     <div className="flex w-full flex-col gap-[15px]">
@@ -443,63 +412,68 @@ function PollBody({ post }: { post: PostCardData }) {
 
       {post.question && (
         <div className="flex w-full items-end gap-0.5 text-[12px] leading-5 sm:text-[13px]">
-          <p className={cn("min-w-0 flex-1 whitespace-pre-line text-[#1e293b]", !questionExpanded && "line-clamp-4")}>
+          <p ref={questionRef} className={cn("min-w-0 flex-1 whitespace-pre-line text-[#1e293b]", !questionExpanded && "line-clamp-4")}>
             {post.question}{" "}
             {post.hashtags && <span className="font-semibold text-[#f088b6]">{post.hashtags}</span>}
           </p>
-          <button
-            type="button"
-            onClick={() => setQuestionExpanded((v) => !v)}
-            className="shrink-0 font-bold text-gray-400"
-          >
-            {questionExpanded ? "less" : "more"}
-          </button>
+          {questionClamped && (
+            <button
+              type="button"
+              onClick={() => setQuestionExpanded((v) => !v)}
+              className="shrink-0 font-bold text-gray-400"
+            >
+              {questionExpanded ? "less" : "more"}
+            </button>
+          )}
         </div>
       )}
 
-      {post.pollOptions && (
+      {poll && (
         <div className="flex w-full flex-col gap-[15px] rounded-[15px] border border-gray-200 p-[15px]">
           <div className="flex w-full flex-col gap-2">
-            {post.pollOptions.map((option, index) => {
+            {options.map((option, index) => {
               const percent = total > 0 ? Math.round((counts[index] / total) * 100) : 0;
-              const leading = index === leadingIndex && counts[index] > 0;
-              const voted = index === votedIndex;
+              const leading = leadingCount > 0 && counts[index] === leadingCount;
+              const voted = option.id === votedId;
               return (
                 <button
-                  key={option.label}
+                  key={option.id}
                   type="button"
-                  onClick={() => handleVote(index)}
+                  onClick={() => vote(option.id)}
+                  disabled={pending || poll.isClosed}
                   aria-pressed={voted}
                   aria-label={`Vote for ${option.label}`}
-                  className="flex w-full items-center justify-between text-[12px] sm:text-[13px]"
+                  className={cn(
+                    "relative flex h-10 w-full items-center overflow-hidden rounded-lg bg-gray-100 text-left text-[12px] text-night-900 sm:text-[13px]",
+                    voted && "ring-2 ring-brand-600 ring-offset-1",
+                  )}
                 >
-                  <div
+                  <span
+                    aria-hidden
                     className={cn(
-                      "flex items-center gap-2 rounded-lg px-2 py-2 transition-all",
-                      leading ? "bg-brand-900 text-white" : "bg-gray-100 text-night-900",
-                      voted && "ring-2 ring-brand-600 ring-offset-1",
+                      "absolute inset-y-0 left-0 rounded-lg transition-all",
+                      leading ? "bg-brand-600/25" : "bg-gray-200",
                     )}
-                    style={{ width: `${Math.max(percent, 18)}%` }}
-                  >
+                    style={{ width: `${percent}%` }}
+                  />
+                  <span className="relative flex w-full items-center gap-2 px-3">
                     <span className="font-semibold">{percent}%</span>
-                    <span className={cn(leading ? "text-white" : "text-gray-600")}>{option.label}</span>
+                    <span className="min-w-0 flex-1 truncate">{option.label}</span>
                     {voted && (
                       <span className="relative block size-[19px] shrink-0">
                         <Image src="/icons/check-circle.svg" alt="" fill sizes="19px" />
                       </span>
                     )}
-                  </div>
-                  <span className="font-medium text-gray-400">{counts[index].toLocaleString()}</span>
+                    <span className="shrink-0 font-medium text-gray-500">{counts[index].toLocaleString()}</span>
+                  </span>
                 </button>
               );
             })}
           </div>
-          {post.pollFooter && (
-            <p className="text-left text-[11px] font-medium text-gray-600">
-              {post.pollFooter.split(" — ")[0]} — {total.toLocaleString()} votes total
-              {votedIndex !== null && " · you voted"}
-            </p>
-          )}
+          <p className="text-left text-[11px] font-medium text-gray-600">
+            {poll.isClosed ? "Closed" : "Open"} — {total.toLocaleString()} {total === 1 ? "vote" : "votes"} total
+            {votedId !== null && " · you voted"}
+          </p>
         </div>
       )}
     </div>
@@ -564,7 +538,7 @@ function ActionsRow({ post }: { post: PostCardData }) {
   const [primary, secondary] = post.actions ?? [];
   // Property posts open their own detail page; other variants' secondary actions aren't built yet.
   const opensViewing = post.variant === "property" && primary?.label === "Request viewing";
-  const secondaryHref = post.variant === "property" ? `/properties/${post.id}` : comingSoonHref(secondary?.label ?? "");
+  const secondaryHref = post.variant === "property" ? `/properties/${post.linkId ?? post.id}` : comingSoonHref(secondary?.label ?? "");
   return (
     <div className="flex w-full flex-wrap items-center justify-between gap-2">
       <div className="flex flex-wrap items-center gap-2 sm:gap-4">
@@ -601,6 +575,7 @@ function ActionsRow({ post }: { post: PostCardData }) {
           open={viewingOpen}
           onClose={() => setViewingOpen(false)}
           property={{
+            id: post.linkId ?? post.id,
             title: post.subLine ?? "Property",
             summary: `${post.priceLine ?? ""}${post.priceSuffix ?? ""}`,
             image: post.images?.[0] ?? post.image ?? "/images/marketplace/property-sale.jpg",
@@ -613,22 +588,23 @@ function ActionsRow({ post }: { post: PostCardData }) {
 
 export function PostStatsBar({
   post,
+  like,
   saved,
   onToggleSave,
   showComments,
   onToggleComments,
 }: {
   post: PostCardData;
+  like: { liked: boolean; count: number; toggle: () => void };
   saved: boolean;
   onToggleSave: () => void;
   showComments: boolean;
   onToggleComments: () => void;
 }) {
-  const [liked, setLiked] = useState(false);
+  const { liked, count: likeCount, toggle: toggleLike } = like;
   const [likesSheetOpen, setLikesSheetOpen] = useState(false);
-
-  const likeCount = post.likes + (liked ? 1 : 0);
-  const likerNames = buildLikerNames(likeCount);
+  const preview = useLikers(post.id, { pageSize: 3, enabled: likeCount > 0 });
+  const previewNames = preview.likers.map((liker) => liker.username);
 
   return (
     <div className="flex w-full flex-col gap-2">
@@ -639,7 +615,7 @@ export function PostStatsBar({
             className="flex items-center gap-2"
             aria-pressed={liked}
             aria-label={`${likeCount} Likes`}
-            onClick={() => setLiked((v) => !v)}
+            onClick={toggleLike}
           >
             <NavIcon
               key={liked ? "liked" : "unliked"}
@@ -689,6 +665,7 @@ export function PostStatsBar({
         </button>
       </div>
 
+
       {likeCount > 0 && (
         <button
           type="button"
@@ -696,21 +673,29 @@ export function PostStatsBar({
           className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-start"
         >
           <p className="min-w-0 flex-1 truncate text-left text-[11px] text-gray-600 sm:flex-none">
-            Liked by <span className="font-bold text-brand-900">{likerNames[0]}</span>
-            {likeCount > 1 && (
+            {previewNames.length > 0 ? (
               <>
-                {" "}
-                and <span className="font-bold text-brand-900">{likeCount - 1} others</span>
+                Liked by <span className="font-bold text-brand-900">{previewNames[0]}</span>
+                {likeCount > 1 && (
+                  <>
+                    {" "}
+                    and{" "}
+                    <span className="font-bold text-brand-900">
+                      {likeCount - 1} {likeCount - 1 === 1 ? "other" : "others"}
+                    </span>
+                  </>
+                )}
               </>
+            ) : (
+              <span className="font-bold text-brand-900">
+                {likeCount} {likeCount === 1 ? "like" : "likes"}
+              </span>
             )}
           </p>
           <span className="flex shrink-0 items-center -space-x-2 sm:order-first sm:mr-1">
-            {[0, 1, 2].map((avatar) => (
-              <span
-                key={avatar}
-                className="relative block size-[22px] shrink-0 overflow-hidden rounded-full bg-[#eef2ff] ring-2 ring-white"
-              >
-                <Image src="/icons/avatar-placeholder-user.svg" alt="" fill sizes="22px" className="p-0.5" />
+            {preview.likers.slice(0, 3).map((liker) => (
+              <span key={liker.id} className="relative block size-[22px] shrink-0 overflow-hidden rounded-full bg-[#eef2ff] ring-2 ring-white">
+                <Image src={liker.profilePicUrl ?? "/icons/avatar-placeholder-user.svg"} alt="" fill sizes="22px" className="object-cover" />
               </span>
             ))}
             {likeCount > 3 && (
@@ -722,7 +707,7 @@ export function PostStatsBar({
         </button>
       )}
 
-      <LikesBottomSheet open={likesSheetOpen} onClose={() => setLikesSheetOpen(false)} names={likerNames} />
+      <LikesBottomSheet open={likesSheetOpen} onClose={() => setLikesSheetOpen(false)} postId={post.id} count={likeCount} />
     </div>
   );
 }

@@ -9,6 +9,9 @@ export interface PersonalDraft {
   /** Filled in by the profile step. */
   displayName?: string;
   strength?: number;
+  location?: string;
+  intro?: string;
+  contact?: { whatsapp: boolean; email: boolean; push: boolean };
 }
 
 export function savePersonalDraft(draft: PersonalDraft) {
@@ -32,6 +35,9 @@ export function loadPersonalDraft(): PersonalDraft | null {
       alerts: parsed.alerts === true,
       displayName: parsed.displayName,
       strength: parsed.strength,
+      location: parsed.location,
+      intro: parsed.intro,
+      contact: parsed.contact,
     };
   } catch {
     return null;
@@ -83,7 +89,7 @@ export interface ProfessionalDraft {
   /** Profile strength reached so far, 0 to 100. */
   strength?: number;
   /** Filled in by the credentials step. */
-  registration?: { abbreviation: string; hasNumber: boolean };
+  registration?: { abbreviation: string; hasNumber: boolean; body?: string; number?: string };
 }
 
 export function saveProfessionalDraft(draft: ProfessionalDraft) {

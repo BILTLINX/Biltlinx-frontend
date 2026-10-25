@@ -1,15 +1,19 @@
 "use client";
 
+import { useDisplayName } from "@/hooks/useDisplayName";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DocumentUpload, type UploadedFile } from "@/components/shared/DocumentUpload";
+import { showErrorToast } from "@/components/shared/AppToast";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { OnboardingStepper } from "@/components/shared/OnboardingStepper";
 import { OnboardingTopBar } from "@/components/shared/OnboardingTopBar";
 import { OptionSelectField } from "@/components/shared/ViewingSlotPickers";
-import { BUSINESS_OWNER_NAME, BUSINESS_STEPS, NEW_BUSINESS, OWNER_ROLES } from "@/lib/dummy-onboarding";
+import { BUSINESS_STEPS, OWNER_ROLES } from "@/lib/dummy-onboarding";
 import { initialsOf } from "@/lib/initials";
 import { loadBusinessDraft, updateBusinessDraft, type BusinessDraft } from "@/lib/onboarding-draft";
+import { notifyError } from "@/lib/errors";
+import { finishBusiness } from "@/lib/onboarding-submit";
 import { cn } from "@/lib/utils";
 
 const CARD = "flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-6";
@@ -28,8 +32,10 @@ function CardHeading({ title, note }: { title: string; note: string }) {
 
 /** Onboarding · Business · 4 Verification (Figma node 1073:32316): the business's registration and the owner's ID. */
 export default function BusinessVerificationPage() {
+  const accountName = useDisplayName();
   const router = useRouter();
   const [draft, setDraft] = useState<BusinessDraft | null>(null);
+  const [saving, setSaving] = useState(false);
   const [registration, setRegistration] = useState("");
   const [tin, setTin] = useState("");
   const [certificate, setCertificate] = useState<UploadedFile | null>(null);
@@ -40,16 +46,25 @@ export default function BusinessVerificationPage() {
   useEffect(() => setDraft(loadBusinessDraft()), []);
 
   const details = draft?.details;
-  const businessName = details?.name ?? NEW_BUSINESS.name;
+  const businessName = details?.name ?? "Your business";
   const registrationEntered = registration.trim().length > 0;
   const strength = Math.min(100, (draft?.strength ?? DEFAULT_STRENGTH) + (registrationEntered ? 5 : 0) + (certificate ? 5 : 0) + (ownerId ? 5 : 0));
   const pending = registrationEntered || certificate !== null || ownerId !== null;
   const tags = [...(draft?.sell?.categories ?? []), draft?.sell?.delivery ?? ""].filter(Boolean);
   const products = draft?.sell?.products ?? 0;
 
-  function handleContinue() {
-    updateBusinessDraft({ strength, verification: { registration: registrationEntered, certificate: certificate !== null, ownerId: ownerId !== null } });
-    router.push("/onboarding/business/plan");
+  async function handleContinue() {
+    if (!draft) return;
+    setSaving(true);
+    try {
+      updateBusinessDraft({ strength, verification: { registration: registrationEntered, certificate: certificate !== null, ownerId: ownerId !== null } });
+      const problems = await finishBusiness(draft, [registration.trim() && `Reg ${registration.trim()}`, tin.trim() && `TIN ${tin.trim()}`, role].filter(Boolean).join(", "));
+      problems.forEach((problem) => showErrorToast(problem));
+      router.push("/onboarding/business/done");
+    } catch (error) {
+      notifyError(error, "Your business could not be set up.");
+      setSaving(false);
+    }
   }
 
   return (
@@ -61,18 +76,18 @@ export default function BusinessVerificationPage() {
           <div className="lg:sticky lg:top-8 lg:self-start">
             <OnboardingStepper
               title="Business setup"
-              duration="About 5 minutes"
+              duration="About 3 minutes"
               icon="/icons/onboarding-building.svg"
               iconClass="-scale-y-100"
               steps={BUSINESS_STEPS}
-              current={3}
+              current={2}
               note="Your personal account stays separate. You manage the business from Manage once it is set up."
             />
           </div>
 
           <main className="flex min-w-0 flex-col gap-6">
             <div className="flex flex-col gap-1.5 leading-[1.45]">
-              <p className="text-xs font-bold uppercase tracking-[0.72px] text-brand-900">Step 4 of 5</p>
+              <p className="text-xs font-bold uppercase tracking-[0.72px] text-brand-900">Step 3 of 3</p>
               <h1 className="text-[28px] font-bold text-[#0f172a]">Verify your business</h1>
               <p className="text-[15px] text-gray-500">Gives you the “Business verified” badge. It confirms the business is registered, not every product or staff member.</p>
             </div>
@@ -97,7 +112,7 @@ export default function BusinessVerificationPage() {
                   </span>
                 </label>
               </div>
-              <DocumentUpload title="Business registration certificate" hint="PDF, JPG or PNG, up to 10 MB." file={certificate} onFile={setCertificate} />
+              <DocumentUpload title="Business registration certificate" hint="PDF, JPG or PNG, up to 10 MB." file={certificate} onFile={setCertificate} slot="business:certificate" />
             </section>
 
             <section className={CARD}>
@@ -106,7 +121,7 @@ export default function BusinessVerificationPage() {
                 <div className="flex min-w-0 flex-col gap-1.5">
                   <span className="text-[13px] font-medium leading-[1.45] text-[#334155]">Your name</span>
                   <span className="rounded-[10px] border border-gray-200 bg-[#f1f5f9] px-3.5 py-[13px] text-sm leading-[1.45] text-[#0f172a]" aria-readonly="true">
-                    {BUSINESS_OWNER_NAME}
+                    {accountName}
                   </span>
                 </div>
                 <div className="flex min-w-0 flex-col gap-1.5">
@@ -114,20 +129,20 @@ export default function BusinessVerificationPage() {
                   <OptionSelectField value={role} options={OWNER_ROLES} onChange={setRole} />
                 </div>
               </div>
-              <DocumentUpload title="Your Ghana Card, front and back" hint="Photo or PDF. We also ask for a quick selfie." file={ownerId} onFile={setOwnerId} />
+              <DocumentUpload title="Your Ghana Card, front and back" hint="Photo or PDF. We also ask for a quick selfie." file={ownerId} onFile={setOwnerId} slot="business:owner" />
             </section>
 
             <div className="flex items-center justify-between gap-3">
-              <button type="button" onClick={() => router.push("/onboarding/business/what-you-sell")} className="flex items-center gap-2 rounded-[10px] border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-[#0f172a] hover:bg-gray-50">
+              <button type="button" onClick={() => router.push("/onboarding/business/details")} className="flex items-center gap-2 rounded-[10px] border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-[#0f172a] hover:bg-gray-50">
                 <NavIcon icon="/icons/onboarding-arrow-left.svg" size={10} className="bg-[#0f172a]" />
                 Back
               </button>
               <div className="flex items-center gap-3">
-                <button type="button" onClick={() => router.push("/onboarding/business/plan")} className="whitespace-nowrap rounded-[10px] px-5 py-3 text-sm font-semibold text-brand-900">
+                <button type="button" disabled={saving} onClick={handleContinue} className="whitespace-nowrap rounded-[10px] px-5 py-3 text-sm font-semibold text-brand-900">
                   Do this later
                 </button>
-                <button type="button" onClick={handleContinue} className="flex items-center gap-2 rounded-[10px] bg-brand-900 px-5 py-3 text-sm font-semibold text-white hover:opacity-90">
-                  Continue
+                <button type="button" disabled={saving} onClick={handleContinue} className="flex items-center gap-2 rounded-[10px] bg-brand-900 disabled:opacity-60 px-5 py-3 text-sm font-semibold text-white hover:opacity-90">
+                  {saving ? "Sending…" : "Send for review"}
                   <NavIcon icon="/icons/onboarding-arrow-right.svg" size={10} className="bg-white" />
                 </button>
               </div>
@@ -147,7 +162,7 @@ export default function BusinessVerificationPage() {
                   <div className="flex min-w-0 flex-1 flex-col gap-0.5 leading-[1.45]">
                     <p className="truncate text-base font-bold text-[#0f172a]">{businessName}</p>
                     <p className="truncate text-[13px] text-gray-500">
-                      {details?.category ?? "Building materials"} · {details?.place ?? NEW_BUSINESS.location}
+                      {details?.category ?? "Building materials"} · {details?.place ?? "your area"}
                     </p>
                   </div>
                 </div>

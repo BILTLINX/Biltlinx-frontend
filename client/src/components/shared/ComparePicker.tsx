@@ -4,7 +4,7 @@ import Image from "next/image";
 import type { RefObject } from "react";
 import { AnchoredPanel } from "@/components/shared/AnchoredPanel";
 import { COMPARE_KIND_PLURAL, useCompare, type CompareKind } from "@/context/CompareContext";
-import { getCompareCandidates } from "@/lib/compare-candidates";
+import { useCompareCandidates } from "@/hooks/useCompare";
 import { cn } from "@/lib/utils";
 
 interface ComparePickerProps {
@@ -18,12 +18,14 @@ interface ComparePickerProps {
 export function ComparePicker({ open, onClose, triggerRef, kind }: ComparePickerProps) {
   const { has, toggle } = useCompare();
   const plural = COMPARE_KIND_PLURAL[kind];
+  const candidates = useCompareCandidates(kind, open);
 
   return (
     <AnchoredPanel open={open} onClose={onClose} triggerRef={triggerRef} estimatedHeight={360} minWidth={340}>
       <p className="px-1 pb-1 text-xs font-semibold leading-[17px] text-gray-500">Add {plural} to compare</p>
+      {candidates.isPending && <p className="px-1 text-xs text-gray-500">Loading…</p>}
       <ul className="no-scrollbar flex max-h-[300px] flex-col gap-1 overflow-y-auto">
-        {getCompareCandidates(kind).map((candidate) => {
+        {(candidates.data ?? []).map((candidate) => {
           const added = has(candidate.id);
           return (
             <li key={candidate.id}>

@@ -124,7 +124,7 @@ export function PostStoryModal({
       return;
     }
     handedOffUrlRef.current = preview.url;
-    onPost({ url: preview.url, isVideo: preview.isVideo, caption: caption.trim() || undefined });
+    onPost({ url: preview.url, isVideo: preview.isVideo, caption: caption.trim() || undefined, file: file ?? undefined });
     showSuccessToast(postedMessage);
     resetState();
     onClose();

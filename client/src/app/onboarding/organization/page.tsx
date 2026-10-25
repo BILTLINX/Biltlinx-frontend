@@ -10,6 +10,7 @@ import { OptionSelectField } from "@/components/shared/ViewingSlotPickers";
 import { NEW_ORGANIZATION, ORGANIZATION_STEPS, ORGANIZATION_TYPES, TEAM_SIZE_OPTIONS } from "@/lib/dummy-onboarding";
 import { initialsOf } from "@/lib/initials";
 import { saveOrganizationDraft } from "@/lib/onboarding-draft";
+import { ORGANIZATION_CAPABILITY } from "@/lib/onboarding-submit";
 import { cn } from "@/lib/utils";
 
 const CARD = "flex flex-col gap-5 rounded-2xl border border-gray-200 bg-white p-6";
@@ -21,7 +22,7 @@ const STRENGTH = 25;
 export default function OrganizationPage() {
   const router = useRouter();
   const [typeId, setTypeId] = useState<(typeof ORGANIZATION_TYPES)[number]["id"]>("developer");
-  const [name, setName] = useState(NEW_ORGANIZATION.name);
+  const [name, setName] = useState("Your organization");
   const [teamSize, setTeamSize] = useState(TEAM_SIZE_OPTIONS[3]);
   const [headOffice, setHeadOffice] = useState("");
   const [website, setWebsite] = useState("");
@@ -29,13 +30,16 @@ export default function OrganizationPage() {
 
   const type = ORGANIZATION_TYPES.find((option) => option.id === typeId) ?? ORGANIZATION_TYPES[0];
 
+  const supported = Boolean(ORGANIZATION_CAPABILITY[typeId]);
+
   function handleContinue() {
+    if (!supported) return;
     if (!name.trim()) {
       setError("Enter your organization’s name to continue.");
       return;
     }
     saveOrganizationDraft({ typeId, name: name.trim(), teamSize, headOffice: headOffice.trim(), website: website.trim(), strength: STRENGTH });
-    router.push("/onboarding/organization/branches");
+    router.push("/onboarding/organization/verification");
   }
 
   return (
@@ -47,7 +51,7 @@ export default function OrganizationPage() {
           <div className="lg:sticky lg:top-8 lg:self-start">
             <OnboardingStepper
               title="Organization setup"
-              duration="About 6 minutes"
+              duration="About 3 minutes"
               icon="/icons/onboarding-city.svg"
               iconClass="-scale-y-100"
               steps={ORGANIZATION_STEPS}
@@ -58,7 +62,7 @@ export default function OrganizationPage() {
 
           <main className="flex min-w-0 flex-col gap-6">
             <div className="flex flex-col gap-1.5 leading-[1.45]">
-              <p className="text-xs font-bold uppercase tracking-[0.72px] text-brand-900">Step 1 of 5</p>
+              <p className="text-xs font-bold uppercase tracking-[0.72px] text-brand-900">Step 1 of 2</p>
               <h1 className="text-[28px] font-bold text-[#0f172a]">Set up your organization</h1>
               <p className="text-[15px] text-gray-500">An organization has its own page, branches and staff. People act for it with their own personal accounts.</p>
             </div>
@@ -89,6 +93,11 @@ export default function OrganizationPage() {
                   );
                 })}
               </div>
+              {!supported && (
+                <p className="rounded-xl bg-[#fef3c7] px-4 py-3 text-[13px] leading-[1.45] text-[#b45309]">
+                  Estates, institutions and public agencies are not on Biltlinx yet. Pick Property developer or Property management company to set up now.
+                </p>
+              )}
             </section>
 
             <section className={CARD}>
@@ -131,7 +140,7 @@ export default function OrganizationPage() {
                 <NavIcon icon="/icons/onboarding-arrow-left.svg" size={10} className="bg-[#0f172a]" />
                 Change account type
               </button>
-              <button type="button" onClick={handleContinue} className="flex items-center gap-2 rounded-[10px] bg-brand-900 px-5 py-3 text-sm font-semibold text-white hover:opacity-90">
+              <button type="button" onClick={handleContinue} disabled={!supported} className="flex items-center gap-2 rounded-[10px] bg-brand-900 disabled:opacity-50 px-5 py-3 text-sm font-semibold text-white hover:opacity-90">
                 Continue
                 <NavIcon icon="/icons/onboarding-arrow-right.svg" size={10} className="bg-white" />
               </button>

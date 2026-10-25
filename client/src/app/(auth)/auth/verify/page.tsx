@@ -47,7 +47,7 @@ function VerifyContent() {
     try {
       await runAsync(() => verifyOtp({ email: identifier, otp: otp.join("") }));
       showSuccessToast(isSignup ? "Account verified! Sign in to continue" : "Account verified!");
-      router.push(isSignup ? "/auth/sign-in?method=email&next=onboarding" : "/auth/sign-in?method=email");
+      router.push(isSignup ? "/auth/sign-in?method=email&next=%2Fonboarding" : "/auth/sign-in?method=email");
     } catch (error) {
       showErrorToast(error instanceof ApiError ? error.message : "Unable to verify code");
     }

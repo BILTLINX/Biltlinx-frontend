@@ -29,7 +29,7 @@ type MobileField = (typeof MOBILE_FIELDS)[number];
 
 const STEP_ONE_TAGLINE = { highlight: "One account .", rest: "Every part of the built environment ." };
 const STEP_ONE_FOOTER =
-  "you start as a Seeker. Add landlord, Professional, Artisan, Developer or Business capabilities anytime from your profile.";
+  "You start as a Seeker. Add landlord, Professional, Artisan, Developer or Business capabilities anytime from your profile.";
 const STEP_TWO_TAGLINE = { highlight: "Join", rest: "the Built Environment" };
 
 function handleStubAuth(provider: string) {

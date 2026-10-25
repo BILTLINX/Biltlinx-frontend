@@ -1,4 +1,4 @@
-import { CREATE_ORGANISATION_STEPS } from "@/lib/dummy-manage";
+import { CREATE_ORGANISATION_STEPS } from "@/lib/organisation-flow";
 import { cn } from "@/lib/utils";
 
 /** The step list beside the create-organisation form; steps before `current` (0-based) are ticked. Stays in view while the form scrolls. */

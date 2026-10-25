@@ -8,6 +8,7 @@ export interface PortfolioImage {
   id: string;
   url: string;
   name: string;
+  file: File;
 }
 
 interface PortfolioUploaderProps {
@@ -39,7 +40,7 @@ export function PortfolioUploader({ images, onChange, max, addLabel }: Portfolio
       else if (accepted.length < room) {
         const url = URL.createObjectURL(file);
         urls.current.push(url);
-        accepted.push({ id: `${file.name}-${file.size}-${file.lastModified}-${accepted.length}`, url, name: file.name });
+        accepted.push({ id: `${file.name}-${file.size}-${file.lastModified}-${accepted.length}`, url, name: file.name, file });
       }
     });
     if (!problem && files.length > room) problem = `You can add up to ${max} images.`;

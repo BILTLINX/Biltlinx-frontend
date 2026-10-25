@@ -6,14 +6,19 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "vitest run"
   },
   "dependencies": {
+    "@microsoft/signalr": "^10.0.11",
+    "@tanstack/react-query": "^5.104.4",
+    "@types/qrcode": "^1.5.6",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "emoji-picker-react": "^4.22.2",
     "framer-motion": "^13.4.0",
     "next": "^16.4.0",
+    "qrcode": "^1.5.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-hot-toast": "^2.6.1",
@@ -21,12 +26,18 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^6.1.2",
     "eslint": "^9",
-    "eslint-config-next": "^16.4.0",
+    "eslint-config-next": "^16.4.2",
+    "jsdom": "^29.1.1",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.5"
   }
 }

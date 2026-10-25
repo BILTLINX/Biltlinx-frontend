@@ -101,7 +101,7 @@ export default function ArtisanVerificationPage() {
 
             <section className={CARD}>
               <CardHeading title="Identity" note="Gives you the “ID verified” badge" pill="Required to accept jobs" pillTone="amber" />
-              <DocumentUpload title="Ghana Card, front and back" hint="Photo or PDF. We also ask for a quick selfie to match it." file={identity} onFile={setIdentity} />
+              <DocumentUpload title="Ghana Card, front and back" hint="Photo or PDF. We also ask for a quick selfie to match it." file={identity} onFile={setIdentity} slot="artisan:identity" />
             </section>
 
             {needsLicence && (
@@ -124,13 +124,13 @@ export default function ArtisanVerificationPage() {
                     <DatePickerField value={validUntil} onChange={setValidUntil} min={today} />
                   </div>
                 </div>
-                <DocumentUpload title="Licence card or certificate" hint="Photo or PDF, up to 10 MB" file={licenceFile} onFile={setLicenceFile} />
+                <DocumentUpload title="Licence card or certificate" hint="Photo or PDF, up to 10 MB" file={licenceFile} onFile={setLicenceFile} slot="artisan:licence" />
               </section>
             )}
 
             <section className={CARD}>
               <CardHeading title="Trade certificate" note="CTVET, NVTI or a manufacturer certificate" pill="Optional" pillTone="grey" />
-              <DocumentUpload title="Trade certificate" hint="Photo or PDF, up to 10 MB" file={certificate} onFile={setCertificate} />
+              <DocumentUpload title="Trade certificate" hint="Photo or PDF, up to 10 MB" file={certificate} onFile={setCertificate} slot="artisan:certificate" />
             </section>
 
             <div className="flex items-center justify-between gap-3">

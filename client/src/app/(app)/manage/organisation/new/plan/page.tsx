@@ -9,7 +9,7 @@ import { ChoiceChip, FormField } from "@/components/shared/ModalFormParts";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { OptionSelectField } from "@/components/shared/ViewingSlotPickers";
-import { ORGANISATION_KINDS, ORGANISATION_PAY_METHODS, ORGANISATION_PLAN } from "@/lib/dummy-manage";
+import { ORGANISATION_KINDS, ORGANISATION_PAY_METHODS, ORGANISATION_PLAN } from "@/lib/organisation-flow";
 import { loadOrganisationDraft, type OrganisationDraft } from "@/lib/organisation-draft";
 import { cn } from "@/lib/utils";
 

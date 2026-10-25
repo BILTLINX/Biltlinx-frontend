@@ -1,12 +1,16 @@
 "use client";
 
+import { useDisplayName } from "@/hooks/useDisplayName";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { showErrorToast } from "@/components/shared/AppToast";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { OnboardingStepper } from "@/components/shared/OnboardingStepper";
 import { OnboardingTopBar } from "@/components/shared/OnboardingTopBar";
 import { PortfolioUploader, type PortfolioImage } from "@/components/shared/PortfolioUploader";
-import { ARTISAN_STEPS, NEW_ARTISAN, PRICE_EXAMPLES } from "@/lib/dummy-onboarding";
+import { ARTISAN_STEPS, PRICE_EXAMPLES } from "@/lib/dummy-onboarding";
+import { notifyError } from "@/lib/errors";
+import { finishArtisan } from "@/lib/onboarding-submit";
 import { initialsOf } from "@/lib/initials";
 import { loadArtisanDraft, updateArtisanDraft, type ArtisanDraft } from "@/lib/onboarding-draft";
 import { cn } from "@/lib/utils";
@@ -26,8 +30,11 @@ interface PricedService {
 
 /** Onboarding · Artisan · 4 Portfolio and prices (Figma node 1071:32122): photos of past work and starting prices. */
 export default function ArtisanPortfolioPricesPage() {
+  const accountName = useDisplayName();
   const router = useRouter();
   const [draft, setDraft] = useState<ArtisanDraft | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [failure, setFailure] = useState("");
   const [photos, setPhotos] = useState<PortfolioImage[]>([]);
   const [services, setServices] = useState<PricedService[]>([1, 2, 3].map((id) => ({ id, name: "", from: "" })));
 
@@ -48,9 +55,21 @@ export default function ArtisanPortfolioPricesPage() {
     setServices((current) => (current.length >= MAX_PRICED_SERVICES ? current : [...current, { id: Math.max(0, ...current.map((service) => service.id)) + 1, name: "", from: "" }]));
   }
 
-  function publish() {
-    updateArtisanDraft({ strength });
-    router.push("/onboarding/artisan/done");
+  async function publish() {
+    if (!draft) {
+      setFailure("Start from the first step so we know your trade.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const problems = await finishArtisan({ draft, displayName: accountName, portfolio: photos.map((photo) => photo.file), services: priced.map((service) => service.name.trim()) });
+      updateArtisanDraft({ strength });
+      problems.forEach((problem) => showErrorToast(problem));
+      router.push("/onboarding/artisan/done");
+    } catch (error) {
+      notifyError(error, "Your profile could not be saved.");
+      setSaving(false);
+    }
   }
 
   return (
@@ -119,13 +138,14 @@ export default function ArtisanPortfolioPricesPage() {
               )}
             </section>
 
+            {failure && <p className="text-xs text-[#dc2626]">{failure}</p>}
             <div className="flex items-center justify-between gap-3">
               <button type="button" onClick={() => router.push("/onboarding/artisan/verification")} className="flex items-center gap-2 rounded-[10px] border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-[#0f172a] hover:bg-gray-50">
                 <NavIcon icon="/icons/onboarding-arrow-left.svg" size={10} className="bg-[#0f172a]" />
                 Back
               </button>
-              <button type="button" onClick={publish} className="whitespace-nowrap rounded-[10px] bg-brand-900 px-5 py-3 text-sm font-semibold text-white hover:opacity-90">
-                Publish profile
+              <button type="button" onClick={publish} disabled={saving} className="whitespace-nowrap disabled:opacity-60 rounded-[10px] bg-brand-900 px-5 py-3 text-sm font-semibold text-white hover:opacity-90">
+                {saving ? "Publishing…" : "Publish profile"}
               </button>
             </div>
           </main>
@@ -139,9 +159,9 @@ export default function ArtisanPortfolioPricesPage() {
               <div className="h-16 bg-gradient-to-r from-[#0a1f44] to-brand-900" />
               <div className="flex flex-col gap-3 px-5 py-4">
                 <div className="flex items-center gap-3">
-                  <span className="flex size-14 shrink-0 items-center justify-center rounded-full border-[3px] border-white bg-[#eff5ff] text-lg font-bold text-brand-900">{initialsOf(NEW_ARTISAN.name)}</span>
+                  <span className="flex size-14 shrink-0 items-center justify-center rounded-full border-[3px] border-white bg-[#eff5ff] text-lg font-bold text-brand-900">{initialsOf(accountName)}</span>
                   <div className="flex min-w-0 flex-1 flex-col gap-0.5 leading-[1.45]">
-                    <p className="truncate text-base font-bold text-[#0f172a]">{NEW_ARTISAN.name}</p>
+                    <p className="truncate text-base font-bold text-[#0f172a]">{accountName}</p>
                     <p className="truncate text-[13px] text-gray-500">{[trade, draft?.basedIn].filter(Boolean).join(" · ")}</p>
                   </div>
                 </div>

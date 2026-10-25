@@ -1,5 +1,6 @@
 "use client";
 
+import { useDisplayName } from "@/hooks/useDisplayName";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { NavIcon } from "@/components/shared/NavIcon";
@@ -8,7 +9,7 @@ import { OnboardingStepper } from "@/components/shared/OnboardingStepper";
 import { OnboardingTopBar } from "@/components/shared/OnboardingTopBar";
 import { OptionSelectField } from "@/components/shared/ViewingSlotPickers";
 import { comingSoonHref } from "@/lib/coming-soon";
-import { EXPERIENCE_OPTIONS, NEW_PROFESSIONAL, PROFESSIONAL_STEPS, PROFESSIONS, WORK_MODES } from "@/lib/dummy-onboarding";
+import { EXPERIENCE_OPTIONS, PROFESSIONAL_STEPS, PROFESSIONS, WORK_MODES } from "@/lib/dummy-onboarding";
 import { saveProfessionalDraft } from "@/lib/onboarding-draft";
 import { initialsOf } from "@/lib/initials";
 import { cn } from "@/lib/utils";
@@ -23,12 +24,13 @@ function profileStrength({ profession, experience, basedIn }: { profession: stri
 
 /** Onboarding · Professional · 1 Profession (Figma node 1070:31323): what kind of professional, experience and firm. */
 export default function ProfessionalProfessionPage() {
+  const accountName = useDisplayName();
   const router = useRouter();
   const [profession, setProfession] = useState(PROFESSIONS[0]);
   const [experience, setExperience] = useState("8 years");
-  const [basedIn, setBasedIn] = useState(NEW_PROFESSIONAL.basedIn);
+  const [basedIn, setBasedIn] = useState("");
   const [workMode, setWorkMode] = useState<(typeof WORK_MODES)[number]["id"]>("firm");
-  const [firm, setFirm] = useState(NEW_PROFESSIONAL.firm);
+  const [firm, setFirm] = useState("");
 
   const firmName = workMode === "firm" ? firm.trim() : "";
   const strength = profileStrength({ profession, experience, basedIn });
@@ -162,9 +164,9 @@ export default function ProfessionalProfessionPage() {
               <div className="h-16 bg-gradient-to-r from-[#0a1f44] to-brand-900" />
               <div className="flex flex-col gap-3 px-5 py-4">
                 <div className="flex items-center gap-3">
-                  <span className="flex size-14 shrink-0 items-center justify-center rounded-full border-[3px] border-white bg-[#eff5ff] text-lg font-bold text-brand-900">{initialsOf(NEW_PROFESSIONAL.name)}</span>
+                  <span className="flex size-14 shrink-0 items-center justify-center rounded-full border-[3px] border-white bg-[#eff5ff] text-lg font-bold text-brand-900">{initialsOf(accountName)}</span>
                   <div className="flex min-w-0 flex-1 flex-col gap-0.5 leading-[1.45]">
-                    <p className="truncate text-base font-bold text-[#0f172a]">{NEW_PROFESSIONAL.name}</p>
+                    <p className="truncate text-base font-bold text-[#0f172a]">{accountName}</p>
                     <p className="truncate text-[13px] text-gray-500">{[profession, firmName].filter(Boolean).join(" · ")}</p>
                   </div>
                 </div>

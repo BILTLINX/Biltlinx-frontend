@@ -8,7 +8,7 @@ import { CreateOrganisationStepper } from "@/components/shared/CreateOrganisatio
 import { ChoiceChip, FIELD_BOX, FIELD_INPUT, FormField } from "@/components/shared/ModalFormParts";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { PageContainer } from "@/components/shared/PageContainer";
-import { ORGANISATION_KINDS } from "@/lib/dummy-manage";
+import { ORGANISATION_KINDS } from "@/lib/organisation-flow";
 import { initialsOf } from "@/lib/initials";
 import { saveOrganisationDraft } from "@/lib/organisation-draft";
 import { cn } from "@/lib/utils";

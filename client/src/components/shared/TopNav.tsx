@@ -12,11 +12,14 @@ import { NavIcon } from "@/components/shared/NavIcon";
 import { VisibilityRow } from "@/components/shared/VisibilityRow";
 import { Tooltip } from "@/components/shared/Tooltip";
 import { usePostModals } from "@/hooks/usePostModals";
-import { logout } from "@/lib/auth-api";
+import { useAccountBadge } from "@/hooks/useDisplayName";
+import { useSession } from "@/context/SessionContext";
 import { comingSoonHref } from "@/lib/coming-soon";
 
 export function TopNav() {
   const router = useRouter();
+  const { signOut } = useSession();
+  const badge = useAccountBadge();
   const [menuOpen, setMenuOpen] = useState(false);
   const [addRoleOpen, setAddRoleOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -34,7 +37,7 @@ export function TopNav() {
   async function handleLogout() {
     setMenuOpen(false);
     try {
-      await logout();
+      await signOut();
     } catch {
       // session may already be gone; leave the page regardless
     }
@@ -171,12 +174,12 @@ export function TopNav() {
             >
               <span className="block shrink-0 rounded-full bg-gradient-to-r from-[#ff8008] to-[#ffc837] p-px">
                 <span className="relative block size-12 overflow-hidden rounded-full">
-                  <Image src="/icons/avatar-sample.jpg" alt="Madeline Price" fill className="object-cover" sizes="48px" />
+                  <Image src={badge.avatar} alt={badge.name} fill className="object-cover" sizes="48px" />
                 </span>
               </span>
               <div className="hidden flex-col items-start md:flex">
-                <p className="text-[11px] font-semibold text-night-900">Madeline Price</p>
-                <span className="rounded-full bg-gray-200 px-2 py-0.5 text-[9.5px] text-brand-900">Researcher</span>
+                <p className="text-[11px] font-semibold text-night-900">{badge.name}</p>
+                <span className="rounded-full bg-gray-200 px-2 py-0.5 text-[9.5px] capitalize text-brand-900">{badge.role}</span>
               </div>
             </button>
 

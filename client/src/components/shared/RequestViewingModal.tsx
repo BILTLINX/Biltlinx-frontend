@@ -8,10 +8,9 @@ import {
   ViewingRequestedModal,
   type ViewingConfirmation,
 } from "@/components/shared/ViewingRequestedModal";
-import { isNonEmpty, isValidPhone } from "@/lib/validation";
+import { useRequestViewing } from "@/hooks/useProperties";
+import { slotToIso } from "@/lib/viewing-slots";
 import { cn } from "@/lib/utils";
-
-const VIEWING_TYPES = ["In person", "Video call"] as const;
 
 const FIELD_BOX =
   "flex h-11 items-center gap-2 rounded-[10px] border bg-white px-3.5 focus-within:border-brand-900";
@@ -19,6 +18,7 @@ const INPUT =
   "min-w-0 flex-1 bg-transparent text-[13px] leading-5 text-[#0f172a] placeholder:text-[#94a3b8] focus:outline-none";
 
 export interface ViewingProperty {
+  id: string;
   title: string;
   /** e.g. "East Legon Hills · GHS 1,850,000" */
   summary: string;
@@ -105,20 +105,16 @@ export function RequestViewingModal({
   onClose: () => void;
   property: ViewingProperty;
 }) {
-  const [type, setType] = useState<(typeof VIEWING_TYPES)[number]>("In person");
   const [first, setFirst] = useState<Slot>(EMPTY_SLOT);
   const [second, setSecond] = useState<Slot | null>(null);
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
   const [message, setMessage] = useState("");
   const [confirmation, setConfirmation] = useState<ViewingConfirmation | null>(
     null,
   );
   const [errors, setErrors] = useState<{
     date?: string;
-    name?: string;
-    phone?: string;
   }>({});
+  const viewing = useRequestViewing(property.id);
 
   const today = new Date();
   const minDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
@@ -129,22 +125,25 @@ export function RequestViewingModal({
   }
 
   function submit() {
-    const next = {
-      date: first.date ? undefined : "Choose a date",
-      name: isNonEmpty(name) ? undefined : "Enter your name",
-      phone: isValidPhone(phone) ? undefined : "Enter a valid phone number",
-    };
+    const next = { date: first.date ? undefined : "Choose a date" };
     setErrors(next);
-    if (next.date || next.name || next.phone) return;
+    if (next.date) return;
 
-    setConfirmation({
-      when: describeSlot(first),
-      type,
-      agentName: property.agentName,
-    });
-    setFirst(EMPTY_SLOT);
-    setSecond(null);
-    setMessage("");
+    viewing.mutate(
+      {
+        preferredAt: slotToIso(first.date, first.time),
+        alternativeAt: second?.date ? slotToIso(second.date, second.time) : undefined,
+        message: message.trim() || undefined,
+      },
+      {
+        onSuccess: () => {
+          setConfirmation({ when: describeSlot(first), type: "In person", agentName: property.agentName });
+          setFirst(EMPTY_SLOT);
+          setSecond(null);
+          setMessage("");
+        },
+      },
+    );
   }
 
   function closeConfirmation() {
@@ -204,38 +203,6 @@ export function RequestViewingModal({
             </div>
           </div>
 
-          <div
-            role="radiogroup"
-            aria-label="Viewing type"
-            className="flex flex-col gap-1.5"
-          >
-            <p className="text-[13px] font-semibold leading-[19px] text-[#0f172a]">
-              Viewing type
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {VIEWING_TYPES.map((option) => {
-                const selected = option === type;
-                return (
-                  <button
-                    key={option}
-                    type="button"
-                    role="radio"
-                    aria-checked={selected}
-                    onClick={() => setType(option)}
-                    className={cn(
-                      "rounded-full border px-3.5 py-1.5 text-[13px] font-medium leading-[19px]",
-                      selected
-                        ? "border-brand-900 bg-[#eff5ff] text-brand-900"
-                        : "border-gray-200 bg-white text-[#334155] hover:bg-gray-50",
-                    )}
-                  >
-                    {option}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
           <SlotFields
             slot={first}
             onChange={setFirst}
@@ -258,42 +225,6 @@ export function RequestViewingModal({
           >
             {second ? "− Remove second option" : "+ Add a second option"}
           </button>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Full name" error={errors.name}>
-              <span
-                className={cn(
-                  FIELD_BOX,
-                  errors.name ? "border-[#dc2626]" : "border-gray-200",
-                )}
-              >
-                <input
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  autoComplete="name"
-                  placeholder="Your full name"
-                  className={INPUT}
-                />
-              </span>
-            </Field>
-            <Field label="Phone" error={errors.phone}>
-              <span
-                className={cn(
-                  FIELD_BOX,
-                  errors.phone ? "border-[#dc2626]" : "border-gray-200",
-                )}
-              >
-                <input
-                  value={phone}
-                  onChange={(event) => setPhone(event.target.value)}
-                  type="tel"
-                  autoComplete="tel"
-                  placeholder="+233 24 555 0192"
-                  className={INPUT}
-                />
-              </span>
-            </Field>
-          </div>
 
           <Field
             label="Message to the agent (optional)"
@@ -324,9 +255,10 @@ export function RequestViewingModal({
             <button
               type="button"
               onClick={submit}
-              className="h-10 whitespace-nowrap rounded-[10px] bg-brand-900 px-[18px] text-sm font-medium text-white hover:bg-brand-900/90"
+              disabled={viewing.isPending}
+              className="h-10 whitespace-nowrap rounded-[10px] bg-brand-900 px-[18px] text-sm font-medium text-white hover:bg-brand-900/90 disabled:opacity-60"
             >
-              Send request
+              {viewing.isPending ? "Sending…" : "Send request"}
             </button>
           </div>
         </div>

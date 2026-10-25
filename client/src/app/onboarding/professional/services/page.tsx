@@ -1,20 +1,12 @@
 "use client";
 
+import { useDisplayName } from "@/hooks/useDisplayName";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { OnboardingStepper } from "@/components/shared/OnboardingStepper";
 import { OnboardingTopBar } from "@/components/shared/OnboardingTopBar";
-import {
-  GENERIC_SERVICES,
-  MATCHING_REQUESTS,
-  NEW_PROFESSIONAL,
-  PRICING_OPTIONS,
-  PROFESSIONAL_STEPS,
-  SERVICES_BY_PROFESSION,
-  WORK_REGIONS,
-  type OfferedService,
-} from "@/lib/dummy-onboarding";
+import { GENERIC_SERVICES, PRICING_OPTIONS, PROFESSIONAL_STEPS, SERVICES_BY_PROFESSION, WORK_REGIONS, type OfferedService } from "@/lib/dummy-onboarding";
 import { loadProfessionalDraft, updateProfessionalDraft } from "@/lib/onboarding-draft";
 import { initialsOf } from "@/lib/initials";
 import { cn } from "@/lib/utils";
@@ -48,10 +40,11 @@ function Chip({ label, selected, onClick }: { label: string; selected: boolean; 
 
 /** Onboarding · Professional · 2 Services (Figma node 1070:31519): which services they offer, where, and how they price. */
 export default function ProfessionalServicesPage() {
+  const accountName = useDisplayName();
   const router = useRouter();
   const [profession, setProfession] = useState(DEFAULT_PROFESSION);
   const [experience, setExperience] = useState(DEFAULT_EXPERIENCE);
-  const [firm, setFirm] = useState(NEW_PROFESSIONAL.firm);
+  const [firm, setFirm] = useState("");
   const [services, setServices] = useState<OfferedService[]>(SERVICES_BY_PROFESSION[DEFAULT_PROFESSION]);
   const [chosen, setChosen] = useState<string[]>(["Architectural design", "Building permit drawings", "Site supervision"]);
   const [newService, setNewService] = useState<string | null>(null);
@@ -224,9 +217,9 @@ export default function ProfessionalServicesPage() {
               <div className="h-16 bg-gradient-to-r from-[#0a1f44] to-brand-900" />
               <div className="flex flex-col gap-3 px-5 py-4">
                 <div className="flex items-center gap-3">
-                  <span className="flex size-14 shrink-0 items-center justify-center rounded-full border-[3px] border-white bg-[#eff5ff] text-lg font-bold text-brand-900">{initialsOf(NEW_PROFESSIONAL.name)}</span>
+                  <span className="flex size-14 shrink-0 items-center justify-center rounded-full border-[3px] border-white bg-[#eff5ff] text-lg font-bold text-brand-900">{initialsOf(accountName)}</span>
                   <div className="flex min-w-0 flex-1 flex-col gap-0.5 leading-[1.45]">
-                    <p className="truncate text-base font-bold text-[#0f172a]">{NEW_PROFESSIONAL.name}</p>
+                    <p className="truncate text-base font-bold text-[#0f172a]">{accountName}</p>
                     <p className="truncate text-[13px] text-gray-500">{[profession, firm].filter(Boolean).join(" · ")}</p>
                   </div>
                 </div>
@@ -271,9 +264,9 @@ export default function ProfessionalServicesPage() {
             <div className="flex items-start gap-3 rounded-[14px] bg-[#eff5ff] p-4">
               <NavIcon icon="/icons/onboarding-sparkles.svg" size={20} className="shrink-0 bg-brand-900" />
               <div className="flex min-w-0 flex-col gap-1 text-[13px] leading-[1.45]">
-                <p className="font-bold text-[#0f172a]">Matching requests nearby</p>
+                <p className="font-bold text-[#0f172a]">Be found nearby</p>
                 <p className="text-[#334155]">
-                  {MATCHING_REQUESTS} open design and permit requests in {regions.includes("Greater Accra") ? "Greater Accra" : "your area"} on the Request Board right now.
+                  Customers in {regions.includes("Greater Accra") ? "Greater Accra" : "your area"} can find you in the directory and send you a quote request.
                 </p>
               </div>
             </div>

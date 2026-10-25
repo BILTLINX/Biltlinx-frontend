@@ -1,44 +1,77 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useMemo } from "react";
 import { AppShell } from "@/components/shared/AppShell";
-import { PageContainer } from "@/components/shared/PageContainer";
 import { ListingCard } from "@/components/shared/ListingCard";
+import { PageContainer } from "@/components/shared/PageContainer";
 import { StayRail } from "@/components/shared/StayRail";
-import { StaySearchBar } from "@/components/shared/StaySearchBar";
+import { StaySearchBar, type StaySearchValue } from "@/components/shared/StaySearchBar";
 import { Button } from "@/components/ui/Button";
-import { comingSoonHref } from "@/lib/coming-soon";
-import {
-  STAY_FEATURE_CHIPS,
-  STAY_LISTINGS,
-  STAY_TOTAL_LISTINGS,
-  STAY_TYPE_CHIPS,
-  type StayTypeChip,
-} from "@/lib/dummy-stays";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { useStaySearch } from "@/hooks/useStay";
+import { errorMessage } from "@/lib/errors";
+import { STAY_AMENITIES, STAY_TYPES, type StaySearchQuery } from "@/lib/stay-api";
+import { nightsBetween, STAY_TYPE_LABEL } from "@/lib/stay-mapper";
 import { cn } from "@/lib/utils";
 
-export default function StayPage() {
+const SORTS: { label: string; value: NonNullable<StaySearchQuery["sort"]> }[] = [
+  { label: "Newest", value: "newest" },
+  { label: "Price: low to high", value: "priceAsc" },
+  { label: "Price: high to low", value: "priceDesc" },
+];
+
+function numberParam(value: string | null) {
+  const parsed = Number(value);
+  return value && Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+}
+
+function StayContent() {
   const router = useRouter();
-  const [type, setType] = useState<StayTypeChip>("All stays");
-  const [features, setFeatures] = useState<string[]>([]);
+  const params = useSearchParams();
 
-  const stays = useMemo(
-    () =>
-      STAY_LISTINGS.filter(
-        (stay) =>
-          (type === "All stays" || stay.type === type) && features.every((feature) => stay.features.includes(feature)),
-      ),
-    [type, features],
+  const query = useMemo<Omit<StaySearchQuery, "page" | "results">>(
+    () => ({
+      destination: params.get("destination") ?? undefined,
+      checkIn: params.get("checkIn") ?? undefined,
+      checkOut: params.get("checkOut") ?? undefined,
+      guests: numberParam(params.get("guests")),
+      rooms: numberParam(params.get("rooms")),
+      type: params.get("type") ?? undefined,
+      amenities: params.get("amenities")?.split(",").filter(Boolean),
+      breakfast: params.get("breakfast") === "true" ? true : undefined,
+      sort: (params.get("sort") as StaySearchQuery["sort"]) ?? undefined,
+    }),
+    [params],
   );
-  const filtered = type !== "All stays" || features.length > 0;
-  const resultCount = filtered ? stays.length : STAY_TOTAL_LISTINGS;
 
-  function toggleFeature(feature: string) {
-    setFeatures((current) =>
-      current.includes(feature) ? current.filter((item) => item !== feature) : [...current, feature],
-    );
+  function update(changes: Record<string, string | undefined>) {
+    const next = new URLSearchParams(params.toString());
+    for (const [key, value] of Object.entries(changes)) {
+      if (value === undefined || value === "") next.delete(key);
+      else next.set(key, value);
+    }
+    router.replace(`/stay?${next.toString()}`);
   }
+
+  function search(value: StaySearchValue) {
+    update({
+      destination: value.destination.trim() || undefined,
+      checkIn: value.checkIn,
+      checkOut: value.checkOut,
+      guests: value.guests ? String(value.guests) : undefined,
+      rooms: value.rooms ? String(value.rooms) : undefined,
+    });
+  }
+
+  function toggleAmenity(amenity: string) {
+    const current = query.amenities ?? [];
+    const next = current.includes(amenity) ? current.filter((item) => item !== amenity) : [...current, amenity];
+    update({ amenities: next.length > 0 ? next.join(",") : undefined });
+  }
+
+  const { cards, total, isPending, isError, error, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } = useStaySearch(query);
+  const nights = nightsBetween(query.checkIn, query.checkOut);
 
   return (
     <AppShell activeKey="property" activeChildKey="stay" contentFullWidth rightRail={<StayRail />}>
@@ -46,55 +79,64 @@ export default function StayPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <h1 className="text-2xl font-bold leading-8 text-[#0f172a]">Stay</h1>
-            <p className="text-sm leading-5 text-gray-500">
-              Short stays: apartments, guest houses and hotels, booked by the night.
-            </p>
+            <p className="text-sm leading-5 text-gray-500">Short stays: apartments, guest houses and hotels, booked by the night.</p>
           </div>
-          <Button
-            variant="outline"
-            onClick={() => router.push(comingSoonHref("My bookings"))}
-            className="h-10 w-auto shrink-0 self-start rounded-[10px] px-4 sm:self-auto lg:rounded-[10px]"
-          >
-            My bookings
-          </Button>
+          <div className="flex shrink-0 gap-2">
+            <Button variant="outline" onClick={() => router.push("/stay/bookings")} className="h-10 w-auto rounded-[10px] px-4 lg:rounded-[10px]">
+              My bookings
+            </Button>
+            <Button variant="outline" onClick={() => router.push("/manage/stay")} className="h-10 w-auto rounded-[10px] px-4 lg:rounded-[10px]">
+              Host a stay
+            </Button>
+          </div>
         </div>
 
-        <StaySearchBar />
+        <StaySearchBar
+          key={params.toString()}
+          value={{ destination: query.destination ?? "", checkIn: query.checkIn, checkOut: query.checkOut, guests: query.guests, rooms: query.rooms }}
+          onSearch={search}
+        />
 
         <div className="flex flex-wrap gap-2">
-          {STAY_TYPE_CHIPS.map((chip) => {
-            const active = chip === type;
+          <button
+            type="button"
+            aria-pressed={!query.type}
+            onClick={() => update({ type: undefined })}
+            className={cn(
+              "whitespace-nowrap rounded-full border px-3.5 py-2 text-[13px] font-medium leading-[18px]",
+              !query.type ? "border-brand-900 bg-brand-900 text-white" : "border-gray-200 bg-white text-[#334155] hover:bg-gray-50",
+            )}
+          >
+            All stays
+          </button>
+          {STAY_TYPES.map((type) => (
+            <button
+              key={type}
+              type="button"
+              aria-pressed={query.type === type}
+              onClick={() => update({ type: query.type === type ? undefined : type })}
+              className={cn(
+                "whitespace-nowrap rounded-full border px-3.5 py-2 text-[13px] font-medium leading-[18px]",
+                query.type === type ? "border-brand-900 bg-brand-900 text-white" : "border-gray-200 bg-white text-[#334155] hover:bg-gray-50",
+              )}
+            >
+              {STAY_TYPE_LABEL[type]}
+            </button>
+          ))}
+          {STAY_AMENITIES.map((amenity) => {
+            const active = query.amenities?.includes(amenity) ?? false;
             return (
               <button
-                key={chip}
+                key={amenity}
                 type="button"
                 aria-pressed={active}
-                onClick={() => setType(chip)}
+                onClick={() => toggleAmenity(amenity)}
                 className={cn(
                   "whitespace-nowrap rounded-full border px-3.5 py-2 text-[13px] font-medium leading-[18px]",
-                  active ? "border-brand-900 bg-brand-900 text-white" : "border-gray-200 bg-white text-[#334155] hover:bg-gray-50",
+                  active ? "border-brand-900 bg-[#eff5ff] text-brand-900" : "border-gray-200 bg-white text-[#334155] hover:bg-gray-50",
                 )}
               >
-                {chip}
-              </button>
-            );
-          })}
-          {STAY_FEATURE_CHIPS.map((chip) => {
-            const active = features.includes(chip);
-            return (
-              <button
-                key={chip}
-                type="button"
-                aria-pressed={active}
-                onClick={() => toggleFeature(chip)}
-                className={cn(
-                  "whitespace-nowrap rounded-full border px-3.5 py-2 text-[13px] font-medium leading-[18px]",
-                  active
-                    ? "border-brand-900 bg-[#eff5ff] text-brand-900"
-                    : "border-gray-200 bg-white text-[#334155] hover:bg-gray-50",
-                )}
-              >
-                {chip}
+                {amenity}
               </button>
             );
           })}
@@ -102,24 +144,54 @@ export default function StayPage() {
 
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
           <p className="text-sm leading-5 text-[#0f172a]">
-            {resultCount} stays in Accra · prices per night, before fees
+            {isPending ? "Searching…" : `${total} ${total === 1 ? "stay" : "stays"}`}
+            {nights > 0 ? ` · prices for ${nights} ${nights === 1 ? "night" : "nights"}` : " · prices per night, before fees"}
           </p>
-          <p className="shrink-0 whitespace-nowrap text-[13px] leading-[19px]">
-            <span className="text-gray-500">Sort: </span>
-            <span className="font-medium text-[#0f172a]">Recommended ▾</span>
-          </p>
+          <label className="flex items-center gap-2 text-[13px] leading-[19px]">
+            <span className="text-gray-500">Sort</span>
+            <select
+              value={query.sort ?? "newest"}
+              onChange={(event) => update({ sort: event.target.value })}
+              className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-[13px] font-medium text-[#0f172a]"
+            >
+              {SORTS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
 
-        {stays.length > 0 ? (
+        {isPending && (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(min(260px,100%),1fr))] gap-4">
-            {stays.map((stay) => (
+            {[0, 1, 2].map((n) => (
+              <Skeleton key={n} className="h-[340px] rounded-2xl" />
+            ))}
+          </div>
+        )}
+        {isError && (
+          <div className="flex flex-col items-center gap-3 rounded-2xl border border-gray-200 bg-white p-8 text-center">
+            <p className="text-sm text-gray-500">{errorMessage(error, "We could not search stays.")}</p>
+            <button type="button" onClick={() => void refetch()} className="text-sm font-medium text-brand-900">
+              Try again
+            </button>
+          </div>
+        )}
+        {!isPending && !isError && cards.length === 0 && (
+          <p className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500">No stays match these filters.</p>
+        )}
+        {cards.length > 0 && (
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(min(260px,100%),1fr))] gap-4">
+            {cards.map((stay) => (
               <ListingCard key={stay.id} listing={stay} />
             ))}
           </div>
-        ) : (
-          <p className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500">
-            No stays match these filters.
-          </p>
+        )}
+        {hasNextPage && (
+          <button type="button" disabled={isFetchingNextPage} onClick={() => void fetchNextPage()} className="self-center text-[13px] font-medium text-brand-900">
+            {isFetchingNextPage ? "Loading…" : "Show more stays"}
+          </button>
         )}
 
         <div className="xl:hidden">
@@ -127,5 +199,13 @@ export default function StayPage() {
         </div>
       </PageContainer>
     </AppShell>
+  );
+}
+
+export default function StayPage() {
+  return (
+    <Suspense fallback={null}>
+      <StayContent />
+    </Suspense>
   );
 }

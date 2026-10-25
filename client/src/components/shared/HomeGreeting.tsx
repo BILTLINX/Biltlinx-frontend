@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSession } from "@/context/SessionContext";
 
 function timeOfDayGreeting(hour: number) {
   if (hour < 12) return "Good morning";
@@ -18,17 +19,20 @@ function formatToday(now: Date) {
  * time, which would risk a server/client hydration mismatch. */
 export function HomeGreeting() {
   const [now, setNow] = useState<Date | null>(null);
+  const { user } = useSession();
 
   useEffect(() => {
     setNow(new Date());
   }, []);
 
+  const greeting = now ? timeOfDayGreeting(now.getHours()) : "Good day";
+
   return (
     <div className="flex w-full flex-col gap-1 pt-2">
       <h1 className="text-[24px] font-bold leading-tight text-night-900">
-        {now ? timeOfDayGreeting(now.getHours()) : "Good day"}, Madeline
+        {user ? `${greeting}, ${user.username}` : greeting}
       </h1>
-      <p className="text-[13px] leading-tight text-gray-500">{now ? `${formatToday(now)} · Accra` : "Accra"}</p>
+      {now && <p className="text-[13px] leading-tight text-gray-500">{formatToday(now)}</p>}
     </div>
   );
 }
