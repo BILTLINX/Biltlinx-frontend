@@ -120,20 +120,7 @@ function StayContent() {
             {isPending ? "Searching…" : `${total} ${total === 1 ? "stay" : "stays"}`}
             {nights > 0 ? ` · prices for ${nights} ${nights === 1 ? "night" : "nights"}` : " · prices per night, before fees"}
           </p>
-          <label className="flex items-center gap-2 text-[13px] leading-[19px]">
-            <span className="text-gray-500">Sort</span>
-            <select
-              value={query.sort ?? "newest"}
-              onChange={(event) => update({ sort: event.target.value })}
-              className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-[13px] font-medium text-[#0f172a]"
-            >
-              {SORTS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <FilterDropdown label="Sort" value={query.sort ?? "newest"} onChange={(sort) => update({ sort })} options={SORTS} />
         </div>
 
         {isPending && (

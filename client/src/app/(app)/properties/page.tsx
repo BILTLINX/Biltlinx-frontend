@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/shared/AppShell";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { FilterDropdown } from "@/components/shared/FilterDropdown";
 import { ListingCard } from "@/components/shared/ListingCard";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { PageContainer } from "@/components/shared/PageContainer";
@@ -164,26 +165,9 @@ export default function PropertiesPage() {
               className={cn(FIELD, "lg:w-[120px]")}
             />
             {(tab === "buy" || tab === "rent") && (
-              <select value={bedrooms} onChange={(event) => setBedrooms(event.target.value)} aria-label="Bedrooms" className={cn(FIELD, "lg:w-[110px]")}>
-                {BEDROOM_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.value ? `${option.label} beds` : "Any beds"}
-                  </option>
-                ))}
-              </select>
+              <FilterDropdown label="Bedrooms" value={bedrooms} onChange={setBedrooms} options={BEDROOM_OPTIONS} className="lg:self-center" />
             )}
-            <select
-              value={sort}
-              onChange={(event) => setSort(event.target.value as NonNullable<PropertyQuery["sort"]>)}
-              aria-label="Sort"
-              className={cn(FIELD, "lg:w-[170px]")}
-            >
-              {SORT_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            <FilterDropdown label="Sort" value={sort} onChange={(value) => setSort(value as NonNullable<PropertyQuery["sort"]>)} options={SORT_OPTIONS} className="lg:self-center" />
           </div>
         </div>
 

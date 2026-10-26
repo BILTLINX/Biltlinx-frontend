@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { showSuccessToast } from "@/components/shared/AppToast";
 import { OUTLINE_BUTTON, RowText, SETTINGS_CARD, SETTINGS_ROW, SectionHeading } from "@/components/shared/SettingsParts";
+import { SelectField } from "@/components/shared/SelectField";
 import { useOrganization } from "@/context/OrganizationContext";
 import { useSession } from "@/context/SessionContext";
 import {
@@ -185,21 +186,13 @@ function Team() {
         <div key={member.accountId} className={cn(SETTINGS_ROW, "flex-wrap")}>
           <RowText title={member.username ?? member.workEmail ?? "Member"} note={`${member.workEmail} · ${member.status}`} />
           <div className="flex items-center gap-2">
-            <select
+            <SelectField
               value={member.roles?.[0]?.id ?? ""}
-              onChange={(event) => changeRole.mutate({ accountId: member.accountId, roleId: event.target.value })}
+              onChange={(roleId) => changeRole.mutate({ accountId: member.accountId, roleId })}
               aria-label={`Role for ${member.username}`}
-              className={FIELD}
-            >
-              <option value="" disabled>
-                Role
-              </option>
-              {roles.data?.map((role) => (
-                <option key={role.id} value={role.id}>
-                  {role.name}
-                </option>
-              ))}
-            </select>
+              placeholder="Role"
+              options={(roles.data ?? []).map((role) => ({ value: role.id ?? "", label: role.name ?? "" }))}
+            />
             {member.status === "Pending" && (
               <button type="button" onClick={() => resend.mutate(member.accountId)} className={OUTLINE_BUTTON}>
                 Resend
@@ -214,14 +207,12 @@ function Team() {
       <div className="grid gap-2.5 border-t border-gray-200 pt-3.5 sm:grid-cols-3">
         <input className={FIELD} placeholder="Their work email" value={invite.workEmail} onChange={(event) => setInvite({ ...invite, workEmail: event.target.value })} />
         <input className={FIELD} placeholder="Their personal email (gets the code)" value={invite.personalEmail} onChange={(event) => setInvite({ ...invite, personalEmail: event.target.value })} />
-        <select className={FIELD} value={invite.roleId} onChange={(event) => setInvite({ ...invite, roleId: event.target.value })} aria-label="Role">
-          <option value="">Member (default)</option>
-          {roles.data?.map((role) => (
-            <option key={role.id} value={role.id}>
-              {role.name}
-            </option>
-          ))}
-        </select>
+        <SelectField
+          value={invite.roleId}
+          onChange={(roleId) => setInvite({ ...invite, roleId })}
+          aria-label="Role"
+          options={[{ value: "", label: "Member (default)" }, ...(roles.data ?? []).map((role) => ({ value: role.id ?? "", label: role.name ?? "" }))]}
+        />
         <button type="button" disabled={!invite.workEmail || !invite.personalEmail || send.isPending} onClick={() => send.mutate()} className={cn(PRIMARY, "sm:w-fit")}>
           Invite
         </button>

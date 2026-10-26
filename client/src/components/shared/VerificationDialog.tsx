@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { showSuccessToast } from "@/components/shared/AppToast";
 import { CenteredDialog } from "@/components/shared/CenteredDialog";
+import { SelectField } from "@/components/shared/SelectField";
 import { useMyProperties } from "@/hooks/useProperties";
 import { notifyError } from "@/lib/errors";
 import { formatDate, formatDateTime } from "@/lib/format";
@@ -44,13 +45,7 @@ function EvidencePicker({ classifications, items, onChange }: { classifications:
         </div>
       ))}
       <div className="flex flex-wrap items-center gap-2">
-        <select value={classification} onChange={(event) => setClassification(event.target.value)} aria-label="Document type" className={FIELD}>
-          {classifications.map((value) => (
-            <option key={value} value={value}>
-              {CLASSIFICATION_LABEL[value] ?? value}
-            </option>
-          ))}
-        </select>
+        <SelectField value={classification} onChange={setClassification} aria-label="Document type" options={classifications.map((value) => ({ value, label: CLASSIFICATION_LABEL[value] ?? value }))} />
         <input
           ref={input}
           type="file"
@@ -210,14 +205,7 @@ export function VerificationDialog({ type, verification, onClose }: Verification
             {type === "PropertyAuthority" && (
               <label className="flex flex-col gap-1.5 text-[13px] font-semibold text-[#0f172a]">
                 Which property?
-                <select value={subjectId} onChange={(event) => setSubjectId(event.target.value)} className={FIELD}>
-                  <option value="">Choose a listing</option>
-                  {propertyOptions.map((property) => (
-                    <option key={property.propertyId} value={property.propertyId}>
-                      {property.name}
-                    </option>
-                  ))}
-                </select>
+                <SelectField value={subjectId} onChange={setSubjectId} placeholder="Choose a listing" options={propertyOptions.map((property) => ({ value: property.propertyId, label: property.name ?? "" }))} />
               </label>
             )}
             <label className="flex flex-col gap-1.5 text-[13px] font-semibold text-[#0f172a]">

@@ -8,6 +8,7 @@ import { showSuccessToast } from "@/components/shared/AppToast";
 import { AppShell } from "@/components/shared/AppShell";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { PageContainer } from "@/components/shared/PageContainer";
+import { SelectField } from "@/components/shared/SelectField";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { SERVICES_KEY, useIncomingQuoteRequests, useIncomingServiceBookings, useMyOfferings, useMyProvider, useServicesMutations, useTaxonomy } from "@/hooks/useServices";
 import { errorMessage, notifyError } from "@/lib/errors";
@@ -163,12 +164,7 @@ function ProfileSection({ provider }: { provider: ProviderDto | null }) {
       </label>
       {form.isProfessional && (
         <div className="grid gap-2.5 sm:grid-cols-2">
-          <select className={FIELD} value={form.profession} onChange={(event) => set("profession", event.target.value)} aria-label="Profession">
-            <option value="">Profession</option>
-            {taxonomy.data?.professions?.map((item) => (
-              <option key={item}>{item}</option>
-            ))}
-          </select>
+          <SelectField value={form.profession} onChange={(value) => set("profession", value)} aria-label="Profession" placeholder="Profession" options={(taxonomy.data?.professions ?? []).map((item) => ({ value: item, label: item }))} />
           <input className={FIELD} placeholder="Specialisations (comma separated)" value={form.specialisations} onChange={(event) => set("specialisations", event.target.value)} />
           <input className={FIELD} placeholder="Registration body (e.g. GhIS)" value={form.body} onChange={(event) => set("body", event.target.value)} />
           <input className={FIELD} placeholder="Registration number" value={form.regNumber} onChange={(event) => set("regNumber", event.target.value)} />
@@ -183,18 +179,9 @@ function ProfileSection({ provider }: { provider: ProviderDto | null }) {
       </label>
       {form.isArtisan && (
         <div className="grid gap-2.5 sm:grid-cols-2">
-          <select className={FIELD} value={form.trade} onChange={(event) => set("trade", event.target.value)} aria-label="Trade">
-            <option value="">Trade</option>
-            {taxonomy.data?.trades?.map((item) => (
-              <option key={item}>{item}</option>
-            ))}
-          </select>
+          <SelectField value={form.trade} onChange={(value) => set("trade", value)} aria-label="Trade" placeholder="Trade" options={(taxonomy.data?.trades ?? []).map((item) => ({ value: item, label: item }))} />
           <input className={FIELD} placeholder="Skills (comma separated)" value={form.skills} onChange={(event) => set("skills", event.target.value)} />
-          <select className={FIELD} value={form.pricing} onChange={(event) => set("pricing", event.target.value)} aria-label="Pricing style">
-            {PRICING.map((item) => (
-              <option key={item}>{item}</option>
-            ))}
-          </select>
+          <SelectField value={form.pricing} onChange={(value) => set("pricing", value)} aria-label="Pricing style" options={PRICING.map((item) => ({ value: item, label: item }))} />
           <label className="flex items-center gap-2 text-[13px] text-[#334155]">
             <input type="checkbox" checked={form.business} onChange={(event) => set("business", event.target.checked)} className="size-4 accent-[#1465e6]" />
             I run a business or crew
@@ -280,11 +267,7 @@ function PortfolioSection({ provider }: { provider: ProviderDto }) {
         </div>
         <input className={FIELD} placeholder="Short description" value={description} onChange={(event) => setDescription(event.target.value)} />
         <div className="flex flex-wrap items-center gap-2">
-          <select className={FIELD} value={stage} onChange={(event) => setStage(event.target.value)} aria-label="Photo type">
-            {["Work", "Before", "After"].map((item) => (
-              <option key={item}>{item}</option>
-            ))}
-          </select>
+          <SelectField value={stage} onChange={setStage} aria-label="Photo type" options={["Work", "Before", "After"].map((item) => ({ value: item, label: item }))} />
           <input ref={input} type="file" multiple accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(event) => { void upload(event.target.files); event.target.value = ""; }} />
           <button type="button" onClick={() => input.current?.click()} className="h-10 rounded-[10px] border border-gray-200 bg-white px-4 text-sm font-medium">
             Add photos
@@ -382,25 +365,10 @@ function OfferingsSection() {
           <input className={FIELD} placeholder="Service title" value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} />
           <textarea className="rounded-[10px] border border-gray-200 px-3 py-2 text-[13px] focus:border-brand-900 focus:outline-none" rows={3} placeholder="What is included" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} />
           <div className="grid gap-2.5 sm:grid-cols-2">
-            <select className={FIELD} value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })} aria-label="Category">
-              <option value="">Category</option>
-              {categories.map((item) => (
-                <option key={item}>{item}</option>
-              ))}
-            </select>
-            <select className={FIELD} value={form.mode} onChange={(event) => setForm({ ...form, mode: event.target.value })} aria-label="How it sells">
-              {MODES.map((mode) => (
-                <option key={mode.value} value={mode.value}>
-                  {mode.label}
-                </option>
-              ))}
-            </select>
+            <SelectField value={form.category} onChange={(value) => setForm({ ...form, category: value })} aria-label="Category" placeholder="Category" options={categories.map((item) => ({ value: item, label: item }))} />
+            <SelectField value={form.mode} onChange={(value) => setForm({ ...form, mode: value })} aria-label="How it sells" options={MODES} />
             <input className={FIELD} placeholder="Price in GHS (optional)" inputMode="decimal" value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} />
-            <select className={FIELD} value={form.unit} onChange={(event) => setForm({ ...form, unit: event.target.value })} aria-label="Price unit">
-              {UNITS.map((unit) => (
-                <option key={unit}>{unit}</option>
-              ))}
-            </select>
+            <SelectField value={form.unit} onChange={(value) => setForm({ ...form, unit: value })} aria-label="Price unit" options={UNITS.map((unit) => ({ value: unit, label: unit }))} />
             {form.mode === "FixedPrice" && <input className={FIELD} placeholder="Max bookings per day" inputMode="numeric" value={form.perDay} onChange={(event) => setForm({ ...form, perDay: event.target.value })} />}
           </div>
           <textarea className="rounded-[10px] border border-gray-200 px-3 py-2 text-[13px] focus:border-brand-900 focus:outline-none" rows={2} placeholder="Terms (optional)" value={form.terms} onChange={(event) => setForm({ ...form, terms: event.target.value })} />

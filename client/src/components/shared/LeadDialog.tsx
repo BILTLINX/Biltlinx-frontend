@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { CenteredDialog } from "@/components/shared/CenteredDialog";
+import { SelectField } from "@/components/shared/SelectField";
 import { useLead, useLeadActions } from "@/hooks/useLeads";
 import { useStartConversation } from "@/hooks/useMessaging";
 import { errorMessage } from "@/lib/errors";
@@ -108,18 +109,12 @@ export function LeadDialog({ leadId, onClose }: { leadId: string | null; onClose
                   Reopen
                 </button>
               ) : (
-                <select
+                <SelectField
                   value={data.stage ?? ""}
-                  onChange={(event) => actions.move.mutate({ stage: event.target.value as LeadStageName })}
+                  onChange={(stage) => actions.move.mutate({ stage: stage as LeadStageName })}
                   aria-label="Move to stage"
-                  className={FIELD}
-                >
-                  {LEAD_STAGES.filter((stage) => !stage.startsWith("Closed")).map((stage) => (
-                    <option key={stage} value={stage}>
-                      {STAGE_LABEL[stage]}
-                    </option>
-                  ))}
-                </select>
+                  options={LEAD_STAGES.filter((stage) => !stage.startsWith("Closed")).map((stage) => ({ value: stage, label: STAGE_LABEL[stage] }))}
+                />
               )}
             </div>
 

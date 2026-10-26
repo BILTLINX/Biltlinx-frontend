@@ -10,6 +10,7 @@ import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { PropertyGallery } from "@/components/shared/PropertyGallery";
+import { SelectField } from "@/components/shared/SelectField";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useStartConversation } from "@/hooks/useMessaging";
@@ -271,14 +272,13 @@ function StayDetail({ id }: { id: string }) {
                 {(stay.academicPeriods ?? []).length > 0 && (
                   <label className="flex flex-col gap-1 text-[13px] font-semibold text-[#0f172a]">
                     Academic period
-                    <select value={periodId} onChange={(event) => setPeriodId(event.target.value)} className="h-10 rounded-[10px] border border-gray-200 px-3 text-[13px] font-normal">
-                      <option value="">Choose a period</option>
-                      {stay.academicPeriods?.map((period) => (
-                        <option key={period.id} value={period.id}>
-                          {period.name} ({formatDate(period.startsOn)} to {formatDate(period.endsOn)})
-                        </option>
-                      ))}
-                    </select>
+                    <SelectField
+                      value={periodId}
+                      onChange={setPeriodId}
+                      placeholder="Choose a period"
+                      className="h-10 rounded-[10px] text-[13px]"
+                      options={(stay.academicPeriods ?? []).map((period) => ({ value: period.id ?? "", label: `${period.name} (${formatDate(period.startsOn)} to ${formatDate(period.endsOn)})` }))}
+                    />
                   </label>
                 )}
                 <p className="text-xs leading-[17px] text-gray-500">

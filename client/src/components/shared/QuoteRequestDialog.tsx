@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { showSuccessToast } from "@/components/shared/AppToast";
 import { CenteredDialog } from "@/components/shared/CenteredDialog";
+import { SelectField } from "@/components/shared/SelectField";
 import { useServicesMutations, useTaxonomy, useTradeSuggestions } from "@/hooks/useServices";
 import { cn } from "@/lib/utils";
 
@@ -105,14 +106,7 @@ export function QuoteRequestDialog({ open, onClose, target }: { open: boolean; o
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="flex flex-col gap-1.5 text-[13px] font-semibold text-[#0f172a]">
             Trade or profession
-            <select value={category} onChange={(event) => setCategory(event.target.value)} className={cn(FIELD, errors.category && "border-[#dc2626]")}>
-              <option value="">Choose one</option>
-              {categories.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
-              ))}
-            </select>
+            <SelectField value={category} onChange={setCategory} invalid={Boolean(errors.category)} placeholder="Choose one" options={categories.map((item) => ({ value: item, label: item }))} />
             {errors.category && <span className="text-xs font-normal text-[#dc2626]">{errors.category}</span>}
           </label>
           <label className="flex flex-col gap-1.5 text-[13px] font-semibold text-[#0f172a]">

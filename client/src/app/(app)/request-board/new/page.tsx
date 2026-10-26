@@ -6,6 +6,7 @@ import { showSuccessToast } from "@/components/shared/AppToast";
 import { AppShell } from "@/components/shared/AppShell";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { PageContainer } from "@/components/shared/PageContainer";
+import { SelectField } from "@/components/shared/SelectField";
 import { useProviders, useServicesMutations, useTaxonomy, useTradeSuggestions } from "@/hooks/useServices";
 import { cn } from "@/lib/utils";
 
@@ -79,14 +80,7 @@ export default function NewRequestPage() {
             <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Short title, e.g. Fix leaking kitchen tap" className={FIELD} aria-label="Title" />
             <textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={4} placeholder="Describe the job: size, materials, access, timing" className="rounded-[10px] border border-gray-200 px-3.5 py-2.5 text-sm focus:border-brand-900 focus:outline-none" aria-label="Details" />
             <div className="grid gap-3 sm:grid-cols-2">
-              <select value={category} onChange={(event) => setCategory(event.target.value)} className={FIELD} aria-label="Trade or profession">
-                <option value="">Trade or profession</option>
-                {categories.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </select>
+              <SelectField value={category} onChange={setCategory} aria-label="Trade or profession" placeholder="Trade or profession" options={categories.map((item) => ({ value: item, label: item }))} />
               <input value={city} onChange={(event) => setCity(event.target.value)} placeholder="City or area" className={FIELD} aria-label="City" />
               <input type="date" value={start} onChange={(event) => setStart(event.target.value)} className={FIELD} aria-label="Preferred start" />
               <input value={budget} onChange={(event) => setBudget(event.target.value)} placeholder="Budget in GHS (optional)" inputMode="numeric" className={FIELD} aria-label="Budget" />

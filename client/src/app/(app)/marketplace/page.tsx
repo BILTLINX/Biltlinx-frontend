@@ -105,27 +105,14 @@ export default function MarketplacePage() {
             <input value={text} onChange={(event) => setText(event.target.value)} placeholder="Search land, rentals, stays, electricians…" aria-label="Search the marketplace" className="min-w-0 flex-1 bg-transparent text-sm focus:outline-none" />
           </label>
           <input value={city} onChange={(event) => setCity(event.target.value)} placeholder="City" aria-label="City" className={cn(FIELD, "sm:w-[140px]")} />
-          <select value={sort} onChange={(event) => setSort(event.target.value)} aria-label="Sort" className={cn(FIELD, "sm:w-[170px]")}>
-            {SORTS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          <FilterDropdown label="Sort" value={sort} onChange={setSort} options={SORTS} className="sm:self-center" />
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
           <input value={minPrice} onChange={(event) => setMinPrice(event.target.value)} placeholder="Min price" inputMode="numeric" aria-label="Minimum price" className={cn(FIELD, "h-11 w-32")} />
           <input value={maxPrice} onChange={(event) => setMaxPrice(event.target.value)} placeholder="Max price" inputMode="numeric" aria-label="Maximum price" className={cn(FIELD, "h-11 w-32")} />
           {!singleUnit && (
-            <select value={unit} onChange={(event) => setUnit(event.target.value)} aria-label="Priced per" className={cn(FIELD, "h-11 w-40", needsUnit && "border-[#b45309]")}>
-              <option value="">Priced per…</option>
-              {units.map((item) => (
-                <option key={item.unit} value={item.unit ?? ""}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
+            <FilterDropdown label="Priced per" value={unit} onChange={setUnit} options={[{ value: "", label: needsUnit ? "Choose…" : "Any" }, ...units.map((item) => ({ value: item.unit ?? "", label: item.label ?? item.unit ?? "" }))]} />
           )}
           {needsUnit && <span className="text-xs text-[#b45309]">Choose what it is priced per, so we only compare like with like.</span>}
         </div>

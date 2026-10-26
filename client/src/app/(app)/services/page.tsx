@@ -110,13 +110,7 @@ export default function ServicesPage() {
           </label>
           <input value={city} onChange={(event) => setCity(event.target.value)} placeholder="City" aria-label="City" className={cn(FIELD, "sm:w-[140px]")} />
           <input value={maxPrice} onChange={(event) => setMaxPrice(event.target.value)} placeholder="Max price (GHS)" inputMode="numeric" aria-label="Maximum price" className={cn(FIELD, "sm:w-[150px]")} />
-          <select value={sort} onChange={(event) => setSort(event.target.value as typeof sort)} aria-label="Sort" className={cn(FIELD, "sm:w-[170px]")}>
-            {SORTS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          <FilterDropdown label="Sort" value={sort} onChange={(value) => setSort(value as typeof sort)} options={SORTS} className="sm:self-center" />
         </div>
 
         <FilterDropdown label="Category" value={category} onChange={setCategory} options={[{ value: "", label: "All" }, ...categories.map((item) => ({ value: item, label: item }))]} />

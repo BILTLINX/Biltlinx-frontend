@@ -12,7 +12,7 @@ export interface FilterOption {
 type FilterDropdownProps = {
   /** The filter's name, shown before its value and as the menu heading. */
   label: string;
-  options: FilterOption[];
+  options: readonly FilterOption[];
   className?: string;
 } & (
   | { multiple?: false; value: string; onChange: (value: string) => void }

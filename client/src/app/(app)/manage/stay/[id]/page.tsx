@@ -9,6 +9,7 @@ import { AppShell } from "@/components/shared/AppShell";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { ChoiceChip, FIELD_BOX, FIELD_INPUT, FormField } from "@/components/shared/ModalFormParts";
 import { PageContainer } from "@/components/shared/PageContainer";
+import { SelectField } from "@/components/shared/SelectField";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { STAY_KEY } from "@/hooks/useStay";
 import { errorMessage, notifyError } from "@/lib/errors";
@@ -271,13 +272,7 @@ function RoomsManager({ stay }: { stay: StayDetailDto }) {
         <p className="text-[13px] font-semibold text-[#0f172a]">Add a room type</p>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
           <input className={cn(MINI, "col-span-2 sm:col-span-1")} placeholder="Name" value={room.name} onChange={(event) => setRoom({ ...room, name: event.target.value })} />
-          <select className={MINI} value={room.shape} onChange={(event) => setRoom({ ...room, shape: event.target.value })} aria-label="Shape">
-            {SHAPES.map((shape) => (
-              <option key={shape} value={shape}>
-                {SHAPE_LABEL[shape]}
-              </option>
-            ))}
-          </select>
+          <SelectField value={room.shape} onChange={(shape) => setRoom({ ...room, shape })} aria-label="Shape" className="h-10 rounded-[10px]" options={SHAPES.map((shape) => ({ value: shape, label: SHAPE_LABEL[shape] }))} />
           <input className={MINI} placeholder={room.shape === "DormBed" ? "Beds" : "Units"} inputMode="numeric" value={room.quantity} onChange={(event) => setRoom({ ...room, quantity: event.target.value })} />
           <input className={MINI} placeholder="Max guests" inputMode="numeric" value={room.maxGuests} onChange={(event) => setRoom({ ...room, maxGuests: event.target.value })} />
           <input className={MINI} placeholder="Beds (e.g. 1 queen)" value={room.beds} onChange={(event) => setRoom({ ...room, beds: event.target.value })} />
