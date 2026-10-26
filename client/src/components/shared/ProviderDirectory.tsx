@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AppShell } from "@/components/shared/AppShell";
 import { EmptyState, type EmptyIcon } from "@/components/shared/EmptyState";
+import { FilterDropdown } from "@/components/shared/FilterDropdown";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { ProviderCard } from "@/components/shared/ProviderCard";
@@ -26,6 +27,11 @@ const NO_RESULTS: Record<ProviderDirectoryProps["kind"], { icon: EmptyIcon; titl
     body: "Widen the area or try a related trade. Post the job and nearby artisans can send you quotes.",
     post: "Post a job",
   },
+};
+
+const FILTER: Record<ProviderDirectoryProps["kind"], { label: string; all: string }> = {
+  professional: { label: "Discipline", all: "All" },
+  artisan: { label: "Trade", all: "All trades" },
 };
 
 interface ProviderDirectoryProps {
@@ -112,19 +118,13 @@ export function ProviderDirectory({ kind, title, subtitle, searchPlaceholder, ac
           </label>
         </div>
 
-        <div role="tablist" aria-label="Category" className="flex flex-wrap gap-2">
-          {["", ...categories].map((item) => (
-            <button
-              key={item || "all"}
-              type="button"
-              role="tab"
-              aria-selected={item === category}
-              onClick={() => setCategory(item)}
-              className={cn(chip, item === category ? "bg-brand-900 text-white" : "border border-gray-200 bg-white text-[#334155] hover:bg-gray-50")}
-            >
-              {item || "All"}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center gap-2">
+          <FilterDropdown
+            label={FILTER[kind].label}
+            value={category}
+            onChange={setCategory}
+            options={[{ value: "", label: FILTER[kind].all }, ...categories.map((item) => ({ value: item, label: item }))]}
+          />
           <button type="button" aria-pressed={verifiedOnly} onClick={() => setVerifiedOnly((v) => !v)} className={cn(chip, verifiedOnly ? "bg-[#eff5ff] text-brand-900 ring-1 ring-brand-900" : "border border-gray-200 bg-white text-[#334155]")}>
             Credential verified
           </button>

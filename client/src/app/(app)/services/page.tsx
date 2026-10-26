@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/shared/AppShell";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { FilterDropdown } from "@/components/shared/FilterDropdown";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { OfferingCard } from "@/components/shared/OfferingCard";
 import { PageContainer } from "@/components/shared/PageContainer";
@@ -118,20 +119,7 @@ export default function ServicesPage() {
           </select>
         </div>
 
-        <div role="tablist" aria-label="Service category" className="flex flex-wrap gap-2">
-          {["", ...categories].map((item) => (
-            <button
-              key={item || "all"}
-              type="button"
-              role="tab"
-              aria-selected={item === category}
-              onClick={() => setCategory(item)}
-              className={cn("whitespace-nowrap rounded-full px-3.5 py-2 text-[13px] font-medium leading-[18px]", item === category ? "bg-brand-900 text-white" : "border border-gray-200 bg-white text-[#334155] hover:bg-gray-50")}
-            >
-              {item || "All"}
-            </button>
-          ))}
-        </div>
+        <FilterDropdown label="Category" value={category} onChange={setCategory} options={[{ value: "", label: "All" }, ...categories.map((item) => ({ value: item, label: item }))]} />
 
         <p className="text-sm font-medium text-[#0f172a]">{isPending ? "Searching…" : `${total} ${total === 1 ? "service" : "services"}`}</p>
 

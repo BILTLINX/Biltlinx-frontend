@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useRef } from "react";
 import { AppShell } from "@/components/shared/AppShell";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { FilterDropdown } from "@/components/shared/FilterDropdown";
 import { ListingCard } from "@/components/shared/ListingCard";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { StayRail } from "@/components/shared/StayRail";
@@ -14,7 +15,6 @@ import { useStaySearch } from "@/hooks/useStay";
 import { errorMessage } from "@/lib/errors";
 import { STAY_AMENITIES, STAY_TYPES, type StaySearchQuery } from "@/lib/stay-api";
 import { nightsBetween, STAY_TYPE_LABEL } from "@/lib/stay-mapper";
-import { cn } from "@/lib/utils";
 
 const SORTS: { label: string; value: NonNullable<StaySearchQuery["sort"]> }[] = [
   { label: "Newest", value: "newest" },
@@ -66,12 +66,6 @@ function StayContent() {
     });
   }
 
-  function toggleAmenity(amenity: string) {
-    const current = query.amenities ?? [];
-    const next = current.includes(amenity) ? current.filter((item) => item !== amenity) : [...current, amenity];
-    update({ amenities: next.length > 0 ? next.join(",") : undefined });
-  }
-
   function clearFilters() {
     update({ type: undefined, amenities: undefined, breakfast: undefined, sort: undefined });
   }
@@ -105,49 +99,20 @@ function StayContent() {
           />
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            aria-pressed={!query.type}
-            onClick={() => update({ type: undefined })}
-            className={cn(
-              "whitespace-nowrap rounded-full border px-3.5 py-2 text-[13px] font-medium leading-[18px]",
-              !query.type ? "border-brand-900 bg-brand-900 text-white" : "border-gray-200 bg-white text-[#334155] hover:bg-gray-50",
-            )}
-          >
-            All stays
-          </button>
-          {STAY_TYPES.map((type) => (
-            <button
-              key={type}
-              type="button"
-              aria-pressed={query.type === type}
-              onClick={() => update({ type: query.type === type ? undefined : type })}
-              className={cn(
-                "whitespace-nowrap rounded-full border px-3.5 py-2 text-[13px] font-medium leading-[18px]",
-                query.type === type ? "border-brand-900 bg-brand-900 text-white" : "border-gray-200 bg-white text-[#334155] hover:bg-gray-50",
-              )}
-            >
-              {STAY_TYPE_LABEL[type]}
-            </button>
-          ))}
-          {STAY_AMENITIES.map((amenity) => {
-            const active = query.amenities?.includes(amenity) ?? false;
-            return (
-              <button
-                key={amenity}
-                type="button"
-                aria-pressed={active}
-                onClick={() => toggleAmenity(amenity)}
-                className={cn(
-                  "whitespace-nowrap rounded-full border px-3.5 py-2 text-[13px] font-medium leading-[18px]",
-                  active ? "border-brand-900 bg-[#eff5ff] text-brand-900" : "border-gray-200 bg-white text-[#334155] hover:bg-gray-50",
-                )}
-              >
-                {amenity}
-              </button>
-            );
-          })}
+        <div className="flex flex-wrap gap-2.5">
+          <FilterDropdown
+            label="Stay type"
+            value={query.type ?? ""}
+            onChange={(type) => update({ type: type || undefined })}
+            options={[{ value: "", label: "All stays" }, ...STAY_TYPES.map((type) => ({ value: type, label: STAY_TYPE_LABEL[type] }))]}
+          />
+          <FilterDropdown
+            multiple
+            label="Amenities"
+            value={query.amenities ?? []}
+            onChange={(amenities) => update({ amenities: amenities.length > 0 ? amenities.join(",") : undefined })}
+            options={STAY_AMENITIES.map((amenity) => ({ value: amenity, label: amenity.replace(/([a-z])([A-Z])/g, "$1 $2") }))}
+          />
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">

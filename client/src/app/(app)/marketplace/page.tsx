@@ -5,6 +5,7 @@ import { keepPreviousData } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AppShell } from "@/components/shared/AppShell";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { FilterDropdown } from "@/components/shared/FilterDropdown";
 import { ListingCard } from "@/components/shared/ListingCard";
 import { MarketplaceRail } from "@/components/shared/MarketplaceRail";
 import { NavIcon } from "@/components/shared/NavIcon";
@@ -113,24 +114,6 @@ export default function MarketplacePage() {
           </select>
         </div>
 
-        <div role="tablist" aria-label="Listing kinds" className="flex flex-wrap gap-2">
-          {["", ...(facets.data?.kinds ?? [])].map((item) => (
-            <button
-              key={item || "all"}
-              type="button"
-              role="tab"
-              aria-selected={item === kind}
-              onClick={() => {
-                setKind(item);
-                setUnit("");
-              }}
-              className={cn("whitespace-nowrap rounded-full px-3.5 py-2 text-[13px] font-medium leading-[18px]", item === kind ? "bg-brand-900 text-white" : "border border-gray-200 bg-white text-[#334155] hover:bg-gray-50")}
-            >
-              {item ? (KIND_LABEL[item] ?? item) : "All"}
-            </button>
-          ))}
-        </div>
-
         <div className="flex flex-wrap items-center gap-2.5">
           <input value={minPrice} onChange={(event) => setMinPrice(event.target.value)} placeholder="Min price" inputMode="numeric" aria-label="Minimum price" className={cn(FIELD, "h-11 w-32")} />
           <input value={maxPrice} onChange={(event) => setMaxPrice(event.target.value)} placeholder="Max price" inputMode="numeric" aria-label="Maximum price" className={cn(FIELD, "h-11 w-32")} />
@@ -147,7 +130,18 @@ export default function MarketplacePage() {
           {needsUnit && <span className="text-xs text-[#b45309]">Choose what it is priced per, so we only compare like with like.</span>}
         </div>
 
-        <p className="text-sm font-medium text-[#0f172a]">{result.isPending ? "Searching…" : `${total.toLocaleString("en-GH")} live listings`}</p>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <FilterDropdown
+            label="Category"
+            value={kind}
+            onChange={(next) => {
+              setKind(next);
+              setUnit("");
+            }}
+            options={[{ value: "", label: "All" }, ...(facets.data?.kinds ?? []).map((item) => ({ value: item, label: KIND_LABEL[item] ?? item }))]}
+          />
+          <p className="text-sm font-medium text-[#0f172a]">{result.isPending ? "Searching…" : `${total.toLocaleString("en-GH")} live listings`}</p>
+        </div>
 
         {result.isPending && (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(min(240px,100%),1fr))] gap-4">
