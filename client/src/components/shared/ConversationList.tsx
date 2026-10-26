@@ -1,13 +1,12 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import { useMemo, useState } from "react";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { NavIcon } from "@/components/shared/NavIcon";
-import { CONVERSATIONS_KEY } from "@/hooks/useMessaging";
+import { useConversations } from "@/hooks/useMessaging";
 import { errorMessage } from "@/lib/errors";
 import { formatRelative } from "@/lib/format";
-import { listConversations } from "@/lib/messaging-api";
 import type { ConversationDto } from "@/types/api/schema";
 import { cn } from "@/lib/utils";
 
@@ -38,11 +37,7 @@ export function ConversationList({ activeId, onSelect, className }: Conversation
   const [filter, setFilter] = useState<Filter>("All");
   const [query, setQuery] = useState("");
   const archived = filter === "Archived";
-  const conversations = useQuery({
-    queryKey: [...CONVERSATIONS_KEY, archived],
-    queryFn: () => listConversations({ results: 100, archived }),
-    refetchInterval: 60_000,
-  });
+  const conversations = useConversations(archived);
 
   const visible = useMemo(() => {
     const term = query.trim().toLowerCase();
@@ -122,7 +117,15 @@ export function ConversationList({ activeId, onSelect, className }: Conversation
             </li>
           );
         })}
-        {!conversations.isPending && visible.length === 0 && <li className="p-6 text-center text-sm text-gray-500">No conversations found.</li>}
+        {!conversations.isPending && visible.length === 0 && (
+          <li>
+            {filter === "All" && !query.trim() ? (
+              <EmptyState size="compact" icon="chat" title="No conversations yet" body="Chats with agents, hosts and artisans land here." className="border-0 bg-transparent" />
+            ) : (
+              <p className="p-6 text-center text-sm text-gray-500">No conversations found.</p>
+            )}
+          </li>
+        )}
       </ul>
     </aside>
   );
