@@ -11,6 +11,7 @@ import { useSession } from "@/context/SessionContext";
 import { useLeadBoard } from "@/hooks/useLeads";
 import { useIncomingQuoteRequests, useIncomingServiceBookings } from "@/hooks/useServices";
 import { getPortfolioSummary } from "@/lib/properties-api";
+import { CREATE_ORGANISATION_HREF } from "@/lib/organisation-flow";
 import { listReservations } from "@/lib/stay-api";
 
 interface Stat {
@@ -29,7 +30,45 @@ const MODULES = [
   { id: "payments", title: "Payments", note: "Invoices and receipts for what you have paid", href: "/payments", icon: "/icons/wallet-01.svg", capability: null },
   { id: "verification", title: "Verification", note: "Identity, business and credential checks", href: "/verification", icon: "/icons/checkmark-badge-01.svg", capability: null },
   { id: "teams", title: "Roles and teams", note: "Ask for a role, create a business account, invite your team", href: "/account-settings?tab=teams", icon: "/icons/user-group.svg", capability: null },
+  { id: "organisation", title: "Create an organisation", note: "Set up your company, branches and team", href: CREATE_ORGANISATION_HREF, icon: "/icons/building-03.svg", capability: null },
 ];
+
+/** Workspaces still built on sample data, until the API covers them. */
+const SAMPLE_MODULES = [
+  { id: "properties", title: "Properties and units", note: "Every property and unit, with occupancy and income", href: "/manage/properties", icon: "/icons/building-03.svg" },
+  { id: "tenancies", title: "Tenancies", note: "Leases, renewals and move-ins and outs", href: "/manage/tenancies", icon: "/icons/user-group.svg" },
+  { id: "rent", title: "Rent and payments", note: "Rent collected, overdue balances and payouts", href: "/manage/rent", icon: "/icons/wallet-01.svg" },
+  { id: "maintenance", title: "Maintenance", note: "Repair requests and work orders", href: "/manage/maintenance", icon: "/icons/wrench-01.svg" },
+  { id: "inspections", title: "Inspections", note: "Move-in, routine and move-out inspections", href: "/manage/inspections", icon: "/icons/clipboard-list-01.svg" },
+  { id: "documents", title: "Documents", note: "Titles, agreements, receipts and permits", href: "/manage/documents", icon: "/icons/article-document.svg" },
+  { id: "analytics", title: "Analytics", note: "How your listings, rent and work are performing", href: "/manage/analytics", icon: "/icons/chart-02.svg" },
+  { id: "artisan", title: "Artisan workspace", note: "Jobs, quotes, schedule and work orders", href: "/manage/artisan", icon: "/icons/hammer-01.svg" },
+  { id: "professional", title: "Professional workspace", note: "Clients, leads, quotes and appointments", href: "/manage/professional", icon: "/icons/briefcase-09.svg" },
+];
+
+interface ModuleCardProps {
+  module: { title: string; note: string; href: string; icon: string };
+  /** Marks a workspace that still shows sample data. */
+  sample?: boolean;
+}
+
+function ModuleCard({ module, sample }: ModuleCardProps) {
+  return (
+    <Link href={module.href} className="flex min-w-0 items-center gap-3 rounded-2xl border border-gray-200 bg-white p-4 text-left hover:bg-gray-50">
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#eff5ff]">
+        <NavIcon icon={module.icon} size={20} className="bg-brand-900" />
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="flex items-center gap-2 text-sm font-semibold leading-5 text-[#0f172a]">
+          {module.title}
+          {sample && <span className="rounded-full bg-[#fef3c7] px-2 py-px text-[10px] font-medium leading-4 text-[#b45309]">Sample data</span>}
+        </span>
+        <span className="text-xs leading-[17px] text-gray-500">{module.note}</span>
+      </span>
+      <NavIcon icon="/icons/chevron-right-gray.svg" size={18} className="shrink-0 bg-gray-400" />
+    </Link>
+  );
+}
 
 /** Manage (Figma node 1044:22523): the private workspace for listers, hosts and providers. */
 export default function ManagePage() {
@@ -71,16 +110,14 @@ export default function ManagePage() {
         <h2 className="text-base font-bold leading-[23px] text-[#0f172a]">Your modules</h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {MODULES.map((module) => (
-            <Link key={module.id} href={module.href} className="flex min-w-0 items-center gap-3 rounded-2xl border border-gray-200 bg-white p-4 text-left hover:bg-gray-50">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#eff5ff]">
-                <NavIcon icon={module.icon} size={20} className="bg-brand-900" />
-              </span>
-              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <span className="text-sm font-semibold leading-5 text-[#0f172a]">{module.title}</span>
-                <span className="text-xs leading-[17px] text-gray-500">{module.note}</span>
-              </span>
-              <NavIcon icon="/icons/chevron-right-gray.svg" size={18} className="shrink-0 bg-gray-400" />
-            </Link>
+            <ModuleCard key={module.id} module={module} />
+          ))}
+        </div>
+
+        <h2 className="text-base font-bold leading-[23px] text-[#0f172a]">More workspaces</h2>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {SAMPLE_MODULES.map((module) => (
+            <ModuleCard key={module.id} module={module} sample />
           ))}
         </div>
       </PageContainer>

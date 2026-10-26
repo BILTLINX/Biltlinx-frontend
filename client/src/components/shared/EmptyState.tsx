@@ -36,7 +36,7 @@ const CONFETTI: [number, number, number, number, number, string][] = [
  * The tile icons drawn for each page (files under /empty-states/icons). Each SVG was exported with its own padding inside
  * the 34px tile (`inset`, then `bleed` for its stroke), and some came out upside-down (`flip`), so both are kept here.
  */
-export type EmptyIcon = "search-sad" | "home-sad" | "stay-sad" | "professional-sad" | "wrench-sad" | "services-sad" | "requests" | "bookmark" | "bell-celebrate" | "chat";
+export type EmptyIcon = "search-sad" | "home-sad" | "stay-sad" | "professional-sad" | "wrench-sad" | "services-sad" | "requests" | "bookmark" | "bell-celebrate" | "chat" | "communities" | "projects";
 
 interface IconGeometry {
   inset: string;
@@ -54,6 +54,8 @@ const ICONS: Record<EmptyIcon, IconGeometry> = {
   requests: { inset: "8.33%", bleed: "-1.77%" },
   bookmark: { inset: "8.33% 16.67%", bleed: "-1.77% -2.2% -1.76% -2.21%" },
   chat: { inset: "8.33%", bleed: "-1.77%" },
+  communities: { inset: "16.67% 4.17%", bleed: "-2.2% -1.6% -2.2% -1.61%" },
+  projects: { inset: "8.33% 10.42% 8.33% 8.33%", bleed: "-1.77% -1.81%" },
   "bell-celebrate": { inset: "8.33% 12.5%", bleed: "-2.5% -2.77% -2.5% -2.78%" },
 };
 

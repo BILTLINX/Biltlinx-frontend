@@ -42,7 +42,7 @@ export const NAV_ITEMS: NavItem[] = [
     children: [
       { key: "properties", label: "Properties", icon: "/icons/building-03.svg", href: "/properties" },
       { key: "stay", label: "Stay", icon: "/icons/guest-house-sm.svg", href: "/stay" },
-      { key: "projects", label: "Projects", icon: "/icons/folder-01.svg", href: childComingSoon("Projects", "property", "projects") },
+      { key: "projects", label: "Projects", icon: "/icons/folder-01.svg", href: "/projects" },
     ],
   },
   {
@@ -66,13 +66,13 @@ export const NAV_ITEMS: NavItem[] = [
       { key: "request-board", label: "Request Board", icon: "/icons/clipboard-list-01.svg", href: "/request-board" },
     ],
   },
-  { key: "communities", label: "Communities", icon: "/icons/user-group.svg", href: comingSoonHref("Communities", { navKey: "communities" }) },
+  { key: "communities", label: "Communities", icon: "/icons/user-group.svg", href: "/communities" },
   {
     key: "concierge",
     label: "Concierge",
     icon: "/icons/customer-service.svg",
     iconSize: 17,
-    href: comingSoonHref("Concierge", { navKey: "concierge" }),
+    href: "/concierge",
   },
   {
     key: "manage",
@@ -88,7 +88,7 @@ export const NAV_ITEMS: NavItem[] = [
     iconSize: 17,
     href: "#",
     children: [
-      { key: "saved", label: "Saved", icon: "/icons/archive-save.svg", href: childComingSoon("Saved", "you", "saved") },
+      { key: "saved", label: "Saved", icon: "/icons/archive-save.svg", href: "/saved" },
       { key: "workspace", label: "My Workspace", icon: "/icons/folder-01.svg", href: childComingSoon("My Workspace", "you", "workspace") },
     ],
   },
