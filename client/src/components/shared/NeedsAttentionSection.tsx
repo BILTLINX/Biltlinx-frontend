@@ -4,6 +4,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import type { ReactNode } from "react";
 import { NavIcon } from "@/components/shared/NavIcon";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useActionNeeded } from "@/hooks/useActionNeeded";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
@@ -56,10 +57,13 @@ export function NeedsAttentionSection() {
       )}
 
       {!isPending && !isError && cards.length === 0 && (
-        <div className="rounded-[14px] border border-gray-200 bg-gray-50 p-5">
-          <p className="text-sm font-medium text-night-900">Nothing needs you right now.</p>
-          <p className="text-[12px] text-gray-500">New enquiries, viewing requests and bookings will show up here.</p>
-        </div>
+        <EmptyState
+          size="section"
+          mood="celebrate"
+          title="You’re all caught up"
+          body="Nothing needs you right now. Rent reminders, repairs and expiring documents will show up here when they do."
+          primary={{ label: "Open Manage", href: "/manage" }}
+        />
       )}
 
       {cards.length > 0 && (

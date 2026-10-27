@@ -153,10 +153,14 @@ interface OptionSelectFieldProps {
   icon?: string;
   /** Narrowest the dropdown may be; it is otherwise as wide as the field. */
   minPanelWidth?: number;
+  /** Tallest the option list may be in px before it scrolls; it is otherwise as tall as its options. */
+  maxPanelHeight?: number;
+  /** Keeps the list scrollable but hides its scrollbar. */
+  hideScrollbar?: boolean;
 }
 
 /** A field whose options open in the app's frosted dropdown panel (the same rows as the visibility and poll-duration menus). */
-export function OptionSelectField({ value, options, onChange, placeholder, icon, minPanelWidth = 0 }: OptionSelectFieldProps) {
+export function OptionSelectField({ value, options, onChange, placeholder, icon, minPanelWidth = 0, maxPanelHeight, hideScrollbar }: OptionSelectFieldProps) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
 
@@ -175,18 +179,20 @@ export function OptionSelectField({ value, options, onChange, placeholder, icon,
         <NavIcon icon="/icons/poll-chevron-down.svg" size={14} className={cn("bg-gray-500 transition-transform duration-150", open && "rotate-180")} />
       </button>
 
-      <AnchoredPanel open={open} onClose={() => setOpen(false)} triggerRef={triggerRef} estimatedHeight={40 + options.length * 40} minWidth={minPanelWidth}>
-        {options.map((option) => (
-          <VisibilityRow
-            key={option}
-            label={option}
-            selected={option === value}
-            onClick={() => {
-              onChange(option);
-              setOpen(false);
-            }}
-          />
-        ))}
+      <AnchoredPanel open={open} onClose={() => setOpen(false)} triggerRef={triggerRef} estimatedHeight={Math.min(40 + options.length * 40, maxPanelHeight ?? Infinity)} minWidth={minPanelWidth}>
+        <div className={cn("flex flex-col overflow-y-auto overscroll-contain", hideScrollbar && "no-scrollbar")} style={{ maxHeight: maxPanelHeight }}>
+          {options.map((option) => (
+            <VisibilityRow
+              key={option}
+              label={option}
+              selected={option === value}
+              onClick={() => {
+                onChange(option);
+                setOpen(false);
+              }}
+            />
+          ))}
+        </div>
       </AnchoredPanel>
     </>
   );

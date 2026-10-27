@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
 import { NavIcon } from "@/components/shared/NavIcon";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { formatMoney } from "@/lib/format";
 import { KIND_LABEL, searchMarketplace } from "@/lib/marketplace-api";
@@ -28,7 +29,15 @@ export function MarketplaceSection() {
 
       {offers.isPending && <Skeleton className="h-[300px] w-full rounded-[30px]" />}
       {offers.isError && <p className="text-[13px] text-gray-500">The marketplace could not be loaded right now.</p>}
-      {!offers.isPending && !offers.isError && items.length === 0 && <p className="text-[13px] text-gray-500">Nothing is listed yet.</p>}
+      {!offers.isPending && !offers.isError && items.length === 0 && (
+        <EmptyState
+          size="section"
+          icon="marketplace"
+          title="No picks for you yet"
+          body="Browse a few listings or save a search, and we’ll start picking homes, land and materials for you."
+          primary={{ label: "Browse Marketplace", href: "/marketplace" }}
+        />
+      )}
 
       <div className="no-scrollbar flex w-full items-start gap-3 overflow-x-auto pb-1 sm:grid sm:grid-cols-2 sm:gap-2.5 sm:overflow-visible sm:pb-0">
         {items.map((offer) => (

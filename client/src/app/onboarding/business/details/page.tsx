@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccountPrefill, usePrefilledState } from "@/hooks/useAccountPrefill";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { NavIcon } from "@/components/shared/NavIcon";
@@ -49,9 +50,10 @@ export default function BusinessDetailsPage() {
   const [logoError, setLogoError] = useState("");
   const [name, setName] = useState("Your business");
   const [category, setCategory] = useState(BUSINESS_TYPES[1].category);
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
-  const [address, setAddress] = useState("");
+  const account = useAccountPrefill();
+  const [phone, setPhone] = usePrefilledState(account.phone);
+  const [email, setEmail] = usePrefilledState(account.email);
+  const [address, setAddress] = usePrefilledState(account.location);
   const [gps, setGps] = useState("");
   const [hours, setHours] = useState(BUSINESS_HOURS[1]);
   const [error, setError] = useState("");
@@ -175,14 +177,14 @@ export default function BusinessDetailsPage() {
                   <span className="text-[13px] font-medium leading-[1.45] text-[#334155]">Business phone</span>
                   <span className={INPUT}>
                     <NavIcon icon="/icons/onboarding-phone.svg" size={18} className="bg-gray-500" />
-                    <input value={phone} type="tel" maxLength={20} placeholder="+233 30 296 1144" onChange={(event) => setPhone(event.target.value)} className="min-w-0 flex-1 bg-transparent placeholder:text-[#94a3b8] focus:outline-none" />
+                    <input value={phone} type="tel" maxLength={20} placeholder="+233 30 296 1144" onChange={(event) => setPhone(event.target.value)} disabled={Boolean(account.phone)} className="min-w-0 flex-1 bg-transparent placeholder:text-[#94a3b8] focus:outline-none disabled:cursor-not-allowed disabled:text-gray-500" />
                   </span>
                 </label>
                 <label className="flex min-w-0 flex-col gap-1.5">
                   <span className="text-[13px] font-medium leading-[1.45] text-[#334155]">Business email</span>
                   <span className={INPUT}>
                     <NavIcon icon="/icons/onboarding-mail.svg" size={18} className="bg-gray-500" />
-                    <input value={email} type="email" maxLength={80} placeholder="sales@adomsupplies.com.gh" onChange={(event) => { setEmail(event.target.value); setError(""); }} className="min-w-0 flex-1 bg-transparent placeholder:text-[#94a3b8] focus:outline-none" />
+                    <input value={email} type="email" maxLength={80} placeholder="sales@adomsupplies.com.gh" onChange={(event) => { setEmail(event.target.value); setError(""); }} disabled={Boolean(account.email)} className="min-w-0 flex-1 bg-transparent placeholder:text-[#94a3b8] focus:outline-none disabled:cursor-not-allowed disabled:text-gray-500" />
                   </span>
                 </label>
               </div>

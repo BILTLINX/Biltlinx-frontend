@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { OnboardingDoneView, type DoneStep } from "@/components/shared/OnboardingDoneView";
 import { comingSoonHref } from "@/lib/coming-soon";
-import { feedSummary, loadPersonalDraft, shortBedrooms, type PersonalDraft } from "@/lib/onboarding-draft";
+import { feedSummary, loadPersonalDraft, type PersonalDraft } from "@/lib/onboarding-draft";
 
 const DEFAULT_STRENGTH = 60;
 
@@ -20,7 +20,7 @@ export default function PersonalDonePage() {
 
   const firstName = (draft?.displayName?.split(" ")[0] || accountName).trim();
   const strength = Math.round(draft?.strength ?? DEFAULT_STRENGTH);
-  const savedSearch = draft?.alerts && draft.areas.length > 0 ? `${draft.bedrooms ? `${shortBedrooms(draft.bedrooms)} ` : ""}rentals in ${draft.areas[0]}` : null;
+  const savedSearch = draft?.interests.includes("rent") && draft.areas.length > 0 ? `rentals in ${draft.areas[0]}` : null;
 
   const steps: DoneStep[] = [
     { id: "phone", title: "Phone number verified", note: "Done when you signed up", icon: "/icons/onboarding-check-circle.svg", tone: "done", pill: "Done" },
@@ -64,6 +64,7 @@ export default function PersonalDonePage() {
       primary={{ label: "Go to Home", onClick: () => router.push("/home") }}
       secondary={{ label: "View my profile", onClick: () => router.push(comingSoonHref("My profile")) }}
       note="Your roles live under your name in the top bar. Switch or add one anytime."
+      notePlacement="above"
       onClose={() => router.push("/home")}
     />
   );

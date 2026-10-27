@@ -31,7 +31,7 @@ export const ACCOUNT_TYPES: AccountType[] = [
     id: "professional",
     tagline: "Licensed experts who offer services and quotes",
     title: "Professional",
-    description: "Architects, engineers, surveyors, lawyers, valuers, agents and other licensed experts.",
+    description: "Architects, engineers, surveyors, agents and other licensed experts.",
     icon: "/icons/briefcase-01.svg",
     setupHref: "/onboarding/professional",
     features: ["A verified professional profile", "Offer services and send quotes", "Win leads from the Request Board"],
@@ -61,7 +61,7 @@ export const ACCOUNT_TYPES: AccountType[] = [
   {
     id: "organization",
     tagline: "A company or institution with branches and staff",
-    title: "Organization",
+    title: "Organisation",
     description: "Developers, property managers, estates and institutions that work as a team.",
     icon: "/icons/onboarding-city.svg",
     iconFlipped: true,
@@ -79,28 +79,26 @@ export interface PersonalInterest {
   label: string;
   /** The label used in summaries, e.g. "Rent". */
   short: string;
-  icon: string;
-  /** Some design icons are exported mirrored or upside-down and are flipped back when drawn. */
-  iconClass?: string;
 }
 
 export const PERSONAL_INTERESTS: PersonalInterest[] = [
-  { id: "buy", short: "Buy", label: "Buy a home", icon: "/icons/onboarding-house-01.svg", iconClass: "-scale-y-100" },
-  { id: "rent", short: "Rent", label: "Rent a home", icon: "/icons/onboarding-home.svg" },
-  { id: "stay", short: "Stay", label: "Book a stay", icon: "/icons/onboarding-hotel.svg" },
-  { id: "build", short: "Build", label: "Build or renovate", icon: "/icons/onboarding-crane.svg" },
-  { id: "manage", short: "Manage", label: "Manage my property", icon: "/icons/onboarding-building-01.svg", iconClass: "-scale-y-100" },
-  { id: "explore", short: "Explore", label: "Just explore", icon: "/icons/onboarding-search.svg", iconClass: "-scale-x-100" },
+  { id: "buy", short: "Buy", label: "Buy a home" },
+  { id: "rent", short: "Rent", label: "Rent a home" },
+  { id: "stay", short: "Stay", label: "Book a stay" },
+  { id: "explore", short: "Explore", label: "Just explore" },
 ];
 
 export const PERSONAL_STEPS = [
   { id: "interests", title: "Interests", note: "What you are looking for" },
+  { id: "location", title: "Location", note: "Choose your location" },
   { id: "profile", title: "Your profile", note: "Photo and short intro" },
 ];
 
-export const PERSONAL_AREAS = ["East Legon", "Cantonments", "Spintex", "Airport Residential"];
-export const RENT_BUDGETS = ["Under GHS 1,500", "GHS 1,500 – 3,000", "GHS 3,000 – 6,000", "GHS 6,000 – 10,000", "Over GHS 10,000"];
-export const BEDROOM_OPTIONS = ["Studio", "1 bedroom", "2 bedrooms", "3 bedrooms", "4+ bedrooms"];
+/** The most places someone can add to their setup. */
+export const MAX_PERSONAL_PLACES = 8;
+
+/** What each part of the profile adds to its completeness, beside the 20% every new account starts with. */
+export const PROFILE_COMPLETION = { base: 20, interests: 5, location: 50, profile: 25 };
 
 export const PROFILE_PHOTO_TYPES = ["image/jpeg", "image/png"];
 export const PROFILE_PHOTO_MAX_BYTES = 5 * 1024 * 1024;
@@ -115,9 +113,17 @@ export const NEW_ACCOUNT_PROFILE = {
   joined: "Oct 2026",
 };
 
+/** Someone who works independently has no company or firm to describe, so that step is left out. */
+export function professionalSteps(independent: boolean) {
+  return independent ? PROFESSIONAL_STEPS.filter((step) => step.id !== "firm") : PROFESSIONAL_STEPS;
+}
+
+/** What each finished professional step adds to the profile; together they make 100%. */
+export const PROFESSIONAL_COMPLETION = { profession: 5, firm: 50, credentials: 20, public: 25 };
+
 export const PROFESSIONAL_STEPS = [
   { id: "profession", title: "Your profession", note: "What you do and where" },
-  { id: "services", title: "Services", note: "What you offer and how you price" },
+  { id: "firm", title: "Company/Firm", note: "Firm details" },
   { id: "credentials", title: "Credentials", note: "Registration and identity" },
   { id: "public", title: "Public profile", note: "Photo, intro and portfolio" },
 ];
@@ -165,20 +171,26 @@ export const SERVICES_BY_PROFESSION: Record<string, OfferedService[]> = {
 
 export const GENERIC_SERVICES: OfferedService[] = [{ label: "Consultation" }, { label: "Site inspection" }, { label: "Reports and documents" }, { label: "Project supervision" }];
 
+/** Ghana's 16 regions, and working remotely. */
 export const WORK_REGIONS = [
   { label: "Greater Accra", short: "Greater Accra" },
   { label: "Ashanti", short: "Ashanti" },
-  { label: "Central", short: "Central" },
   { label: "Western", short: "Western" },
+  { label: "Western North", short: "Western North" },
+  { label: "Central", short: "Central" },
   { label: "Eastern", short: "Eastern" },
+  { label: "Volta", short: "Volta" },
+  { label: "Oti", short: "Oti" },
+  { label: "Northern", short: "Northern" },
+  { label: "Savannah", short: "Savannah" },
+  { label: "North East", short: "North East" },
+  { label: "Upper East", short: "Upper East" },
+  { label: "Upper West", short: "Upper West" },
+  { label: "Bono", short: "Bono" },
+  { label: "Bono East", short: "Bono East" },
+  { label: "Ahafo", short: "Ahafo" },
   { label: "Remote / online", short: "Remote" },
 ];
-
-export const PRICING_OPTIONS = [
-  { id: "consultation", title: "Free consultation, then a quote", note: "Most popular for architects. Clients book a call first.", icon: "/icons/onboarding-calendar.svg", hint: "Recommended", preview: "Free" },
-  { id: "packages", title: "Fixed packages", note: "For example, permit drawings for a 3-bed from GHS 8,000", icon: "/icons/onboarding-money.svg", preview: "Paid" },
-  { id: "rate", title: "Hourly or daily rate", note: "Shown as “from GHS x per hour”", icon: "/icons/onboarding-clock.svg", preview: "Paid" },
-] as const;
 
 /** Mock: how many open requests match, shown in the tip. */
 export const MATCHING_REQUESTS = 12;

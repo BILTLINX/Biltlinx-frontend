@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccountPrefill, usePrefilledState } from "@/hooks/useAccountPrefill";
 import { useDisplayName } from "@/hooks/useDisplayName";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -36,7 +37,8 @@ export default function ArtisanTradePage() {
   const router = useRouter();
   const [trade, setTrade] = useState(TRADES[0]);
   const [experience, setExperience] = useState("11 years");
-  const [basedIn, setBasedIn] = useState("");
+  const account = useAccountPrefill();
+  const [basedIn, setBasedIn] = usePrefilledState(account.location);
   const [team, setTeam] = useState<(typeof TEAM_OPTIONS)[number]["id"]>("team");
   const [teamSize, setTeamSize] = useState(TEAM_SIZES[1]);
 

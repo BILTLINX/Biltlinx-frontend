@@ -164,7 +164,7 @@ export function MobileVisibilityMenu({ open, onClose, value, onChange, anchorRef
     <div
       ref={menuRef}
       style={{ bottom: position.bottom, left: position.left, width: MENU_WIDTH }}
-      className="fixed z-[110] rounded-[26px] border border-[rgba(15,22,33,0.12)] bg-white/10 p-2.5 shadow-[0px_24px_60px_-15px_rgba(0,0,0,0.15)] backdrop-blur-[8px]"
+      className="fixed z-[110] rounded-[26px] border border-[rgba(15,22,33,0.12)] bg-white p-2.5 shadow-[0_12px_32px_-12px_rgba(15,23,42,0.18)]"
     >
       <div className="flex flex-col gap-1 rounded-2xl bg-white/90 p-2.5">
       <Row

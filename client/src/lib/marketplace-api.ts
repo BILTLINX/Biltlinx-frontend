@@ -26,11 +26,20 @@ export const KIND_LABEL: Record<string, string> = {
 };
 
 const KIND_PILL: Record<string, string> = {
-  PropertySale: "For sale",
-  PropertyRent: "For rent",
+  PropertySale: "Property sale",
+  PropertyRent: "Rental",
   Land: "Land",
   Stay: "Stay",
   Service: "Service",
+};
+
+/** The button on a card says what the next step is for that kind of listing. */
+const KIND_CTA: Record<string, string> = {
+  PropertySale: "Request viewing",
+  PropertyRent: "Request viewing",
+  Land: "Enquire",
+  Stay: "Check availability",
+  Service: "Request quote",
 };
 
 const UNIT_SUFFIX: Record<string, string> = {
@@ -70,7 +79,7 @@ export function offerToCard(offer: OfferDto): ListingCardData {
     title: offer.title ?? "Listing",
     location: [offer.category, offer.city].filter(Boolean).join(" · ") || "Ghana",
     badges: offer.negotiable ? [{ label: "Negotiable", tone: "neutral" }] : undefined,
-    cta: "View details",
+    cta: KIND_CTA[kind] ?? "View details",
     ctaHref: route,
     ownerId: offer.ownerAccountId,
   };

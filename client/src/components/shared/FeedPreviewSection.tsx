@@ -4,7 +4,9 @@ import Link from "next/link";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { PostCard } from "@/components/shared/PostCard";
 import { PostCardSkeleton } from "@/components/shared/PostCardSkeleton";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { useFeed } from "@/hooks/useFeed";
+import { usePostModals } from "@/hooks/usePostModals";
 
 const PREVIEW_COUNT = 2;
 
@@ -14,6 +16,7 @@ const PREVIEW_COUNT = 2;
 export function FeedPreviewSection() {
   const { posts, isPending, isError } = useFeed({}, { pageSize: PREVIEW_COUNT });
   const previewPosts = posts.slice(0, PREVIEW_COUNT);
+  const { openPostModal, modals } = usePostModals();
 
   return (
     <section className="flex w-full flex-col gap-3">
@@ -29,12 +32,20 @@ export function FeedPreviewSection() {
         {isPending && <PostCardSkeleton />}
         {isError && <p className="text-[13px] text-gray-500">We could not load your feed right now.</p>}
         {!isPending && !isError && previewPosts.length === 0 && (
-          <p className="text-[13px] text-gray-500">No posts yet. Follow people or share something to get started.</p>
+          <EmptyState
+            size="section"
+            icon="feed"
+            title="Your feed is quiet"
+            body="Follow agents, builders and artisans near you and their posts will land here."
+            primary={{ label: "Find people to follow", href: "/professionals" }}
+            secondary={{ label: "Create a post", onClick: () => openPostModal("media") }}
+          />
         )}
         {previewPosts.map((post) => (
           <PostCard key={post.id} post={post} />
         ))}
       </div>
+      {modals}
     </section>
   );
 }

@@ -1,12 +1,11 @@
 "use client";
 
-import { Fragment, useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
-import { createPortal } from "react-dom";
+import { Fragment, type RefObject } from "react";
+import { FloatingMenu } from "@/components/shared/FloatingMenu";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { cn } from "@/lib/utils";
 
-const MENU_WIDTH = 300;
-const VIEWPORT_MARGIN = 8;
+const MENU_WIDTH = 264;
 
 export interface PostOptionsItem {
   key: string;
@@ -135,103 +134,37 @@ interface PostOptionsMenuProps {
   groups: PostOptionsGroup[];
 }
 
-/** Post options dropdown in the shared frosted-glass dropdown frame; content comes from the build*Options helpers. */
+/** Post options dropdown in the shared frosted-glass menu frame; content comes from the build*Options helpers. */
 export function PostOptionsMenu({ open, onClose, anchorRef, groups }: PostOptionsMenuProps) {
-  const panelRef = useRef<HTMLDivElement | null>(null);
-  const [position, setPosition] = useState<{ top?: number; bottom?: number; left: number; width: number } | null>(null);
-
-  useLayoutEffect(() => {
-    if (!open) return;
-    function updatePosition() {
-      const rect = anchorRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      const width = Math.min(MENU_WIDTH, window.innerWidth - VIEWPORT_MARGIN * 2);
-      const left = Math.max(VIEWPORT_MARGIN, Math.min(rect.right - width, window.innerWidth - width - VIEWPORT_MARGIN));
-      // Opens under the trigger; only flips above when the real menu height doesn't fit below but does fit above.
-      const height = panelRef.current?.offsetHeight ?? 0;
-      const spaceBelow = window.innerHeight - rect.bottom - VIEWPORT_MARGIN;
-      if (height > spaceBelow && rect.top - VIEWPORT_MARGIN > spaceBelow) {
-        setPosition({ bottom: window.innerHeight - rect.top + 4, left, width });
-      } else {
-        setPosition({ top: rect.bottom + 4, left, width });
-      }
-    }
-    updatePosition();
-    window.addEventListener("resize", updatePosition);
-    window.addEventListener("scroll", updatePosition, true);
-    return () => {
-      window.removeEventListener("resize", updatePosition);
-      window.removeEventListener("scroll", updatePosition, true);
-    };
-  }, [open, anchorRef]);
-
-  useEffect(() => {
-    if (!open) return;
-    const handlePointerDown = (event: PointerEvent) => {
-      const target = event.target as Node;
-      if (anchorRef.current?.contains(target) || panelRef.current?.contains(target)) return;
-      onClose();
-    };
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    document.addEventListener("pointerdown", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [open, onClose, anchorRef]);
-
-  if (!open) return null;
-
-  return createPortal(
-    <div
-      ref={panelRef}
-      role="menu"
-      style={
-        position
-          ? { top: position.top, bottom: position.bottom, left: position.left, width: position.width }
-          : { top: 0, left: 0, width: MENU_WIDTH, visibility: "hidden" }
-      }
-      className="fixed z-[120] rounded-[26px] border border-[rgba(15,22,33,0.12)] bg-white/10 p-2.5 shadow-[0px_24px_60px_-15px_rgba(0,0,0,0.15)] backdrop-blur-[8px]"
-    >
-      <div className="flex flex-col rounded-2xl bg-white/90 p-1.5">
-        {groups.map((group, groupIndex) => (
-          <Fragment key={groupIndex}>
-            {groupIndex > 0 && <div className="h-px w-full bg-gray-200" />}
-            <div className="flex flex-col py-1">
-              {group.map((item) => (
-                <button
-                  key={item.key}
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    item.onSelect();
-                    onClose();
-                  }}
-                  className="flex w-full items-center gap-3 rounded-lg px-3 py-[9px] text-left hover:bg-gray-50"
-                >
-                  <span className="flex size-[18px] shrink-0 items-center justify-center">
-                    <NavIcon
-                      icon={item.icon}
-                      size={item.iconSize}
-                      className={item.destructive ? "bg-[#dc2626]" : "bg-[#0f172a]"}
-                    />
-                  </span>
-                  <span className="flex min-w-0 flex-1 flex-col gap-px">
-                    <span className={cn("text-sm font-medium leading-5", item.destructive ? "text-[#dc2626]" : "text-[#0f172a]")}>
-                      {item.label}
-                    </span>
-                    {item.description && <span className="text-xs leading-4 text-gray-500">{item.description}</span>}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </Fragment>
-        ))}
-      </div>
-    </div>,
-    document.body,
+  return (
+    <FloatingMenu open={open} onClose={onClose} anchorRef={anchorRef} width={MENU_WIDTH} role="menu">
+      {groups.map((group, groupIndex) => (
+        <Fragment key={groupIndex}>
+          {groupIndex > 0 && <div className="h-px w-full bg-gray-200" />}
+          <div className="flex flex-col py-0.5">
+            {group.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  item.onSelect();
+                  onClose();
+                }}
+                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left hover:bg-gray-50"
+              >
+                <span className="flex size-[18px] shrink-0 items-center justify-center">
+                  <NavIcon icon={item.icon} size={item.iconSize} className={item.destructive ? "bg-[#dc2626]" : "bg-[#0f172a]"} />
+                </span>
+                <span className="flex min-w-0 flex-1 flex-col gap-px">
+                  <span className={cn("text-[13px] font-medium leading-[18px]", item.destructive ? "text-[#dc2626]" : "text-[#0f172a]")}>{item.label}</span>
+                  {item.description && <span className="text-[11px] leading-[15px] text-gray-500">{item.description}</span>}
+                </span>
+              </button>
+            ))}
+          </div>
+        </Fragment>
+      ))}
+    </FloatingMenu>
   );
 }

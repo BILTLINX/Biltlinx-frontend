@@ -29,15 +29,23 @@ interface OnboardingDoneViewProps {
   steps: DoneStep[];
   primary: { label: string; onClick: () => void };
   secondary: { label: string; onClick: () => void };
-  /** The small line under the buttons. */
+  /** The small line under the buttons, or above the card with `notePlacement="above"`. */
   note: string;
+  notePlacement?: "above" | "below";
   onClose: () => void;
   /** Extra content between the heading and the card, if any. */
   children?: ReactNode;
 }
 
 /** The "you're all set" screen that ends every onboarding flow: what was done and what is left to do. */
-export function OnboardingDoneView({ title, subtitle, strength, steps, primary, secondary, note, onClose, children }: OnboardingDoneViewProps) {
+export function OnboardingDoneView({ title, subtitle, strength, steps, primary, secondary, note, notePlacement = "below", onClose, children }: OnboardingDoneViewProps) {
+  const noteLine = (
+    <p className="flex items-center gap-2.5 rounded-xl border border-gray-200 bg-white px-4 py-3 text-[13px] font-medium leading-[1.45] text-[#334155]">
+      <NavIcon icon="/icons/onboarding-user-switch.svg" size={18} className="shrink-0 bg-brand-900" />
+      {note}
+    </p>
+  );
+
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-[#f8fafc]">
       <OnboardingTopBar onAction={onClose} />
@@ -52,6 +60,8 @@ export function OnboardingDoneView({ title, subtitle, strength, steps, primary, 
             <h1 className="text-[26px] font-extrabold text-[#0f172a] sm:text-[30px]">{title}</h1>
             <p className="text-[15px] text-gray-500">{subtitle}</p>
           </div>
+
+          {notePlacement === "above" && noteLine}
 
           {children}
 
@@ -99,10 +109,7 @@ export function OnboardingDoneView({ title, subtitle, strength, steps, primary, 
             </button>
           </div>
 
-          <p className="flex items-center gap-2.5 rounded-xl border border-gray-200 bg-white px-4 py-3 text-[13px] font-medium leading-[1.45] text-[#334155]">
-            <NavIcon icon="/icons/onboarding-user-switch.svg" size={18} className="shrink-0 bg-brand-900" />
-            {note}
-          </p>
+          {notePlacement === "below" && noteLine}
         </div>
       </main>
     </div>

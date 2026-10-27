@@ -3,9 +3,8 @@ const KEY = "biltlinx:onboarding:personal";
 /** What the person has chosen so far in the personal setup, kept for the tab session so later steps can use it. */
 export interface PersonalDraft {
   interests: string[];
+  /** The places added on the location step. */
   areas: string[];
-  bedrooms: string;
-  alerts: boolean;
   /** Filled in by the profile step. */
   displayName?: string;
   strength?: number;
@@ -31,8 +30,6 @@ export function loadPersonalDraft(): PersonalDraft | null {
     return {
       interests: parsed.interests,
       areas: parsed.areas,
-      bedrooms: typeof parsed.bedrooms === "string" ? parsed.bedrooms : "",
-      alerts: parsed.alerts === true,
       displayName: parsed.displayName,
       strength: parsed.strength,
       location: parsed.location,
@@ -46,7 +43,7 @@ export function loadPersonalDraft(): PersonalDraft | null {
 
 /** Merges new choices into what is already saved, so each step only has to hand over its own part. */
 export function updatePersonalDraft(changes: Partial<PersonalDraft>) {
-  const current = loadPersonalDraft() ?? { interests: [], areas: [], bedrooms: "", alerts: false };
+  const current = loadPersonalDraft() ?? { interests: [], areas: [] };
   savePersonalDraft({ ...current, ...changes });
 }
 
@@ -54,7 +51,6 @@ const FEED_PHRASES: Record<string, (where: string) => string> = {
   buy: (where) => `homes for sale${where}`,
   rent: (where) => `rentals${where}`,
   stay: (where) => `stays${where}`,
-  build: () => "builders and architects for your project",
 };
 
 /** The one-line summary of what the Home feed will be filled with, from what the person picked. */
@@ -67,12 +63,6 @@ export function feedSummary(draft: PersonalDraft | null) {
   return `Your Home feed is ready with ${first}${rest.length > 0 ? `, plus ${new Intl.ListFormat("en").format(rest)}` : ""}.`;
 }
 
-/** "2 bedrooms" becomes "2-bed"; options without a number are kept as they are. */
-export function shortBedrooms(bedrooms: string) {
-  const match = bedrooms.match(/^(\d\+?)/);
-  return match ? `${match[1]}-bed` : bedrooms;
-}
-
 const PROFESSIONAL_KEY = "biltlinx:onboarding:professional";
 
 /** What the person has chosen so far in the professional setup, kept for the tab session. */
@@ -82,10 +72,14 @@ export interface ProfessionalDraft {
   basedIn: string;
   /** Empty when they work independently. */
   firm: string;
-  /** Filled in by the services step. */
+  workMode?: "independent" | "firm";
+  /** Filled in by the profession step. */
   services?: string[];
   worksIn?: string[];
-  consultation?: string;
+  /** Filled in by the company/firm step. */
+  jobTitle?: string;
+  officeLocation?: string;
+  website?: string;
   /** Profile strength reached so far, 0 to 100. */
   strength?: number;
   /** Filled in by the credentials step. */
@@ -111,9 +105,12 @@ export function loadProfessionalDraft(): ProfessionalDraft | null {
       experience: parsed.experience,
       basedIn: parsed.basedIn ?? "",
       firm: parsed.firm ?? "",
+      workMode: parsed.workMode,
       services: parsed.services,
       worksIn: parsed.worksIn,
-      consultation: parsed.consultation,
+      jobTitle: parsed.jobTitle,
+      officeLocation: parsed.officeLocation,
+      website: parsed.website,
       strength: parsed.strength,
       registration: parsed.registration,
     };

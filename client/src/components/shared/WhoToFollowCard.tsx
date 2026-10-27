@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useQuery } from "@tanstack/react-query";
 import { FollowButton } from "@/components/shared/FollowButton";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useFollowAccount } from "@/hooks/useFollowAccount";
 import { getSuggestions } from "@/lib/social-api";
@@ -23,7 +24,16 @@ export function WhoToFollowCard() {
         </div>
       )}
       {isError && <p className="text-[11px] text-gray-500">Suggestions are unavailable right now.</p>}
-      {data && data.length === 0 && <p className="text-[11px] text-gray-500">No suggestions yet.</p>}
+      {data && data.length === 0 && (
+        <EmptyState
+          size="compact"
+          icon="follow"
+          title="No suggestions yet"
+          body="Pick your interests and we’ll suggest people worth following."
+          primary={{ label: "Choose interests", href: "/onboarding/personal" }}
+          className="rounded-none border-0 p-0"
+        />
+      )}
       {data && data.length > 0 && (
         <ul className="flex flex-col gap-[15px]">
           {data.map((suggestion) => (

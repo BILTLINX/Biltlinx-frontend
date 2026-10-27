@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useId, useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
+import { FloatingMenu } from "@/components/shared/FloatingMenu";
 import { cn } from "@/lib/utils";
 
 export interface FilterOption {
@@ -14,6 +15,8 @@ type FilterDropdownProps = {
   label: string;
   options: readonly FilterOption[];
   className?: string;
+  /** "text" is the quiet "Sort: Newest" link style, with the menu opening to the left. */
+  variant?: "button" | "text";
 } & (
   | { multiple?: false; value: string; onChange: (value: string) => void }
   | { multiple: true; value: string[]; onChange: (value: string[]) => void; /** Shown when nothing is picked. */ anyLabel?: string }
@@ -32,6 +35,7 @@ function BoxIcon({ name, size, inset, bleed }: { name: string; size: number; ins
   );
 }
 
+const MENU_WIDTH = 300;
 const OPTION = "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-[9px] text-left text-sm";
 
 /**
@@ -39,24 +43,11 @@ const OPTION = "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-[9px] text
  * Single choice closes on pick; `multiple` shows checkboxes with Clear and Apply.
  */
 export function FilterDropdown(props: FilterDropdownProps) {
-  const { label, options, className } = props;
+  const { label, options, className, variant = "button" } = props;
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<string[]>([]);
-  const root = useRef<HTMLDivElement | null>(null);
+  const trigger = useRef<HTMLButtonElement | null>(null);
   const menuId = useId();
-
-  useEffect(() => {
-    if (!open) return;
-    function close(event: MouseEvent | KeyboardEvent) {
-      if (event instanceof KeyboardEvent ? event.key === "Escape" : !root.current?.contains(event.target as Node)) setOpen(false);
-    }
-    document.addEventListener("mousedown", close);
-    document.addEventListener("keydown", close);
-    return () => {
-      document.removeEventListener("mousedown", close);
-      document.removeEventListener("keydown", close);
-    };
-  }, [open]);
 
   const selected = props.multiple ? props.value : [];
   const summary = props.multiple
@@ -87,35 +78,45 @@ export function FilterDropdown(props: FilterDropdownProps) {
   }
 
   return (
-    <div ref={root} className={cn("relative self-start", className)}>
+    <div className={cn("self-start", className)}>
       <button
+        ref={trigger}
         type="button"
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
         onClick={toggle}
         className={cn(
-          "flex items-center gap-2 rounded-[10px] py-2.5 pl-3.5 pr-3 text-sm",
-          open ? "border-[1.5px] border-brand-900 bg-white py-[9.25px] pl-[13.25px] pr-[11.25px]" : "border border-[#e2e8f0] bg-white hover:border-[#cbd5e1] hover:bg-[#f8fafc]",
+          variant === "text"
+            ? "flex items-center gap-2 text-[13px] leading-[19px]"
+            : "flex items-center gap-2 rounded-[10px] py-2.5 pl-3.5 pr-3 text-sm",
+          variant === "button" &&
+            (open ? "border-[1.5px] border-brand-900 bg-white py-[9.25px] pl-[13.25px] pr-[11.25px]" : "border border-[#e2e8f0] bg-white hover:border-[#cbd5e1] hover:bg-[#f8fafc]"),
         )}
       >
-        <BoxIcon name="filter-list" size={18} inset="20.83% 16.67% 16.67%" bleed="-3.33% -3.13% 0" />
-        <span className="font-medium text-[#64748b]">{label}</span>
-        <span className="font-semibold text-[#0f172a]">{summary}</span>
+        {variant === "button" && <BoxIcon name="filter-list" size={18} inset="20.83% 16.67% 16.67%" bleed="-3.33% -3.13% 0" />}
+        <span className={cn("text-[#64748b]", variant === "button" ? "font-medium" : "font-normal")}>{variant === "text" ? `${label}:` : label}</span>
+        <span className={cn("text-[#0f172a]", variant === "button" ? "font-semibold" : "font-medium")}>{summary}{variant === "text" && " ▾"}</span>
         {open && props.multiple && selected.length > 1 && <span className="rounded-full bg-brand-900 px-[7px] py-px text-[11px] font-semibold text-white">{selected.length}</span>}
-        <span className={cn("block shrink-0", open && "rotate-180")}>
-          <BoxIcon name="filter-chevron-down" size={16} inset="37.5% 25%" bleed="-8.33% -4.17% -4.88%" />
-        </span>
+        {variant === "button" && (
+          <span className={cn("block shrink-0", open && "rotate-180")}>
+            <BoxIcon name="filter-chevron-down" size={16} inset="37.5% 25%" bleed="-8.33% -4.17% -4.88%" />
+          </span>
+        )}
       </button>
 
-      {open && (
-        <div
-          id={menuId}
-          role="listbox"
-          aria-label={label}
-          aria-multiselectable={props.multiple || undefined}
-          className="absolute left-0 top-[calc(100%+6px)] z-30 flex w-[300px] max-w-[calc(100vw-32px)] flex-col gap-0.5 rounded-xl border border-[#e2e8f0] bg-white p-2 shadow-[0_12px_32px_-6px_rgba(15,23,41,0.12)]"
-        >
+      <FloatingMenu
+        open={open}
+        onClose={() => setOpen(false)}
+        anchorRef={trigger}
+        width={MENU_WIDTH}
+        align={variant === "text" ? "end" : "start"}
+        id={menuId}
+        role="listbox"
+        aria-label={label}
+        aria-multiselectable={props.multiple || undefined}
+      >
+        <div className="flex flex-col gap-0.5">
           <p className="px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.66px] text-[#94a3b8]">{label}</p>
 
           {props.multiple
@@ -161,7 +162,7 @@ export function FilterDropdown(props: FilterDropdownProps) {
             </>
           )}
         </div>
-      )}
+      </FloatingMenu>
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { getTrendingHashtags } from "@/lib/social-api";
 
@@ -19,7 +20,9 @@ export function TrendingHashtagsCard() {
       </div>
       {isPending && <Skeleton className="h-[90px] w-full rounded-lg" />}
       {isError && <p className="text-[11px] text-gray-500">Trends are unavailable right now.</p>}
-      {data && data.length === 0 && <p className="text-[11px] text-gray-500">Nothing is trending yet.</p>}
+      {data && data.length === 0 && (
+        <EmptyState size="compact" icon="trends" title="No trends yet" body="The hashtags people use most will show up here." className="rounded-none border-0 p-0" />
+      )}
       {data && data.length > 0 && (
         <ul className="flex flex-col gap-2">
           {data.map((hashtag) => (

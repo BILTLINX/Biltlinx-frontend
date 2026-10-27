@@ -3,11 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { OnboardingDoneView, type DoneStep } from "@/components/shared/OnboardingDoneView";
-import { comingSoonHref } from "@/lib/coming-soon";
-
+import { MATCHING_REQUESTS } from "@/lib/dummy-onboarding";
 import { loadProfessionalDraft, type ProfessionalDraft } from "@/lib/onboarding-draft";
 
-const DEFAULT_STRENGTH = 70;
+const DEFAULT_STRENGTH = 80;
 
 /** Onboarding · Professional · Done (Figma node 1070:32089): the profile is live and what happens next. */
 export default function ProfessionalDonePage() {
@@ -45,8 +44,8 @@ export default function ProfessionalDonePage() {
     },
     {
       id: "client",
-      title: "Get found",
-      note: `Customers in ${region} can find you in the directory and send you a quote request`,
+      title: "Find your first client",
+      note: `${MATCHING_REQUESTS} open requests in ${region} on the Request Board`,
       icon: "/icons/onboarding-file.svg",
       tone: "todo",
       action: { label: "Open Request Board", onClick: () => router.push("/request-board") },
@@ -62,6 +61,7 @@ export default function ProfessionalDonePage() {
       primary={{ label: "Go to Manage", onClick: () => router.push("/manage/provider") }}
       secondary={{ label: "View my profile", onClick: () => router.push("/manage/provider") }}
       note="Switch between Personal and Professional from your name in the top bar."
+      notePlacement="above"
       onClose={() => router.push("/home")}
     />
   );

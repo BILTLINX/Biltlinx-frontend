@@ -2,16 +2,15 @@
 
 import { useSession } from "@/context/SessionContext";
 import { useDisplayName } from "@/hooks/useDisplayName";
-import { formatDate } from "@/lib/format";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { NavIcon } from "@/components/shared/NavIcon";
+import { OnboardingProfilePreview } from "@/components/shared/OnboardingProfilePreview";
 import { OnboardingStepper } from "@/components/shared/OnboardingStepper";
 import { OnboardingTopBar } from "@/components/shared/OnboardingTopBar";
 import { Switch } from "@/components/shared/SettingsParts";
-import { INTRO_EXAMPLE, INTRO_MAX_LENGTH, PERSONAL_INTERESTS, PERSONAL_STEPS, PROFILE_PHOTO_MAX_BYTES, PROFILE_PHOTO_TYPES } from "@/lib/dummy-onboarding";
+import { INTRO_EXAMPLE, INTRO_MAX_LENGTH, PERSONAL_STEPS, PROFILE_PHOTO_MAX_BYTES, PROFILE_PHOTO_TYPES } from "@/lib/dummy-onboarding";
 import { loadPersonalDraft, updatePersonalDraft } from "@/lib/onboarding-draft";
-import { initialsOf } from "@/lib/initials";
 import { forgetFiles, recallFile, rememberFile } from "@/lib/onboarding-files";
 import { updateProfile } from "@/lib/account-api";
 import { notifyError } from "@/lib/errors";
@@ -49,7 +48,9 @@ export default function PersonalProfilePage() {
   const { user, refresh } = useSession();
   const router = useRouter();
   const fileInput = useRef<HTMLInputElement | null>(null);
-  const [name, setName] = useState(accountName);
+  const [typedName, setName] = useState("");
+  // The name given at signup is fixed here; it can be changed later in account settings.
+  const name = accountName || typedName;
   const [location, setLocation] = useState(user?.location ?? "");
   const [intro, setIntro] = useState(user?.bio ?? "");
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
@@ -58,13 +59,15 @@ export default function PersonalProfilePage() {
   const [whatsapp, setWhatsapp] = useState(true);
   const [email, setEmail] = useState(true);
   const [push, setPush] = useState(false);
-  const [lookingFor, setLookingFor] = useState("");
+  const [interestsDone, setInterestsDone] = useState(false);
+  const [placeDone, setPlaceDone] = useState(false);
 
   // Earlier choices live in the tab session, so they are read after mount.
   useEffect(() => {
     const draft = loadPersonalDraft();
     if (!draft) return;
-    setLookingFor(PERSONAL_INTERESTS.filter((interest) => draft.interests.includes(interest.id)).map((interest) => interest.short).join(" · "));
+    setInterestsDone(draft.interests.length > 0);
+    setPlaceDone(draft.areas.length > 0 || Boolean(draft.location));
     if (draft.displayName) setName(draft.displayName);
     if (draft.location !== undefined) setLocation(draft.location);
     else if (draft.areas[0] && !user?.location) setLocation(`${draft.areas[0]}, Accra`);
@@ -117,18 +120,13 @@ export default function PersonalProfilePage() {
     }
   }
 
-  function skip() {
-    saveProfile();
-    router.push("/onboarding/personal/done");
-  }
-
   function finish() {
     void persist("/onboarding/personal/done");
   }
 
   function back() {
     saveProfile();
-    router.push("/onboarding/personal");
+    router.push("/onboarding/personal/location");
   }
 
   const shownPhoto = photoUrl ?? user?.profilePicUrl ?? null;
@@ -136,17 +134,16 @@ export default function PersonalProfilePage() {
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-[#f8fafc]">
-      <OnboardingTopBar title="Setting up your personal account" actionLabel="Save and finish later" onAction={() => void persist("/home")} />
+      <OnboardingTopBar actionLabel="Save and finish later" actionIcon="bookmark" onAction={() => void persist("/home")} />
 
       <div className="min-h-0 flex-1 overflow-y-auto">
       <div className="mx-auto grid w-full max-w-[1440px] grid-cols-1 gap-6 px-4 pb-12 pt-8 sm:px-12 lg:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)_340px] xl:gap-8">
         <div className="lg:sticky lg:top-8 lg:self-start">
-          <OnboardingStepper title="Personal setup" duration="About 1 minute" icon="/icons/onboarding-user.svg" steps={PERSONAL_STEPS} current={1} />
+          <OnboardingStepper title="Personal setup" duration="About 1 minute" icon="/icons/onboarding-user.svg" steps={PERSONAL_STEPS} current={2} />
         </div>
 
         <main className="flex min-w-0 flex-col gap-6">
           <div className="flex flex-col gap-1.5 leading-[1.45]">
-            <p className="text-xs font-bold uppercase tracking-[0.72px] text-brand-900">Step 2 of 2 · Optional</p>
             <h1 className="text-[28px] font-bold text-[#0f172a]">Add a photo and a short intro</h1>
             <p className="text-[15px] text-gray-500">Optional, but landlords and providers reply faster when they can see who they are talking to.</p>
           </div>
@@ -182,7 +179,7 @@ export default function PersonalProfilePage() {
               <label className="flex min-w-0 flex-col gap-1.5">
                 <span className="text-[13px] font-medium leading-[1.45] text-[#334155]">Display name</span>
                 <span className={INPUT}>
-                  <input value={name} maxLength={60} onChange={(event) => setName(event.target.value)} className="min-w-0 flex-1 bg-transparent focus:outline-none" />
+                  <input value={name} maxLength={60} onChange={(event) => setName(event.target.value)} disabled={Boolean(accountName)} className="min-w-0 flex-1 bg-transparent focus:outline-none disabled:cursor-not-allowed disabled:text-gray-500" />
                   {name.trim() && <NavIcon icon="/icons/onboarding-check-circle.svg" size={18} className="bg-[#16a34a]" />}
                 </span>
               </label>
@@ -230,9 +227,6 @@ export default function PersonalProfilePage() {
               Back
             </button>
             <div className="flex items-center gap-3">
-              <button type="button" disabled={saving} onClick={skip} className="whitespace-nowrap rounded-[10px] px-5 py-3 text-sm font-semibold text-brand-900 disabled:opacity-50">
-                Skip for now
-              </button>
               <button type="button" disabled={saving} onClick={finish} className="flex items-center gap-2 whitespace-nowrap rounded-[10px] bg-brand-900 px-5 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50">
                 {saving ? "Saving…" : "Finish setup"}
                 <NavIcon icon="/icons/onboarding-arrow-right.svg" size={10} className="bg-white" />
@@ -242,55 +236,11 @@ export default function PersonalProfilePage() {
         </main>
 
         <aside className="lg:col-start-2 xl:sticky xl:top-8 xl:col-start-3 xl:self-start">
-          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
-            <div className="flex items-center justify-between px-4 py-3">
-              <p className="text-xs font-semibold leading-[1.45] text-gray-500">Preview · how others see you</p>
-              <NavIcon icon="/icons/onboarding-preview-eye.svg" size={16} className="bg-gray-500" />
-            </div>
-            <div className="h-16 bg-gradient-to-r from-[#0a1f44] to-brand-900" />
-            <div className="flex flex-col gap-3 px-5 py-4">
-              <div className="flex items-center gap-3">
-                <span className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-full border-[3px] border-white bg-[#eff5ff] text-lg font-bold text-brand-900">
-                  {shownPhoto ? (
-                    // eslint-disable-next-line @next/next/no-img-element -- a local object URL, nothing for next/image to optimise
-                    <img src={shownPhoto} alt="" className="size-full object-cover" />
-                  ) : (
-                    initialsOf(name)
-                  )}
-                </span>
-                <div className="flex min-w-0 flex-1 flex-col gap-0.5 leading-[1.45]">
-                  <p className="truncate text-base font-bold text-[#0f172a]">{name.trim() || "Your name"}</p>
-                  <p className="truncate text-[13px] text-gray-500">
-                    {location.trim() ? `${location.trim()} · ` : ""}Joined {user ? formatDate(user.createdAt) : ""}
-                  </p>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                <span className="rounded-full bg-[#dcfce7] px-2.5 py-1 text-xs font-semibold leading-[1.45] text-[#16a34a]">Phone verified</span>
-                <span className="rounded-full bg-[#f1f5f9] px-2.5 py-1 text-xs font-semibold leading-[1.45] text-gray-500">ID not verified yet</span>
-              </div>
-              {intro.trim() && <p className="text-[13px] leading-[1.45] text-[#334155]">{intro.trim()}</p>}
-              <dl className="flex flex-col gap-2 text-[13px] leading-[1.45]">
-                <div className="flex justify-between gap-3">
-                  <dt className="text-gray-500">Looking for</dt>
-                  <dd className="text-right font-semibold text-[#0f172a]">{lookingFor || "Not set"}</dd>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <dt className="text-gray-500">Member of</dt>
-                  <dd className="font-semibold text-[#94a3b8]">0 communities</dd>
-                </div>
-              </dl>
-              <div className="flex flex-col gap-1.5">
-                <div className="flex justify-between text-xs leading-[1.45]">
-                  <span className="font-medium text-gray-500">Profile strength</span>
-                  <span className="font-bold text-[#16a34a]">{strength}%</span>
-                </div>
-                <div role="progressbar" aria-label="Profile strength" aria-valuemin={0} aria-valuemax={100} aria-valuenow={strength} className="h-1.5 overflow-hidden rounded-[3px] bg-[#e2e8f0]">
-                  <div className="h-full rounded-[3px] bg-[#16a34a] transition-all" style={{ width: `${strength}%` }} />
-                </div>
-              </div>
-            </div>
-          </div>
+          <OnboardingProfilePreview
+            done={{ interests: interestsDone, location: placeDone || location.trim() !== "", profile: name.trim() !== "" && (shownPhoto !== null || intro.trim() !== "") }}
+            name={name}
+            photoUrl={shownPhoto}
+          />
         </aside>
       </div>
       </div>

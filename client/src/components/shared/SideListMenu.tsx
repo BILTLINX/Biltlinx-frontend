@@ -98,7 +98,7 @@ export function SideListMenu({
       ref={menuRef}
       onClick={(event) => event.stopPropagation()}
       style={{ top: position.top, left: position.left }}
-      className="absolute flex w-[264px] flex-col rounded-[26px] border border-[rgba(15,22,33,0.12)] bg-white/10 p-2.5 shadow-[0px_24px_60px_-15px_rgba(0,0,0,0.15)] backdrop-blur-[8px]"
+      className="absolute flex w-[264px] flex-col rounded-[26px] border border-[rgba(15,22,33,0.12)] bg-white p-2.5 shadow-[0_12px_32px_-12px_rgba(15,23,42,0.18)]"
     >
     <div className="flex w-full flex-col gap-2.5 rounded-2xl bg-white/90 p-2.5">
       {title && (

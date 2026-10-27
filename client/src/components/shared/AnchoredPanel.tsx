@@ -22,7 +22,7 @@ interface Position {
 }
 
 /**
- * The frosted floating panel behind the app's dropdowns (poll duration, date and time pickers): a portal anchored to
+ * The floating panel behind the app's dropdowns (option lists, the date picker's calendar): a portal anchored to
  * its trigger that flips above it when there is no room below, and closes on Escape or a click outside. It is marked
  * `data-dialog-popover` so a dialog it is opened from doesn't treat a click inside it as a click outside the dialog.
  */
@@ -78,9 +78,9 @@ export function AnchoredPanel({ open, onClose, triggerRef, estimatedHeight, minW
       ref={panelRef}
       data-dialog-popover
       style={{ top: position.top, bottom: position.bottom, left: position.left, width: position.width }}
-      className="fixed z-[130] rounded-[26px] border border-[rgba(15,22,33,0.12)] bg-white/10 p-2.5 shadow-[0px_24px_60px_-15px_rgba(0,0,0,0.15)] backdrop-blur-[8px]"
+      className="fixed z-[130] rounded-2xl border border-gray-200 bg-white p-1.5 shadow-[0_12px_32px_-12px_rgba(15,23,42,0.18)]"
     >
-      <div className="flex flex-col gap-1 rounded-2xl bg-white/90 p-2.5">{children}</div>
+      <div className="flex flex-col gap-1">{children}</div>
     </div>,
     document.body,
   );
