@@ -133,7 +133,7 @@ function ProfileBanner() {
         <Image src="/icons/account-banner-stars.svg" alt="" width={211} height={232} unoptimized className="absolute -top-[69px] left-[72%]" />
         <Image src="/icons/account-banner-stars.svg" alt="" width={211} height={232} unoptimized className="absolute -left-[39px] -top-[33px]" />
       </div>
-      <div className="-mt-[68px] flex w-[calc(100%-24px)] items-center justify-between gap-2 rounded-2xl bg-gradient-to-b from-[#cfddfa] via-white to-white p-3 shadow-[0px_20px_27px_0px_rgba(0,0,0,0.06)] sm:w-[calc(100%-54px)] sm:rounded-[33px]">
+      <div className="relative -mt-[68px] flex w-[calc(100%-24px)] items-center justify-between gap-2 rounded-2xl bg-gradient-to-b from-[#cfddfa] via-white to-white p-3 shadow-[0px_20px_27px_0px_rgba(0,0,0,0.06)] sm:w-[calc(100%-54px)] sm:rounded-[33px]">
         <div className="flex min-w-0 items-center gap-2">
           <span className="relative block size-14 shrink-0 sm:size-[72px]">
             <span className="relative block size-full overflow-hidden rounded-[23px] bg-[#eef2ff]">
