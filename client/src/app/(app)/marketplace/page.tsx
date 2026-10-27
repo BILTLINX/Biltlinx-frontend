@@ -17,6 +17,7 @@ import { comingSoonHref } from "@/lib/coming-soon";
 import { errorMessage } from "@/lib/errors";
 import { getFacets, KIND_LABEL, offerToCard, searchMarketplace } from "@/lib/marketplace-api";
 import { cn } from "@/lib/utils";
+import { useDebouncedSearch } from "@/context/SearchContext";
 
 const FIELD = "h-12 min-w-0 rounded-xl border border-gray-200 bg-white px-3 text-sm text-[#0f172a] focus:border-brand-900 focus:outline-none";
 const SORTS = [
@@ -29,9 +30,8 @@ export default function MarketplacePage() {
   const router = useRouter();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const facets = useQuery({ queryKey: ["marketplace", "facets"], queryFn: getFacets, staleTime: Infinity });
+  const search = useDebouncedSearch();
   const [kind, setKind] = useState("");
-  const [text, setText] = useState("");
-  const [search, setSearch] = useState("");
   const [city, setCity] = useState("");
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
@@ -41,19 +41,12 @@ export default function MarketplacePage() {
 
   function clearFilters() {
     setKind("");
-    setText("");
-    setSearch("");
     setCity("");
     setMinPrice("");
     setMaxPrice("");
     setUnit("");
     setSort("");
   }
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => setSearch(text.trim()), 350);
-    return () => window.clearTimeout(timer);
-  }, [text]);
 
   const units = useMemo(() => {
     const byKind = facets.data?.unitsByKind ?? {};
@@ -114,10 +107,6 @@ export default function MarketplacePage() {
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row">
-          <label className="flex h-12 min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-gray-200 bg-white px-4">
-            <NavIcon icon="/icons/search-02.svg" size={18} className="bg-gray-500" />
-            <input value={text} onChange={(event) => setText(event.target.value)} placeholder="Search land, rentals, artisans, cement, excavators…" aria-label="Search the marketplace" className="min-w-0 flex-1 bg-transparent text-sm focus:outline-none" />
-          </label>
           <label className="flex h-12 items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 sm:w-[200px]">
             <NavIcon icon="/icons/location-01.svg" size={18} className="shrink-0 bg-gray-500" />
             <input value={city} onChange={(event) => setCity(event.target.value)} placeholder="Any city" aria-label="City" className="min-w-0 flex-1 bg-transparent text-sm font-medium focus:outline-none" />

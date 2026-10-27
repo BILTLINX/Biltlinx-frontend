@@ -22,6 +22,7 @@ import {
   type PaymentKind,
 } from "@/lib/dummy-manage";
 import { cn } from "@/lib/utils";
+import { useSearchTerm } from "@/context/SearchContext";
 
 const STATUS_TONE: Record<PaymentKind, string> = {
   received: "bg-[#dcfce7] text-[#16a34a]",
@@ -36,18 +37,17 @@ const PX_PER_THOUSAND = 150 / 68;
 /** Manage · Rent & payments (Figma node 1057:29330): what was collected, who is late, and every payment and payout. */
 export default function ManageRentPage() {
   const router = useRouter();
-  const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<PaymentFilterKey>("All");
   const comingSoon = (feature: string) => () => router.push(comingSoonHref(feature));
 
+  const needle = useSearchTerm();
   const payments = useMemo(() => {
-    const needle = query.trim().toLowerCase();
     return PAYMENTS.filter(
       (payment) =>
         matchesPaymentFilter(payment, filter) &&
         (!needle || `${payment.tenant?.name ?? payment.label} ${payment.unit} ${payment.method} ${payment.date}`.toLowerCase().includes(needle)),
     );
-  }, [query, filter]);
+  }, [needle, filter]);
 
   return (
     <AppShell activeKey="manage" contentFullWidth>
@@ -141,16 +141,6 @@ export default function ManageRentPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          <label className="flex h-10 w-full items-center gap-2 rounded-[10px] border border-gray-200 bg-white px-3.5 focus-within:border-brand-900 sm:w-[300px]">
-            <NavIcon icon="/icons/search-02.svg" size={16} className="shrink-0 bg-gray-500" />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search payments"
-              aria-label="Search payments"
-              className="min-w-0 flex-1 bg-transparent text-[13px] leading-[19px] text-[#0f172a] placeholder:text-[#94a3b8] focus:outline-none"
-            />
-          </label>
           <div role="tablist" aria-label="Show" className="flex flex-wrap gap-2.5">
             {PAYMENT_FILTERS.map((option) => {
               const active = option === filter;

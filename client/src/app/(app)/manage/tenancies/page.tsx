@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { comingSoonHref } from "@/lib/coming-soon";
 import { MOVE_OUT_CHECKLIST, TENANCIES, TENANCY_FILTERS, matchesTenancyFilter, type TenancyFilterKey, type TenancyKind } from "@/lib/dummy-manage";
 import { cn } from "@/lib/utils";
+import { useSearchTerm } from "@/context/SearchContext";
 
 const STATUS_TONE: Record<TenancyKind, string> = {
   active: "bg-[#dcfce7] text-[#16a34a]",
@@ -41,15 +42,14 @@ const RENEWAL_ROWS = [
 /** Manage · Tenancies (Figma node 1057:28936): leases, renewals and move-outs across all of a landlord's units. */
 export default function ManageTenanciesPage() {
   const router = useRouter();
-  const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<TenancyFilterKey>("active");
   const [checked, setChecked] = useState<string[]>(() => MOVE_OUT_CHECKLIST.filter((item) => item.done).map((item) => item.id));
   const comingSoon = (feature: string) => () => router.push(comingSoonHref(feature));
 
+  const needle = useSearchTerm();
   const tenancies = useMemo(() => {
-    const needle = query.trim().toLowerCase();
     return TENANCIES.filter((tenancy) => matchesTenancyFilter(tenancy, filter) && (!needle || `${tenancy.tenant} ${tenancy.unit} ${tenancy.term}`.toLowerCase().includes(needle)));
-  }, [query, filter]);
+  }, [needle, filter]);
 
   function toggleChecklist(id: string) {
     setChecked((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
@@ -91,16 +91,6 @@ export default function ManageTenanciesPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          <label className="flex h-10 w-full items-center gap-2 rounded-[10px] border border-gray-200 bg-white px-3.5 focus-within:border-brand-900 sm:w-[300px]">
-            <NavIcon icon="/icons/search-02.svg" size={16} className="shrink-0 bg-gray-500" />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search tenants, units or leases"
-              aria-label="Search tenants, units or leases"
-              className="min-w-0 flex-1 bg-transparent text-[13px] leading-[19px] text-[#0f172a] placeholder:text-[#94a3b8] focus:outline-none"
-            />
-          </label>
           <div role="tablist" aria-label="Show" className="flex flex-wrap gap-2.5">
             {TENANCY_FILTERS.map((option) => {
               const active = option.key === filter;

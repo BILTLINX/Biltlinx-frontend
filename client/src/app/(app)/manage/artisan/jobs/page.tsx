@@ -12,13 +12,13 @@ import { Button } from "@/components/ui/Button";
 import { comingSoonHref } from "@/lib/coming-soon";
 import { ARTISAN_JOBS, FEATURED_JOB, JOB_FILTERS, JOB_STAGES, matchesJobFilter, type JobFilterKey, type JobStage } from "@/lib/dummy-manage";
 import { cn } from "@/lib/utils";
+import { useSearchTerm } from "@/context/SearchContext";
 
 const ghs = (amount: number) => `GHS ${amount.toLocaleString("en-US")}`;
 
 /** Manage · Artisan · Jobs (Figma node 1081:32983): every job from booked to paid, as a board you can drag along. */
 export default function ArtisanJobsPage() {
   const router = useRouter();
-  const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<JobFilterKey>("all");
   const [stages, setStages] = useState<Record<string, JobStage>>(() => Object.fromEntries(ARTISAN_JOBS.map((job) => [job.id, job.stage])));
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -26,10 +26,10 @@ export default function ArtisanJobsPage() {
   const [steps, setSteps] = useState(() => Object.fromEntries(FEATURED_JOB.steps.map((step) => [step.id, step.done])));
   const comingSoon = (feature: string) => () => router.push(comingSoonHref(feature));
 
+  const needle = useSearchTerm();
   const jobs = useMemo(() => {
-    const needle = query.trim().toLowerCase();
     return ARTISAN_JOBS.filter((job) => matchesJobFilter(job, filter) && (!needle || `${job.title} ${job.client}`.toLowerCase().includes(needle)));
-  }, [query, filter]);
+  }, [needle, filter]);
 
   function move(jobId: string, stage: JobStage) {
     setStages((current) => (current[jobId] === stage ? current : { ...current, [jobId]: stage }));
@@ -71,16 +71,6 @@ export default function ArtisanJobsPage() {
         <ArtisanTabs active="jobs" />
 
         <div className="flex flex-wrap items-center gap-2.5">
-          <label className="flex h-10 w-full items-center gap-2 rounded-[10px] border border-gray-200 bg-white px-3.5 focus-within:border-brand-900 sm:w-[280px]">
-            <NavIcon icon="/icons/search-02.svg" size={16} className="shrink-0 bg-gray-500" />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search jobs or clients"
-              aria-label="Search jobs or clients"
-              className="min-w-0 flex-1 bg-transparent text-[13px] leading-[19px] text-[#0f172a] placeholder:text-[#94a3b8] focus:outline-none"
-            />
-          </label>
           <div role="tablist" aria-label="Show" className="flex flex-wrap gap-2.5">
             {JOB_FILTERS.map((option) => {
               const active = option.key === filter;

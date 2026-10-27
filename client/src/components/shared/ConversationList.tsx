@@ -3,12 +3,12 @@
 import Image from "next/image";
 import { useMemo, useState } from "react";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { NavIcon } from "@/components/shared/NavIcon";
 import { useConversations } from "@/hooks/useMessaging";
 import { errorMessage } from "@/lib/errors";
 import { formatRelative } from "@/lib/format";
 import type { ConversationDto } from "@/types/api/schema";
 import { cn } from "@/lib/utils";
+import { useSearchTerm } from "@/context/SearchContext";
 
 const FILTERS = ["All", "Unread", "Enquiries", "Stays", "Jobs", "Archived"] as const;
 type Filter = (typeof FILTERS)[number];
@@ -32,37 +32,27 @@ interface ConversationListProps {
   className?: string;
 }
 
-/** The Messages sidebar (Figma node 1046:23037): search, filter chips and the conversation rows. */
+/** The Messages sidebar (Figma node 1046:23037): filter chips and the conversation rows. */
 export function ConversationList({ activeId, onSelect, className }: ConversationListProps) {
   const [filter, setFilter] = useState<Filter>("All");
-  const [query, setQuery] = useState("");
   const archived = filter === "Archived";
   const conversations = useConversations(archived);
 
+  const term = useSearchTerm();
   const visible = useMemo(() => {
-    const term = query.trim().toLowerCase();
     return (conversations.data?.items ?? []).filter((conversation) => {
       const context = conversation.contextType ?? "Direct";
-      const matchesFilter =
-        filter === "All" || filter === "Archived" || (filter === "Unread" && conversation.unread > 0) || (filter === "Enquiries" && ENQUIRY_CONTEXTS.includes(context)) || (filter === "Stays" && STAY_CONTEXTS.includes(context)) || (filter === "Jobs" && JOB_CONTEXTS.includes(context));
-      return matchesFilter && (!term || `${conversation.other.name} ${conversation.contextTitle} ${conversationPreview(conversation)}`.toLowerCase().includes(term));
+      return (
+        (filter === "All" || filter === "Archived" || (filter === "Unread" && conversation.unread > 0) || (filter === "Enquiries" && ENQUIRY_CONTEXTS.includes(context)) || (filter === "Stays" && STAY_CONTEXTS.includes(context)) || (filter === "Jobs" && JOB_CONTEXTS.includes(context))) &&
+        (!term || `${conversation.other.name} ${conversation.contextTitle} ${conversationPreview(conversation)}`.toLowerCase().includes(term))
+      );
     });
-  }, [conversations.data, filter, query]);
+  }, [conversations.data, filter, term]);
 
   return (
     <aside className={cn("flex min-h-0 flex-col border-gray-200 bg-white lg:border-r", className)}>
       <div className="flex shrink-0 flex-col gap-3 p-4">
         <h1 className="text-xl font-bold leading-[29px] text-[#0f172a]">Messages</h1>
-        <label className="flex h-11 items-center gap-2.5 rounded-xl border border-gray-200 bg-white px-4">
-          <NavIcon icon="/icons/search-02.svg" size={15} className="shrink-0 bg-gray-500" />
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search messages"
-            aria-label="Search messages"
-            className="min-w-0 flex-1 bg-transparent text-sm text-[#0f172a] placeholder:text-[#94a3b8] focus:outline-none"
-          />
-        </label>
         <div role="tablist" aria-label="Message filter" className="no-scrollbar flex gap-1.5 overflow-x-auto">
           {FILTERS.map((item) => (
             <button
@@ -119,7 +109,7 @@ export function ConversationList({ activeId, onSelect, className }: Conversation
         })}
         {!conversations.isPending && visible.length === 0 && (
           <li>
-            {filter === "All" && !query.trim() ? (
+            {filter === "All" && !term ? (
               <EmptyState size="compact" icon="chat" title="No conversations yet" body="Chats with agents, hosts and artisans land here." className="border-0 bg-transparent" />
             ) : (
               <p className="p-6 text-center text-sm text-gray-500">No conversations found.</p>

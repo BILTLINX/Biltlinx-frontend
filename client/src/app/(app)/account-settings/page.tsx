@@ -14,8 +14,6 @@ import { SecurityTab } from "@/components/shared/SecurityTab";
 import { TeamsTab } from "@/components/shared/TeamsTab";
 import { useOrganization } from "@/context/OrganizationContext";
 import { useSession } from "@/context/SessionContext";
-import { updateProfile, type ProfileChanges } from "@/lib/account-api";
-import { notifyError } from "@/lib/errors";
 import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -31,12 +29,11 @@ const TABS = [
 
 type TabKey = (typeof TABS)[number]["key"];
 
-/** One line of a profile card. Read-only lines are shown but can't be changed here. */
+/** One line of the profile card. */
 interface Field {
   key: string;
   label: string;
   value: string;
-  readOnly?: boolean;
 }
 
 const PLACEHOLDER_AVATAR = "/icons/avatar-placeholder-user.svg";
@@ -229,157 +226,36 @@ function SwitchRoleMenu() {
 }
 
 function ProfileTab() {
-  const { user, refresh } = useSession();
+  const { user } = useSession();
 
   const personal: Field[] = [
     { key: "displayName", label: "Display name", value: user?.username ?? "" },
-    { key: "email", label: "Email", value: user?.accounts[0]?.email ?? "", readOnly: true },
-    { key: "phone", label: "Phone number", value: user?.primaryContact ?? "", readOnly: true },
-    ...(user?.otherContact ? [{ key: "other", label: "Other contact", value: user.otherContact, readOnly: true }] : []),
+    { key: "email", label: "Email", value: user?.accounts[0]?.email ?? "" },
+    { key: "phone", label: "Phone number", value: user?.primaryContact ?? "" },
+    ...(user?.otherContact ? [{ key: "other", label: "Other contact", value: user.otherContact }] : []),
     { key: "bio", label: "Bio", value: user?.bio ?? "" },
-    { key: "status", label: "Account status", value: user?.status ?? "", readOnly: true },
+    { key: "status", label: "Account status", value: user?.status ?? "" },
   ];
-  const address: Field[] = [{ key: "location", label: "Location", value: user?.location ?? "" }];
-
-  /** Saves the editable lines of a card; the other lines are read from the account and can't be changed here. */
-  async function save(fields: Field[]) {
-    const changes: ProfileChanges = {};
-    for (const field of fields) {
-      if (field.readOnly) continue;
-      if (field.key === "displayName") changes.displayName = field.value.trim();
-      if (field.key === "bio") changes.bio = field.value.trim();
-      if (field.key === "location") changes.location = field.value.trim();
-    }
-    try {
-      await updateProfile(changes);
-      await refresh();
-      return true;
-    } catch (error) {
-      notifyError(error, "That could not be saved. Please try again.");
-      return false;
-    }
-  }
 
   return (
     <div className="flex flex-col gap-4 px-2 pb-2 sm:px-4 sm:pb-4">
       <div className="flex flex-col gap-1">
         <h1 className="text-lg font-semibold text-night-900">Profile</h1>
-        <p className="text-[13px] text-gray-600">Your account details. To change your email or phone, use the Security tab.</p>
+        <p className="text-[13px] text-gray-600">Your account details. To change your email, phone or location, use the Security tab.</p>
       </div>
 
-      <InfoCard title="Personal Information" fields={personal} onSave={save} />
-      <InfoCard title="Address" fields={address} onSave={save} />
-    </div>
-  );
-}
-
-/** A profile card that opens up in place: the page dims behind it, its lines become inputs, and Esc or a press outside discards. */
-function InfoCard({ title, fields, onSave }: { title: string; fields: Field[]; onSave: (fields: Field[]) => Promise<boolean> }) {
-  const [editing, setEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [draft, setDraft] = useState(fields);
-  const firstInputRef = useRef<HTMLInputElement | null>(null);
-  const cardRef = useRef<HTMLElement | null>(null);
-  const firstEditable = fields.findIndex((field) => !field.readOnly);
-
-  useEffect(() => {
-    if (!editing) return;
-    // preventScroll: a plain autoFocus scrolls the page abruptly while the card is still resizing.
-    firstInputRef.current?.focus({ preventScroll: true });
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") discard();
-    };
-    // The dim layer ignores pointer events so wheel/touch scrolling still reaches the page; a press outside the card discards instead.
-    const onPointerDown = (event: PointerEvent) => {
-      if (!cardRef.current?.contains(event.target as Node)) discard();
-    };
-    document.addEventListener("keydown", onKey);
-    document.addEventListener("pointerdown", onPointerDown);
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.removeEventListener("pointerdown", onPointerDown);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editing]);
-
-  function startEditing() {
-    setDraft(fields);
-    setEditing(true);
-  }
-
-  function discard() {
-    setDraft(fields);
-    setEditing(false);
-  }
-
-  async function save() {
-    setSaving(true);
-    const saved = await onSave(draft);
-    setSaving(false);
-    if (!saved) return;
-    setEditing(false);
-    showSuccessToast(`${title} updated`);
-  }
-
-  const shown = editing ? draft : fields;
-
-  return (
-    <>
-      {editing && <div className="pointer-events-none fixed inset-0 z-50 bg-black/25" aria-hidden="true" />}
-      <section
-        ref={cardRef}
-        className={cn(
-          "flex flex-col gap-5 border border-gray-200 bg-white p-4 transition-[border-radius,box-shadow] duration-200 sm:p-5",
-          editing ? "relative z-[60] rounded-[28px] shadow-[0px_24px_60px_-15px_rgba(0,0,0,0.25)]" : "rounded-2xl",
-        )}
-      >
-        <div className="flex items-center justify-between">
-          <h2 className={cn("text-night-900", editing ? "text-base font-semibold tracking-[-0.48px] text-[#111826]" : "text-[15px] font-medium")}>{title}</h2>
-          {!editing && (
-            <button type="button" onClick={startEditing} className="flex h-8 items-center gap-2 rounded-2xl border border-gray-200 px-3 text-xs text-night-900 hover:bg-gray-50 sm:rounded-lg">
-              Edit
-              <NavIcon icon="/icons/poll-option-edit.svg" color="night" size={12} />
-            </button>
-          )}
-        </div>
+      <section className="flex flex-col gap-5 rounded-2xl border border-gray-200 bg-white p-4 sm:p-5">
+        <h2 className="text-[15px] font-medium text-night-900">Personal Information</h2>
         <dl className="grid grid-cols-1 gap-x-12 gap-y-4 sm:grid-cols-2">
-          {shown.map((field, index) => (
-            <div key={field.key} className={cn("flex items-center justify-between gap-3 border-b pb-2 text-[13px]", editing && index === firstEditable ? "border-brand-900" : "border-gray-200")}>
+          {personal.map((field) => (
+            <div key={field.key} className="flex items-center justify-between gap-3 border-b border-gray-200 pb-2 text-[13px]">
               <dt className="shrink-0 text-gray-400">{field.label}</dt>
-              {editing && !field.readOnly ? (
-                <dd className="min-w-0 flex-1">
-                  <input
-                    value={field.value}
-                    maxLength={field.key === "bio" ? 160 : 80}
-                    onChange={(event) => setDraft((current) => current.map((item) => (item.key === field.key ? { ...item, value: event.target.value } : item)))}
-                    aria-label={field.label}
-                    ref={index === firstEditable ? firstInputRef : undefined}
-                    className="w-full bg-transparent text-right font-medium text-[#334154] focus:outline-none"
-                  />
-                </dd>
-              ) : (
-                <dd className={cn("min-w-0 flex-1 truncate text-right", field.readOnly && editing ? "text-gray-400" : "text-night-900")}>{field.value || "—"}</dd>
-              )}
+              <dd className="min-w-0 flex-1 truncate text-right text-night-900">{field.value || "—"}</dd>
             </div>
           ))}
         </dl>
-        {editing && (
-          <div className="flex items-center gap-2 sm:gap-4">
-            <button type="button" onClick={discard} className="h-10 shrink-0 whitespace-nowrap rounded-2xl border border-[#e2e8f0] bg-white px-3 text-xs text-[#0f1621] hover:bg-gray-50 sm:rounded-lg sm:px-4 sm:text-sm">
-              Discard Changes
-            </button>
-            <button
-              type="button"
-              disabled={saving}
-              onClick={() => void save()}
-              className="h-10 min-w-0 flex-1 whitespace-nowrap rounded-2xl bg-brand-900 px-3 text-xs text-white hover:bg-brand-900/90 disabled:opacity-60 sm:rounded-lg sm:px-4 sm:text-sm"
-            >
-              {saving ? "Saving…" : "Save Changes"}
-            </button>
-          </div>
-        )}
       </section>
-    </>
+    </div>
   );
 }
 

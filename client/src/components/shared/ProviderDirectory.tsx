@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { useProviders, useTaxonomy } from "@/hooks/useServices";
 import { errorMessage } from "@/lib/errors";
 import { cn } from "@/lib/utils";
+import { useDebouncedSearch } from "@/context/SearchContext";
 
 const NO_RESULTS: Record<ProviderDirectoryProps["kind"], { icon: EmptyIcon; title: string; body: string; post: string }> = {
   professional: {
@@ -38,16 +39,14 @@ interface ProviderDirectoryProps {
   kind: "professional" | "artisan";
   title: string;
   subtitle: string;
-  searchPlaceholder: string;
   activeChildKey: string;
   rightRail: ReactNode;
 }
 
-export function ProviderDirectory({ kind, title, subtitle, searchPlaceholder, activeChildKey, rightRail }: ProviderDirectoryProps) {
+export function ProviderDirectory({ kind, title, subtitle, activeChildKey, rightRail }: ProviderDirectoryProps) {
   const router = useRouter();
   const taxonomy = useTaxonomy();
-  const [text, setText] = useState("");
-  const [search, setSearch] = useState("");
+  const search = useDebouncedSearch();
   const [city, setCity] = useState("");
   const [category, setCategory] = useState("");
   const [verifiedOnly, setVerifiedOnly] = useState(false);
@@ -55,18 +54,11 @@ export function ProviderDirectory({ kind, title, subtitle, searchPlaceholder, ac
   const sentinel = useRef<HTMLDivElement | null>(null);
 
   function clearFilters() {
-    setText("");
-    setSearch("");
     setCity("");
     setCategory("");
     setVerifiedOnly(false);
     setUrgent(false);
   }
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => setSearch(text.trim()), 350);
-    return () => window.clearTimeout(timer);
-  }, [text]);
 
   const { items, total, isPending, isError, error, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } = useProviders({
     kind,
@@ -102,16 +94,6 @@ export function ProviderDirectory({ kind, title, subtitle, searchPlaceholder, ac
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row">
-          <label className="flex h-12 min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-gray-200 bg-white px-4">
-            <NavIcon icon="/icons/search-02.svg" size={15} className="bg-gray-500" />
-            <input
-              value={text}
-              onChange={(event) => setText(event.target.value)}
-              placeholder={searchPlaceholder}
-              aria-label={`Search ${title.toLowerCase()}`}
-              className="min-w-0 flex-1 bg-transparent text-sm text-[#0f172a] placeholder:text-[#94a3b8] focus:outline-none"
-            />
-          </label>
           <label className="flex h-12 items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 sm:w-[200px]">
             <NavIcon icon="/icons/post-options-location.svg" size={14} className="bg-[#0f172a]" />
             <input value={city} onChange={(event) => setCity(event.target.value)} placeholder="City" aria-label="City" className="min-w-0 flex-1 bg-transparent text-sm font-medium focus:outline-none" />

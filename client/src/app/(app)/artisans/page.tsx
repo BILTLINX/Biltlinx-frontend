@@ -9,7 +9,6 @@ export default function ArtisansPage() {
       kind="artisan"
       title="Artisans"
       subtitle="Electricians, plumbers, masons and other skilled trades near you."
-      searchPlaceholder="Search by name, trade or service"
       activeChildKey="artisans"
       rightRail={<ArtisansRail />}
     />

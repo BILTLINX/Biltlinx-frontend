@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { AddRoleModal } from "@/components/shared/AddRoleModal";
 import { showSuccessToast } from "@/components/shared/AppToast";
 import { OUTLINE_BUTTON, RowText, SETTINGS_CARD, SETTINGS_ROW, SectionHeading } from "@/components/shared/SettingsParts";
 import { SelectField } from "@/components/shared/SelectField";
@@ -18,7 +19,6 @@ import {
   listMembers,
   listRoles,
   removeMember,
-  requestCapability,
   resendInvitation,
   setMemberRoles,
   withdrawCapability,
@@ -45,23 +45,26 @@ function Capabilities() {
     void queryClient.invalidateQueries({ queryKey: ["me"] });
     void queryClient.invalidateQueries({ queryKey: ["action-needed"] });
   };
-  const request = useMutation({
-    mutationFn: (capability: string) => requestCapability(capability),
-    onSuccess: () => {
-      refresh();
-      showSuccessToast("Requested. A Biltlinx reviewer will look at it.");
-    },
-    onError: (error) => notifyError(error),
-  });
   const withdraw = useMutation({ mutationFn: withdrawCapability, onSuccess: refresh, onError: (error) => notifyError(error) });
   const byName = new Map((capabilities.data ?? []).map((item) => [item.capability, item]));
+  const [adding, setAdding] = useState(false);
+  const mine = CAPABILITIES.filter((item) => byName.has(item.value));
 
   return (
     <section className={SETTINGS_CARD}>
-      <SectionHeading title="What you do on Biltlinx" note="Ask for a role to unlock its tools. A reviewer approves each request." />
+      <SectionHeading
+        title="What you do on Biltlinx"
+        note="Add a role to unlock its tools. A reviewer checks each one before it goes live."
+        action={
+          <button type="button" onClick={() => setAdding(true)} className={cn(OUTLINE_BUTTON, "shrink-0")}>
+            Add a role
+          </button>
+        }
+      />
       {capabilities.isPending && <p className="py-3 text-sm text-gray-500">Loading…</p>}
       {capabilities.isError && <p className="py-3 text-sm text-[#dc2626]">{errorMessage(capabilities.error)}</p>}
-      {CAPABILITIES.map((item) => {
+      {!capabilities.isPending && mine.length === 0 && <p className="py-3 text-sm text-gray-500">You have not added a role yet.</p>}
+      {mine.map((item) => {
         const current = byName.get(item.value);
         const open = current?.status === "Pending" || current?.status === "Approved";
         return (
@@ -69,19 +72,16 @@ function Capabilities() {
             <RowText title={item.label} note={current?.status === "Rejected" && current.reviewReason ? `Not approved: ${current.reviewReason}` : item.note} />
             <div className="flex shrink-0 items-center gap-2.5">
               {current && <span className={cn("rounded-full px-2.5 py-1 text-[11px] font-medium", STATUS_TONE[current.status ?? ""])}>{current.status}</span>}
-              {open ? (
+              {open && (
                 <button type="button" onClick={() => withdraw.mutate(item.value)} className={OUTLINE_BUTTON}>
                   {current?.status === "Pending" ? "Withdraw" : "Give up"}
-                </button>
-              ) : (
-                <button type="button" disabled={request.isPending} onClick={() => request.mutate(item.value)} className={OUTLINE_BUTTON}>
-                  {current ? "Ask again" : "Request"}
                 </button>
               )}
             </div>
           </div>
         );
       })}
+      <AddRoleModal open={adding} onClose={() => setAdding(false)} />
     </section>
   );
 }

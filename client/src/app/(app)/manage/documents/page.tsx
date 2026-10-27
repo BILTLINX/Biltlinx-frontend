@@ -20,6 +20,7 @@ import {
   type DocumentKind,
 } from "@/lib/dummy-manage";
 import { cn } from "@/lib/utils";
+import { useSearchTerm } from "@/context/SearchContext";
 
 const STATUS_TONE: Record<DocumentKind, string> = {
   checked: "bg-[#dcfce7] text-[#16a34a]",
@@ -32,20 +33,19 @@ const STATUS_TONE: Record<DocumentKind, string> = {
 /** Manage · Documents (Figma node 1058:29691): titles, agreements, receipts and permits in one library. */
 export default function ManageDocumentsPage() {
   const router = useRouter();
-  const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<DocumentFilterKey>("All");
   const [folder, setFolder] = useState<DocumentFolderKey>("all");
   const comingSoon = (feature: string) => () => router.push(comingSoonHref(feature));
 
+  const needle = useSearchTerm();
   const documents = useMemo(() => {
-    const needle = query.trim().toLowerCase();
     return MANAGE_DOCUMENTS.filter(
       (doc) =>
         (folder === "all" || doc.folder === folder) &&
         matchesDocumentFilter(doc, filter) &&
         (!needle || `${doc.name} ${doc.detail} ${doc.property}`.toLowerCase().includes(needle)),
     );
-  }, [query, filter, folder]);
+  }, [needle, filter, folder]);
 
   return (
     <AppShell activeKey="manage" contentFullWidth>
@@ -106,16 +106,6 @@ export default function ManageDocumentsPage() {
 
           <div className="flex min-w-0 flex-1 flex-col gap-3">
             <div className="flex flex-wrap items-center gap-2.5">
-              <label className="flex h-10 w-full items-center gap-2 rounded-[10px] border border-gray-200 bg-white px-3.5 focus-within:border-brand-900 sm:w-[300px]">
-                <NavIcon icon="/icons/search-02.svg" size={16} className="shrink-0 bg-gray-500" />
-                <input
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Search documents"
-                  aria-label="Search documents"
-                  className="min-w-0 flex-1 bg-transparent text-[13px] leading-[19px] text-[#0f172a] placeholder:text-[#94a3b8] focus:outline-none"
-                />
-              </label>
               <div role="tablist" aria-label="Show" className="flex flex-wrap gap-2.5">
                 {DOCUMENT_FILTERS.map((option) => {
                   const active = option === filter;

@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { showSuccessToast } from "@/components/shared/AppToast";
 import { AnchoredPanel } from "@/components/shared/AnchoredPanel";
 import { AppShell } from "@/components/shared/AppShell";
@@ -23,6 +23,7 @@ import { confirmAvailability, deleteDraft, getPortfolioSummary, listDrafts, type
 import { FALLBACK_PROPERTY_IMAGE, propertyKind, propertyPrice, propertyPriceUnit } from "@/lib/property-mapper";
 import type { PropertyDto } from "@/types/api/schema";
 import { cn } from "@/lib/utils";
+import { useDebouncedSearch } from "@/context/SearchContext";
 
 type Filter = "all" | "Approved" | "PendingReview" | "Paused" | "Rejected" | "drafts";
 
@@ -85,17 +86,11 @@ function RowMenu({ open, onToggle, onClose, items }: { open: boolean; onToggle: 
 export default function ManageListingsPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [text, setText] = useState("");
-  const [search, setSearch] = useState("");
+  const search = useDebouncedSearch();
   const [filter, setFilter] = useState<Filter>("all");
   const [action, setAction] = useState<{ property: PropertyDto; action: RowAction } | null>(null);
   const [documentsFor, setDocumentsFor] = useState<PropertyDto | null>(null);
   const [menuFor, setMenuFor] = useState<string | null>(null);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => setSearch(text.trim()), 350);
-    return () => window.clearTimeout(timer);
-  }, [text]);
 
   const summary = useQuery({ queryKey: ["properties", "summary"], queryFn: getPortfolioSummary });
   const listings = useMyProperties({ q: search || undefined, status: filter === "all" || filter === "drafts" ? undefined : filter }, filter !== "drafts");
@@ -159,16 +154,6 @@ export default function ManageListingsPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          <label className="flex h-10 w-full items-center gap-2 rounded-[10px] border border-gray-200 bg-white px-3.5 focus-within:border-brand-900 sm:w-[280px]">
-            <NavIcon icon="/icons/search-02.svg" size={16} className="shrink-0 bg-gray-500" />
-            <input
-              value={text}
-              onChange={(event) => setText(event.target.value)}
-              placeholder="Search your listings"
-              aria-label="Search your listings"
-              className="min-w-0 flex-1 bg-transparent text-[13px] leading-[19px] text-[#0f172a] placeholder:text-[#94a3b8] focus:outline-none"
-            />
-          </label>
           <div role="tablist" aria-label="Show" className="flex flex-wrap gap-2.5">
             {FILTERS.map((option) => (
               <button

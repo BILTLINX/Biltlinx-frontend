@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/shared/AppShell";
 import { PageContainer } from "@/components/shared/PageContainer";
-import { NavIcon } from "@/components/shared/NavIcon";
 import { ProjectCard } from "@/components/shared/ProjectCard";
 import { ProjectsRail } from "@/components/shared/ProjectsRail";
 import { FilterDropdown } from "@/components/shared/FilterDropdown";
@@ -12,7 +11,7 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { Button } from "@/components/ui/Button";
 import { comingSoonHref } from "@/lib/coming-soon";
 import { PROJECT_FILTERS, PROJECTS, type ProjectFilter } from "@/lib/dummy-projects";
-import { cn } from "@/lib/utils";
+import { useSearchTerm } from "@/context/SearchContext";
 
 const FILTER_FIELDS = [
   { label: "Stage", value: "Any stage" },
@@ -22,18 +21,17 @@ const FILTER_FIELDS = [
 export default function ProjectsPage() {
   const router = useRouter();
   const [filter, setFilter] = useState<ProjectFilter>("All");
-  const [query, setQuery] = useState("");
   const [followed, setFollowed] = useState<string[]>([]);
   const comingSoon = (feature: string) => () => router.push(comingSoonHref(feature));
 
+  const term = useSearchTerm();
   const projects = useMemo(() => {
-    const term = query.trim().toLowerCase();
     return PROJECTS.filter(
       (project) =>
         (filter === "All" || (filter === "Following" ? followed.includes(project.id) : project.stage === filter)) &&
         (!term || `${project.name} ${project.developer} ${project.area}`.toLowerCase().includes(term)),
     );
-  }, [filter, query, followed]);
+  }, [filter, term, followed]);
 
   function toggleFollow(id: string) {
     setFollowed((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
@@ -59,16 +57,6 @@ export default function ProjectsPage() {
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row">
-          <label className="flex h-12 min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-gray-200 bg-white px-4">
-            <NavIcon icon="/icons/search-02.svg" size={15} className="bg-gray-500" />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search projects, developers or areas"
-              aria-label="Search projects"
-              className="min-w-0 flex-1 bg-transparent text-sm text-[#0f172a] placeholder:text-[#94a3b8] focus:outline-none"
-            />
-          </label>
           <div className="grid grid-cols-2 gap-3 sm:flex">
             {FILTER_FIELDS.map((field) => (
               <button
@@ -98,7 +86,7 @@ export default function ProjectsPage() {
             ))}
           </div>
         ) : (
-          query.trim() ? (
+          term ? (
             <p className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500">No projects match your search.</p>
           ) : (
             <EmptyState

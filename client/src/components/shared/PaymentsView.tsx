@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/Button";
 import { comingSoonHref } from "@/lib/coming-soon";
 import { INVOICE_FILTERS, matchesInvoiceFilter, type ArtisanInvoice, type InvoiceFilterKey, type InvoiceKind, type MANAGE_ROLES } from "@/lib/dummy-manage";
 import { cn } from "@/lib/utils";
+import { useSearchTerm } from "@/context/SearchContext";
 
 const STATUS_TONE: Record<InvoiceKind, string> = {
   overdue: "bg-[#fee2e2] text-[#dc2626]",
@@ -36,15 +37,14 @@ interface PaymentsViewProps {
 /** The Payments page of an artisan or professional workspace: invoices, money held for work in progress and payouts. */
 export function PaymentsView({ role, tabs, available: initialAvailable, kpis, payoutPlan, invoices: allInvoices }: PaymentsViewProps) {
   const router = useRouter();
-  const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<InvoiceFilterKey>("All");
   const [available, setAvailable] = useState(initialAvailable);
   const comingSoon = (feature: string) => () => router.push(comingSoonHref(feature));
 
+  const needle = useSearchTerm();
   const invoices = useMemo(() => {
-    const needle = query.trim().toLowerCase();
     return allInvoices.filter((invoice) => matchesInvoiceFilter(invoice, filter) && (!needle || `${invoice.id} ${invoice.client.name} ${invoice.job}`.toLowerCase().includes(needle)));
-  }, [allInvoices, query, filter]);
+  }, [allInvoices, needle, filter]);
 
   function payOut() {
     showSuccessToast(`${ghs(available)} is on its way to ${payoutPlan.account}`);
@@ -106,16 +106,6 @@ export function PaymentsView({ role, tabs, available: initialAvailable, kpis, pa
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          <label className="flex h-10 w-full items-center gap-2 rounded-[10px] border border-gray-200 bg-white px-3.5 focus-within:border-brand-900 sm:w-[280px]">
-            <NavIcon icon="/icons/search-02.svg" size={16} className="shrink-0 bg-gray-500" />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search invoices"
-              aria-label="Search invoices"
-              className="min-w-0 flex-1 bg-transparent text-[13px] leading-[19px] text-[#0f172a] placeholder:text-[#94a3b8] focus:outline-none"
-            />
-          </label>
           <div role="tablist" aria-label="Show" className="flex flex-wrap gap-2.5">
             {INVOICE_FILTERS.map((option) => {
               const active = option === filter;

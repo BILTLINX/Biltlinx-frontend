@@ -6,7 +6,6 @@ import { AppShell } from "@/components/shared/AppShell";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { FilterDropdown } from "@/components/shared/FilterDropdown";
 import { ListingCard } from "@/components/shared/ListingCard";
-import { NavIcon } from "@/components/shared/NavIcon";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { PropertiesRail } from "@/components/shared/PropertiesRail";
 import { Button } from "@/components/ui/Button";
@@ -16,6 +15,7 @@ import { comingSoonHref } from "@/lib/coming-soon";
 import { errorMessage } from "@/lib/errors";
 import type { PropertyQuery } from "@/lib/properties-api";
 import { cn } from "@/lib/utils";
+import { useDebouncedSearch } from "@/context/SearchContext";
 
 const TABS = [
   { key: "buy", label: "Buy", noun: "homes for sale", query: { listingType: "Sale" } },
@@ -51,8 +51,7 @@ function numberOrUndefined(value: string) {
 export default function PropertiesPage() {
   const router = useRouter();
   const [tab, setTab] = useState<TabKey>("buy");
-  const [text, setText] = useState("");
-  const [search, setSearch] = useState("");
+  const search = useDebouncedSearch();
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [bedrooms, setBedrooms] = useState("");
@@ -60,18 +59,11 @@ export default function PropertiesPage() {
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   function clearFilters() {
-    setText("");
-    setSearch("");
     setMinPrice("");
     setMaxPrice("");
     setBedrooms("");
     setSort("newest");
   }
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => setSearch(text.trim()), 350);
-    return () => window.clearTimeout(timer);
-  }, [text]);
 
   const active = TABS.find((item) => item.key === tab) ?? TABS[0];
   const { cards, total, isPending, isError, error, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } = useProperties({
@@ -137,16 +129,6 @@ export default function PropertiesPage() {
         </div>
 
         <div className="flex flex-col gap-3 lg:flex-row">
-          <label className="flex h-12 min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-gray-200 bg-white px-4">
-            <NavIcon icon="/icons/search-02.svg" size={15} className="bg-gray-500" />
-            <input
-              value={text}
-              onChange={(event) => setText(event.target.value)}
-              placeholder="Search by area, estate or landmark"
-              aria-label="Search properties"
-              className="min-w-0 flex-1 bg-transparent text-sm text-[#0f172a] placeholder:text-[#94a3b8] focus:outline-none"
-            />
-          </label>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:flex">
             <input
               value={minPrice}

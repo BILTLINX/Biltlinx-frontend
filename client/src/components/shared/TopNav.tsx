@@ -13,8 +13,8 @@ import { VisibilityRow } from "@/components/shared/VisibilityRow";
 import { Tooltip } from "@/components/shared/Tooltip";
 import { usePostModals } from "@/hooks/usePostModals";
 import { useAccountBadge } from "@/hooks/useDisplayName";
+import { useSearch } from "@/context/SearchContext";
 import { useSession } from "@/context/SessionContext";
-import { comingSoonHref } from "@/lib/coming-soon";
 
 export function TopNav() {
   const router = useRouter();
@@ -26,6 +26,8 @@ export function TopNav() {
   const [createMenuOpen, setCreateMenuOpen] = useState(false);
   const createMenuRef = useRef<HTMLDivElement | null>(null);
   const { openPostModal, modals } = usePostModals();
+  const { query, setQuery } = useSearch();
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [mobileQuickOpen, setMobileQuickOpen] = useState(false);
   const [mobileQuickMode, setMobileQuickMode] = useState<QuickComposerMode>("post");
 
@@ -43,11 +45,6 @@ export function TopNav() {
     }
     showSuccessToast("You've been logged out");
     router.push("/auth");
-  }
-
-  function goComingSoon(feature: string) {
-    setMenuOpen(false);
-    router.push(comingSoonHref(feature));
   }
 
   function handleCreateClick() {
@@ -76,7 +73,20 @@ export function TopNav() {
   }, [createMenuOpen]);
 
   return (
-    <header className="flex h-[67px] shrink-0 items-center border-b border-gray-200 bg-white px-[15px] py-2 sm:px-[23px]">
+    <header className="relative flex h-[67px] shrink-0 items-center border-b border-gray-200 bg-white px-[15px] py-2 sm:px-[23px]">
+      {mobileSearchOpen && (
+        <div className="absolute inset-0 z-10 flex items-center gap-2 bg-white px-[15px] sm:hidden">
+          <label className="flex h-[42px] min-w-0 flex-1 items-center gap-2 rounded-lg border border-gray-200 px-[11px] focus-within:border-brand-900">
+            <span className="relative block size-[15px] shrink-0">
+              <Image src="/icons/search.svg" alt="" fill sizes="15px" />
+            </span>
+            <input autoFocus type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search this page" aria-label="Search this page" className="min-w-0 flex-1 bg-transparent text-[13px] text-[#0f172a] placeholder:text-gray-500 focus:outline-none" />
+          </label>
+          <button type="button" onClick={() => setMobileSearchOpen(false)} className="shrink-0 px-2 text-[13px] font-medium text-brand-900">
+            Done
+          </button>
+        </div>
+      )}
       <div className="flex w-full items-center justify-between gap-2">
         <div className="flex min-w-0 flex-1 items-center gap-[15px] md:gap-[38px] lg:gap-[57px] 3xl:gap-[109px] 3xl:flex-initial">
           <Link href="/home" aria-label="Home" className="relative size-[34px] shrink-0 sm:hidden">
@@ -86,16 +96,12 @@ export function TopNav() {
             <Image src="/icons/logo-biltlinx.png" alt="Biltlinx" fill className="object-contain" sizes="72px" priority />
           </Link>
 
-          <button
-            type="button"
-            onClick={() => goComingSoon("Search")}
-            className="hidden h-[46px] min-w-0 flex-1 items-center gap-2 rounded-lg border border-gray-200 bg-white px-[11px] py-[13px] text-left sm:flex sm:max-w-[350px]"
-          >
+          <label className="hidden h-[46px] min-w-0 flex-1 items-center gap-2 rounded-lg border border-gray-200 bg-white px-[11px] focus-within:border-brand-900 sm:flex sm:max-w-[350px]">
             <span className="relative block size-[15px] shrink-0">
               <Image src="/icons/search.svg" alt="" fill sizes="15px" />
             </span>
-            <span className="truncate text-[13px] text-gray-500">Search anything</span>
-          </button>
+            <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search this page" aria-label="Search this page" className="min-w-0 flex-1 bg-transparent text-[13px] text-[#0f172a] placeholder:text-gray-500 focus:outline-none" />
+          </label>
         </div>
 
         <div className="flex shrink-0 items-center gap-1 py-1 sm:gap-2 sm:px-2">
@@ -103,7 +109,7 @@ export function TopNav() {
             <button
               type="button"
               aria-label="Search"
-              onClick={() => goComingSoon("Search")}
+              onClick={() => setMobileSearchOpen(true)}
               className="relative flex size-[38px] items-center justify-center rounded-full hover:bg-gray-50"
             >
               <span className="relative block size-[19px] shrink-0">

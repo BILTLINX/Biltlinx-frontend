@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { comingSoonHref } from "@/lib/coming-soon";
 import { ARTISAN_QUOTES, QUOTE_FILTERS, QUOTE_KPIS, matchesQuoteFilter, type ArtisanQuote, type QuoteFilterKey, type QuoteKind } from "@/lib/dummy-manage";
 import { cn } from "@/lib/utils";
+import { useSearchTerm } from "@/context/SearchContext";
 
 const STATUS_TONE: Record<QuoteKind, string> = {
   viewed: "bg-[#fef3c7] text-[#b45309]",
@@ -27,14 +28,13 @@ const ghs = (amount: number) => `GHS ${amount.toLocaleString("en-US")}`;
 /** Manage · Artisan · Quotes (Figma node 1081:33273): quotes sent, who has seen them and which became jobs. */
 export default function ArtisanQuotesPage() {
   const router = useRouter();
-  const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<QuoteFilterKey>("All");
   const comingSoon = (feature: string) => () => router.push(comingSoonHref(feature));
 
+  const needle = useSearchTerm();
   const quotes = useMemo(() => {
-    const needle = query.trim().toLowerCase();
     return ARTISAN_QUOTES.filter((quote) => matchesQuoteFilter(quote, filter) && (!needle || `${quote.title} ${quote.detail} ${quote.client.name}`.toLowerCase().includes(needle)));
-  }, [query, filter]);
+  }, [needle, filter]);
 
   function act(quote: ArtisanQuote) {
     if (quote.action === "Follow up") return showSuccessToast(`Follow-up sent to ${quote.client.name}`);
@@ -79,16 +79,6 @@ export default function ArtisanQuotesPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          <label className="flex h-10 w-full items-center gap-2 rounded-[10px] border border-gray-200 bg-white px-3.5 focus-within:border-brand-900 sm:w-[280px]">
-            <NavIcon icon="/icons/search-02.svg" size={16} className="shrink-0 bg-gray-500" />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search quotes"
-              aria-label="Search quotes"
-              className="min-w-0 flex-1 bg-transparent text-[13px] leading-[19px] text-[#0f172a] placeholder:text-[#94a3b8] focus:outline-none"
-            />
-          </label>
           <div role="tablist" aria-label="Show" className="flex flex-wrap gap-2.5">
             {QUOTE_FILTERS.map((option) => {
               const active = option === filter;

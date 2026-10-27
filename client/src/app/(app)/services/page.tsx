@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/shared/AppShell";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { FilterDropdown } from "@/components/shared/FilterDropdown";
-import { NavIcon } from "@/components/shared/NavIcon";
 import { OfferingCard } from "@/components/shared/OfferingCard";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { ServicesRail } from "@/components/shared/ServicesRail";
@@ -14,6 +13,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { useOfferings, useTaxonomy, useTradeSuggestions } from "@/hooks/useServices";
 import { errorMessage } from "@/lib/errors";
 import { cn } from "@/lib/utils";
+import { useDebouncedSearch } from "@/context/SearchContext";
 
 const SORTS = [
   { value: "", label: "Newest" },
@@ -26,8 +26,7 @@ const FIELD = "h-12 min-w-0 rounded-xl border border-gray-200 bg-white px-3 text
 export default function ServicesPage() {
   const router = useRouter();
   const taxonomy = useTaxonomy();
-  const [text, setText] = useState("");
-  const [search, setSearch] = useState("");
+  const search = useDebouncedSearch();
   const [category, setCategory] = useState("");
   const [city, setCity] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
@@ -35,8 +34,6 @@ export default function ServicesPage() {
   const [problem, setProblem] = useState("");
 
   function clearFilters() {
-    setText("");
-    setSearch("");
     setCategory("");
     setCity("");
     setMaxPrice("");
@@ -45,11 +42,6 @@ export default function ServicesPage() {
   }
   const suggestions = useTradeSuggestions(problem);
   const sentinel = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => setSearch(text.trim()), 350);
-    return () => window.clearTimeout(timer);
-  }, [text]);
 
   const max = Number(maxPrice);
   const { items, total, isPending, isError, error, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } = useOfferings({
@@ -104,10 +96,6 @@ export default function ServicesPage() {
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row">
-          <label className="flex h-12 min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-gray-200 bg-white px-4">
-            <NavIcon icon="/icons/search-02.svg" size={15} className="shrink-0 bg-gray-500" />
-            <input value={text} onChange={(event) => setText(event.target.value)} placeholder="Search services" aria-label="Search services" className="min-w-0 flex-1 bg-transparent text-sm focus:outline-none" />
-          </label>
           <input value={city} onChange={(event) => setCity(event.target.value)} placeholder="City" aria-label="City" className={cn(FIELD, "sm:w-[140px]")} />
           <input value={maxPrice} onChange={(event) => setMaxPrice(event.target.value)} placeholder="Max price (GHS)" inputMode="numeric" aria-label="Maximum price" className={cn(FIELD, "sm:w-[150px]")} />
           <FilterDropdown label="Sort" value={sort} onChange={(value) => setSort(value as typeof sort)} options={SORTS} className="sm:self-center" />

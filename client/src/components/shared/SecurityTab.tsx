@@ -21,6 +21,7 @@ import {
   requestEmailChange,
   requestPhoneChange,
   setupTotp,
+  updateProfile,
 } from "@/lib/account-api";
 import { notifyError } from "@/lib/errors";
 import { formatDateTime } from "@/lib/format";
@@ -294,9 +295,31 @@ function DeactivateDialog({ onClose }: { onClose: () => void }) {
 }
 
 /** The Security tab of Account settings (Figma node 1050:23086): sign-in, two-step verification, activity and account removal. */
+function LocationDialog({ current, onClose }: { current: string; onClose: () => void }) {
+  const queryClient = useQueryClient();
+  const [value, setValue] = useState(current);
+  const save = useMutation({
+    mutationFn: () => updateProfile({ location: value.trim() }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["me"] });
+      showSuccessToast("Your location was updated");
+      onClose();
+    },
+    onError: (error) => notifyError(error),
+  });
+  return (
+    <Dialog title="Change location" onClose={onClose}>
+      <input placeholder="e.g. East Legon, Accra" maxLength={80} value={value} onChange={(event) => setValue(event.target.value)} className={FIELD} />
+      <button type="button" disabled={save.isPending} onClick={() => save.mutate()} className={PRIMARY}>
+        {save.isPending ? "Saving…" : "Save location"}
+      </button>
+    </Dialog>
+  );
+}
+
 export function SecurityTab() {
   const { user } = useSession();
-  const [dialog, setDialog] = useState<"password" | "email" | "phone" | "totp" | "deactivate" | "delete" | null>(null);
+  const [dialog, setDialog] = useState<"password" | "email" | "phone" | "location" | "totp" | "deactivate" | "delete" | null>(null);
   const [page, setPage] = useState(1);
   const audit = useQuery({ queryKey: ["security-audit", page], queryFn: () => getSecurityAudit(page) });
 
@@ -308,7 +331,7 @@ export function SecurityTab() {
       </div>
 
       <section className={SETTINGS_CARD}>
-        <SectionHeading title="Sign-in" note="How you log in to Biltlinx." />
+        <SectionHeading title="Sign-in and address" note="How you log in to Biltlinx, and where you are." />
         <div className={SETTINGS_ROW}>
           <RowText title="Password" note="Changing it signs out your other devices." />
           <button type="button" onClick={() => setDialog("password")} className={OUTLINE_BUTTON}>
@@ -324,6 +347,12 @@ export function SecurityTab() {
         <div className={SETTINGS_ROW}>
           <RowText title="Phone number" note={user?.primaryContact ?? "Not set"} />
           <button type="button" onClick={() => setDialog("phone")} className={OUTLINE_BUTTON}>
+            Change
+          </button>
+        </div>
+        <div className={SETTINGS_ROW}>
+          <RowText title="Location" note={user?.location || "Not set"} />
+          <button type="button" onClick={() => setDialog("location")} className={OUTLINE_BUTTON}>
             Change
           </button>
         </div>
@@ -390,6 +419,7 @@ export function SecurityTab() {
       {dialog === "password" && <PasswordDialog onClose={() => setDialog(null)} />}
       {dialog === "email" && <ContactDialog kind="email" onClose={() => setDialog(null)} />}
       {dialog === "phone" && <ContactDialog kind="phone" onClose={() => setDialog(null)} />}
+      {dialog === "location" && <LocationDialog current={user?.location ?? ""} onClose={() => setDialog(null)} />}
       {dialog === "totp" && <TotpDialog enabled={Boolean(user?.totpEnabled)} onClose={() => setDialog(null)} />}
       {dialog === "deactivate" && <DeactivateDialog onClose={() => setDialog(null)} />}
       {dialog === "delete" && <DeleteDialog onClose={() => setDialog(null)} />}

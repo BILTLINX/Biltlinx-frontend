@@ -7,7 +7,6 @@ import { PageContainer } from "@/components/shared/PageContainer";
 import { CommunitiesRail } from "@/components/shared/CommunitiesRail";
 import { CommunityCard } from "@/components/shared/CommunityCard";
 import { DiscussionRow } from "@/components/shared/DiscussionRow";
-import { NavIcon } from "@/components/shared/NavIcon";
 import { FilterDropdown } from "@/components/shared/FilterDropdown";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { Button } from "@/components/ui/Button";
@@ -19,33 +18,27 @@ import {
   FILTER_TYPES,
   type CommunityFilter,
 } from "@/lib/dummy-communities";
-import { cn } from "@/lib/utils";
+import { useSearchTerm } from "@/context/SearchContext";
 
 export default function CommunitiesPage() {
   const router = useRouter();
   const [filter, setFilter] = useState<CommunityFilter>("For you");
-  const [query, setQuery] = useState("");
   const [joined, setJoined] = useState<string[]>([]);
   const comingSoon = (feature: string) => () => router.push(comingSoonHref(feature));
 
+  const term = useSearchTerm();
   const communities = useMemo(() => {
-    const term = query.trim().toLowerCase();
     const type = FILTER_TYPES[filter];
     return COMMUNITIES.filter(
       (community) =>
         (filter === "My communities" ? joined.includes(community.id) : !type || community.type === type) &&
         (!term || `${community.name} ${community.description}`.toLowerCase().includes(term)),
     );
-  }, [filter, query, joined]);
+  }, [filter, term, joined]);
 
   const discussions = useMemo(() => {
-    const term = query.trim().toLowerCase();
-    return DISCUSSIONS.filter(
-      (discussion) =>
-        communities.some((community) => community.id === discussion.communityId) &&
-        (!term || discussion.question.toLowerCase().includes(term)),
-    );
-  }, [communities, query]);
+    return DISCUSSIONS.filter((discussion) => communities.some((community) => community.id === discussion.communityId) && (!term || discussion.question.toLowerCase().includes(term)));
+  }, [communities, term]);
 
   function toggleJoin(id: string) {
     setJoined((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
@@ -70,16 +63,6 @@ export default function CommunitiesPage() {
           </Button>
         </div>
 
-        <label className="flex h-12 items-center gap-2.5 rounded-xl border border-gray-200 bg-white px-4">
-          <NavIcon icon="/icons/search-02.svg" size={15} className="shrink-0 bg-gray-500" />
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search communities and discussions"
-            aria-label="Search communities and discussions"
-            className="min-w-0 flex-1 bg-transparent text-sm text-[#0f172a] placeholder:text-[#94a3b8] focus:outline-none"
-          />
-        </label>
 
         <FilterDropdown label="Show" value={filter} onChange={(value) => setFilter(value as typeof filter)} options={COMMUNITY_FILTERS.map((item) => ({ value: item, label: item }))} />
 

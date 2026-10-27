@@ -22,6 +22,7 @@ import {
   type WorkOrderPriority,
 } from "@/lib/dummy-manage";
 import { cn } from "@/lib/utils";
+import { useSearchTerm } from "@/context/SearchContext";
 
 const PRIORITY_TONE: Record<WorkOrderPriority | "paid", string> = {
   Urgent: "bg-[#fee2e2] text-[#dc2626]",
@@ -59,14 +60,13 @@ function WorkOrderCard({ order, onAssign }: { order: WorkOrder; onAssign: () => 
 /** Manage · Maintenance (Figma node 1058:29006): tenant repair requests moving through to work orders sent to artisans. */
 export default function ManageMaintenancePage() {
   const router = useRouter();
-  const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<MaintenanceFilterKey>("All properties");
   const comingSoon = (feature: string) => () => router.push(comingSoonHref(feature));
 
+  const needle = useSearchTerm();
   const orders = useMemo(() => {
-    const needle = query.trim().toLowerCase();
     return WORK_ORDERS.filter((order) => matchesMaintenanceFilter(order, filter) && (!needle || `${order.title} ${order.place} ${order.artisan?.note ?? ""}`.toLowerCase().includes(needle)));
-  }, [query, filter]);
+  }, [needle, filter]);
 
   return (
     <AppShell activeKey="manage" contentFullWidth>
@@ -104,16 +104,6 @@ export default function ManageMaintenancePage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          <label className="flex h-10 w-full items-center gap-2 rounded-[10px] border border-gray-200 bg-white px-3.5 focus-within:border-brand-900 sm:w-[300px]">
-            <NavIcon icon="/icons/search-02.svg" size={16} className="shrink-0 bg-gray-500" />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search work orders"
-              aria-label="Search work orders"
-              className="min-w-0 flex-1 bg-transparent text-[13px] leading-[19px] text-[#0f172a] placeholder:text-[#94a3b8] focus:outline-none"
-            />
-          </label>
           <div role="tablist" aria-label="Show" className="flex flex-wrap gap-2.5">
             {MAINTENANCE_FILTERS.map((option) => {
               const active = option === filter;

@@ -22,6 +22,7 @@ import {
   type RoomCondition,
 } from "@/lib/dummy-manage";
 import { cn } from "@/lib/utils";
+import { useSearchTerm } from "@/context/SearchContext";
 
 const STATUS_TONE: Record<InspectionKind, string> = {
   scheduled: "bg-[#eff5ff] text-brand-900",
@@ -39,16 +40,15 @@ const CONDITION_TONE: Record<RoomCondition, string> = {
 /** Manage · Inspections (Figma node 1058:29335): move-in, routine and move-out inspections with a signable report. */
 export default function ManageInspectionsPage() {
   const router = useRouter();
-  const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<InspectionFilterKey>("Upcoming");
   const comingSoon = (feature: string) => () => router.push(comingSoonHref(feature));
 
+  const needle = useSearchTerm();
   const inspections = useMemo(() => {
-    const needle = query.trim().toLowerCase();
     return INSPECTIONS.filter(
       (inspection) => matchesInspectionFilter(inspection, filter) && (!needle || `${inspection.when} ${inspection.unit} ${inspection.type} ${inspection.inspector.name}`.toLowerCase().includes(needle)),
     );
-  }, [query, filter]);
+  }, [needle, filter]);
 
   return (
     <AppShell activeKey="manage" contentFullWidth>
@@ -88,16 +88,6 @@ export default function ManageInspectionsPage() {
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start">
           <div className="flex min-w-0 flex-1 flex-col gap-3">
             <div className="flex flex-wrap items-center gap-2.5">
-              <label className="flex h-10 w-full items-center gap-2 rounded-[10px] border border-gray-200 bg-white px-3.5 focus-within:border-brand-900 sm:w-[300px]">
-                <NavIcon icon="/icons/search-02.svg" size={16} className="shrink-0 bg-gray-500" />
-                <input
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Search inspections"
-                  aria-label="Search inspections"
-                  className="min-w-0 flex-1 bg-transparent text-[13px] leading-[19px] text-[#0f172a] placeholder:text-[#94a3b8] focus:outline-none"
-                />
-              </label>
               <div role="tablist" aria-label="Show" className="flex flex-wrap gap-2.5">
                 {INSPECTION_FILTERS.map((option) => {
                   const active = option === filter;

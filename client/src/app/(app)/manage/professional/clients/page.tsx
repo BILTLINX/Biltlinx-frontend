@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { comingSoonHref } from "@/lib/coming-soon";
 import { CLIENT_FILTERS, PROFESSIONAL_CLIENTS, type ClientFilterKey, type ClientStageKind, type MilestoneState } from "@/lib/dummy-manage";
 import { cn } from "@/lib/utils";
+import { useSearchTerm } from "@/context/SearchContext";
 
 const STAGE_TONE: Record<ClientStageKind, string> = {
   design: "bg-[#eff5ff] text-brand-900",
@@ -33,16 +34,15 @@ const ghs = (amount: number) => `GHS ${amount.toLocaleString("en-US")}`;
 /** Manage · Professional · Clients (Figma node 1083:34004): everyone the professional works for, with a project panel for the selected client. */
 export default function ProfessionalClientsPage() {
   const router = useRouter();
-  const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<ClientFilterKey>("active");
   const [selectedId, setSelectedId] = useState("abena");
   const comingSoon = (feature: string) => () => router.push(comingSoonHref(feature));
 
+  const needle = useSearchTerm();
   const clients = useMemo(() => {
     if (filter === "past") return [];
-    const needle = query.trim().toLowerCase();
     return PROFESSIONAL_CLIENTS.filter((client) => !needle || `${client.name} ${client.project}`.toLowerCase().includes(needle));
-  }, [query, filter]);
+  }, [needle, filter]);
 
   const selected = PROFESSIONAL_CLIENTS.find((client) => client.id === selectedId) ?? PROFESSIONAL_CLIENTS[0];
   const panel = selected.panel;
@@ -72,16 +72,6 @@ export default function ProfessionalClientsPage() {
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start">
           <div className="flex min-w-0 flex-1 flex-col gap-3">
             <div className="flex flex-wrap items-center gap-2.5">
-              <label className="flex h-10 w-full items-center gap-2 rounded-[10px] border border-gray-200 bg-white px-3.5 focus-within:border-brand-900 sm:w-[280px]">
-                <NavIcon icon="/icons/search-02.svg" size={16} className="shrink-0 bg-gray-500" />
-                <input
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Search clients"
-                  aria-label="Search clients"
-                  className="min-w-0 flex-1 bg-transparent text-[13px] leading-[19px] text-[#0f172a] placeholder:text-[#94a3b8] focus:outline-none"
-                />
-              </label>
               <div role="tablist" aria-label="Show" className="flex flex-wrap gap-2.5">
                 {CLIENT_FILTERS.map((option) => {
                   const active = option.key === filter;

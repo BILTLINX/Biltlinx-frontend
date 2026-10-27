@@ -9,7 +9,6 @@ export default function ProfessionalsPage() {
       kind="professional"
       title="Professionals"
       subtitle="Architects, surveyors, engineers, lawyers and agents for your property and build."
-      searchPlaceholder="Search by name, discipline or service"
       activeChildKey="professionals"
       rightRail={<ProfessionalsRail />}
     />
