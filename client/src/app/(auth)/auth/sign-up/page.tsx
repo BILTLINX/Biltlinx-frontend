@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { showErrorToast, showSuccessToast } from "@/components/shared/AppToast";
 import { AuthScreenLayout } from "@/components/shared/AuthScreenLayout";
+import { GoogleAuthButton } from "@/components/shared/GoogleAuthButton";
 import { HangTightCard } from "@/components/shared/HangTightCard";
 import { SocialAuthButton } from "@/components/shared/SocialAuthButton";
 import { TermsAgreement } from "@/components/shared/TermsAgreement";
@@ -20,7 +21,6 @@ import { validateFullName, validateIdentifier, validatePassword } from "@/lib/va
 const TERMS_ERROR = "You must confirm your age and agree to the terms to continue";
 
 const PROVIDERS = [
-  { id: "google", label: "Sign Up with Google", iconSrc: "/brand/google-icon.svg", invertOnDark: false },
   { id: "apple", label: "Sign Up with Apple", iconSrc: "/brand/apple-icon.svg", invertOnDark: true },
 ] as const;
 
@@ -39,6 +39,7 @@ function handleStubAuth(provider: string) {
 function SocialButtons() {
   return (
     <div className="flex flex-col gap-3">
+      <GoogleAuthButton label="Sign Up with Google" />
       {PROVIDERS.map((provider) => (
         <SocialAuthButton
           key={provider.id}

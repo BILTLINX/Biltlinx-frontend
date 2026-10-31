@@ -34,7 +34,7 @@ export interface CurrentUserAccount {
 export interface CurrentUser {
   id: string;
   username: string;
-  primaryContact: string;
+  primaryContact: string | null;
   otherContact: string | null;
   profilePicUrl: string | null;
   bio: string | null;
@@ -43,6 +43,7 @@ export interface CurrentUser {
   status: string;
   createdAt: string;
   totpEnabled: boolean;
+  hasPassword: boolean;
   recoveryCodesRemaining: number;
   pendingContactChange: PendingContactChange | null;
   capabilities: Capability[];

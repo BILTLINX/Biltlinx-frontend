@@ -39,6 +39,13 @@ export async function login(input: {
   return { mfaRequired: false };
 }
 
+export async function googleLogin(input: { idToken: string; rememberMe?: boolean }): Promise<LoginResult> {
+  const result = await apiRequest<MfaChallenge | undefined>("/auth/google", { method: "POST", body: input });
+  clearCsrfToken();
+  if (result?.mfaRequired) return result;
+  return { mfaRequired: false };
+}
+
 export async function completeMfaLogin(input: { challengeToken: string; code: string; method: MfaMethod }) {
   await apiRequest("/auth/login/mfa", { method: "POST", body: input });
   clearCsrfToken();

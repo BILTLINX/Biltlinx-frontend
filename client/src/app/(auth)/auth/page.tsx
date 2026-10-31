@@ -4,11 +4,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { showSuccessToast } from "@/components/shared/AppToast";
 import { AuthScreenLayout } from "@/components/shared/AuthScreenLayout";
+import { GoogleAuthButton } from "@/components/shared/GoogleAuthButton";
 import { SocialAuthButton } from "@/components/shared/SocialAuthButton";
 import { Divider } from "@/components/ui/Divider";
 
 const PROVIDERS = [
-  { id: "google", label: "Continue with Google", iconSrc: "/brand/google-icon.svg", invertOnDark: false },
   { id: "apple", label: "Continue with Apple", iconSrc: "/brand/apple-icon.svg", invertOnDark: true },
 ] as const;
 
@@ -46,6 +46,8 @@ export default function AuthPage() {
       </div>
 
       <div className="flex flex-col gap-3">
+        <GoogleAuthButton label="Continue with Google" />
+
         {PROVIDERS.map((provider) => (
           <SocialAuthButton
             key={provider.id}

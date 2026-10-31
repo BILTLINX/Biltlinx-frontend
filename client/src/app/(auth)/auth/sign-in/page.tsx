@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { showErrorToast, showSuccessToast } from "@/components/shared/AppToast";
 import { AuthScreenLayout } from "@/components/shared/AuthScreenLayout";
 import { HangTightCard } from "@/components/shared/HangTightCard";
@@ -14,6 +14,7 @@ import { useHangTight } from "@/hooks/useHangTight";
 import { useSession } from "@/context/SessionContext";
 import { ApiError, safeNextPath } from "@/lib/api";
 import { completeMfaLogin, login, sendMfaOtp } from "@/lib/auth-api";
+import { takeMfaChallenge } from "@/lib/mfa-challenge";
 import type { MfaChallenge, MfaMethod } from "@/types/api/auth";
 import { isNonEmpty, validateIdentifier } from "@/lib/validation";
 
@@ -36,6 +37,15 @@ function SignInContent() {
   const { pending, runAsync } = useHangTight();
   const { refresh } = useSession();
   const nextPath = safeNextPath(searchParams.get("next")) ?? "/home";
+  const resumeMfa = searchParams.get("mfa") === "1";
+
+  useEffect(() => {
+    if (!resumeMfa) return;
+    const saved = takeMfaChallenge();
+    if (!saved) return;
+    setChallenge(saved);
+    setMfaMethod(saved.methods.includes("totp") ? "totp" : saved.methods[0]);
+  }, [resumeMfa]);
 
   async function finishSignIn() {
     await refresh();

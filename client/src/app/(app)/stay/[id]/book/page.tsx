@@ -64,7 +64,7 @@ function Checkout({ id }: { id: string }) {
     if (seeded.current || !user) return;
     seeded.current = true;
     setName(user.username);
-    setPhone(user.primaryContact);
+    setPhone(user.primaryContact ?? "");
     setEmail(user.accounts[0]?.email ?? "");
   }, [user]);
 
