@@ -5,12 +5,14 @@ import { useEffect, useState } from "react";
 import { AppShell } from "@/components/shared/AppShell";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { DetailAside } from "@/components/shared/DetailAside";
+import { LocationCombobox } from "@/components/shared/LocationCombobox";
 import { FIELD_BOX, FIELD_INPUT, FormField } from "@/components/shared/ModalFormParts";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { RequestSentDialog } from "@/components/shared/RequestSentDialog";
 import { OptionSelectField } from "@/components/shared/ViewingSlotPickers";
 import { Button } from "@/components/ui/Button";
+import { useConciergeMutations, useConciergePlans } from "@/hooks/useConcierge";
 import { comingSoonHref } from "@/lib/coming-soon";
 import { isNonEmpty } from "@/lib/validation";
 import { cn } from "@/lib/utils";
@@ -25,12 +27,7 @@ const BUDGETS = ["Under 20,000", "20,000 – 80,000", "80,000 – 120,000", "120
 const STARTS = ["As soon as possible", "Within 2 weeks", "Within 1 month", "Within 3 months", "Just exploring"];
 const CHANNELS = ["WhatsApp", "Phone call", "Email"];
 const CONTACT_PLACEHOLDER: Record<string, string> = { WhatsApp: "+44 7700 900123", "Phone call": "+233 24 555 0192", Email: "you@example.com" };
-const PLANS = [
-  { name: "Free consultation", price: "GHS 0", note: "30-minute call to scope the job" },
-  { name: "Managed project", price: "8% of project cost", note: "Sourcing, quotes, weekly site reports" },
-  { name: "Rental management", price: "10% of rent collected", note: "Tenants, rent, repairs, inspections" },
-];
-const REASONS = ["Every provider is ID and credential checked", "Weekly photo and video updates", "Payments held until you approve each milestone"];
+const REASONS = ["Your shortlist shows each provider’s credential check status", "Progress updates with photos and videos", "You confirm every booking and payment yourself"];
 const CARD = "flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-5";
 
 export default function ConciergeStartPage() {
@@ -44,6 +41,9 @@ export default function ConciergeStartPage() {
   const [contact, setContact] = useState("");
   const [errors, setErrors] = useState<{ description?: string; location?: string; contact?: string }>({});
   const [sent, setSent] = useState(false);
+  const { create } = useConciergeMutations();
+  const plans = useConciergePlans();
+  const [planCode, setPlanCode] = useState("consultation");
 
   // The Concierge home page passes what the visitor already typed along as ?q=.
   useEffect(() => {
@@ -53,12 +53,16 @@ export default function ConciergeStartPage() {
 
   function send() {
     const found = {
-      description: isNonEmpty(description) ? undefined : "Tell Concierge what you want done",
+      description: description.trim().length >= 10 ? undefined : "Tell Concierge what you want done, in at least 10 characters",
       location: isNonEmpty(location) ? undefined : "Enter where the property is",
       contact: isNonEmpty(contact) ? undefined : `Enter your ${channel === "Email" ? "email address" : "number"}`,
     };
     setErrors(found);
-    if (!found.description && !found.location && !found.contact) setSent(true);
+    if (found.description || found.location || found.contact) return;
+    create.mutate(
+      { need, description: description.trim(), location: location.trim(), budget: budget || null, startWindow: start, contactChannel: channel, contactValue: contact.trim(), planCode },
+      { onSuccess: () => setSent(true) },
+    );
   }
 
   return (
@@ -116,10 +120,7 @@ export default function ConciergeStartPage() {
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <FormField label="Property location" error={errors.location}>
-                  <label className={cn(FIELD_BOX, errors.location ? "border-[#dc2626]" : "border-gray-200")}>
-                    <NavIcon icon="/icons/post-options-location.svg" size={16} className="bg-gray-500" />
-                    <input value={location} onChange={(event) => setLocation(event.target.value)} placeholder="e.g. Dansoman, Accra" className={FIELD_INPUT} />
-                  </label>
+                  <LocationCombobox value={location} onChange={setLocation} placeholder="e.g. Dansoman, Accra" ariaLabel="Property location" invalid={!!errors.location} icon />
                 </FormField>
                 <FormField label="Budget (GHS)">
                   <OptionSelectField value={budget} options={BUDGETS} onChange={setBudget} placeholder="Select a range" />
@@ -151,8 +152,8 @@ export default function ConciergeStartPage() {
                 <Button variant="outline" onClick={() => router.push(comingSoonHref("Book a call"))} className="h-11 w-auto rounded-[10px] px-4 lg:rounded-[10px]">
                   Book a call instead
                 </Button>
-                <Button variant="primary" onClick={send} className="h-11 w-auto rounded-[10px] px-4 lg:rounded-[10px]">
-                  Send to Concierge
+                <Button variant="primary" onClick={send} disabled={create.isPending} className="h-11 w-auto rounded-[10px] px-4 lg:rounded-[10px]">
+                  {create.isPending ? "Sending..." : "Send to Concierge"}
                 </Button>
               </div>
             </section>
@@ -161,15 +162,23 @@ export default function ConciergeStartPage() {
           <DetailAside className="xl:w-[380px]">
             <section className={CARD}>
               <h2 className="text-[15px] font-bold leading-[22px] text-[#0f172a]">How Concierge is priced</h2>
-              {PLANS.map((plan) => (
-                <div key={plan.name} className="flex flex-col gap-0.5 rounded-xl border border-gray-200 p-3">
-                  <div className="flex items-start justify-between gap-3 text-[13px] leading-[19px]">
-                    <p className="font-semibold text-[#0f172a]">{plan.name}</p>
-                    <p className="shrink-0 text-right font-bold text-brand-900">{plan.price}</p>
-                  </div>
-                  <p className="text-xs leading-[17px] text-gray-500">{plan.note}</p>
-                </div>
+              {(plans.data ?? []).map((plan) => (
+                <button
+                  key={plan.code}
+                  type="button"
+                  role="radio"
+                  aria-checked={plan.code === planCode}
+                  onClick={() => setPlanCode(plan.code)}
+                  className={cn("flex flex-col gap-0.5 rounded-xl border p-3 text-left", plan.code === planCode ? "border-brand-900 bg-[#eff5ff]" : "border-gray-200 hover:bg-gray-50")}
+                >
+                  <span className="flex items-start justify-between gap-3 text-[13px] leading-[19px]">
+                    <span className="font-semibold text-[#0f172a]">{plan.name}</span>
+                    <span className="shrink-0 text-right font-bold text-brand-900">{plan.price}</span>
+                  </span>
+                  <span className="text-xs leading-[17px] text-gray-500">{plan.note}</span>
+                </button>
               ))}
+              <p className="text-xs leading-[17px] text-gray-500">Paid plans are billed once, after Concierge confirms your project cost or rent. You pay by Paystack and nothing is charged now.</p>
             </section>
 
             <section className={`${CARD} gap-2.5`}>
@@ -197,7 +206,7 @@ export default function ConciergeStartPage() {
           { label: "Contact", value: `${channel} · ${contact}` },
         ]}
         secondary={{ label: "Back to Concierge", onClick: () => router.push("/concierge") }}
-        primary={{ label: "Message Concierge", onClick: () => router.push("/messages") }}
+        primary={{ label: "Open messages", onClick: () => router.push("/messages") }}
       />
     </AppShell>
   );

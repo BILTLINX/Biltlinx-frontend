@@ -62,6 +62,11 @@ function PaymentReturn() {
     }
   }, [status, queryClient]);
 
+  const concierge = payment.data?.purpose === "ConciergeFee";
+  useEffect(() => {
+    if (concierge) void queryClient.invalidateQueries({ queryKey: ["concierge"] });
+  }, [concierge, queryClient]);
+
   let content: React.ReactNode;
   if (!reference) {
     content = <Result tone="fail" title="Nothing to check" body="This page opens after a payment. Go back to your bookings to see where things stand." />;
@@ -78,6 +83,14 @@ function PaymentReturn() {
     content = <Result tone="fail" title="The payment did not go through" body={payment.data.failureReason ?? "You have not been charged. Your hold stays for a few minutes so you can try again."} />;
   } else if (payment.data.status === "Pending" || payment.data.status === "Processing") {
     content = <Result tone="wait" title="Your payment is still processing" body="Mobile money can take a minute. We will confirm your booking as soon as it arrives. You can leave this page." />;
+  } else if (payment.data.purpose === "ConciergeFee") {
+    content = (
+      <Result tone="ok" title="Concierge fee received" body={`${formatMoney(payment.data.amount, payment.data.currency ?? "GHS")} paid. Your Concierge plan continues from here.`}>
+        <Link href={`/concierge?id=${payment.data.subjectId}`} className="text-sm font-medium text-brand-900">
+          Back to my plan
+        </Link>
+      </Result>
+    );
   } else if (isStay && status === "Confirmed") {
     content = (
       <Result tone="ok" title="Booking confirmed" body={`${booking.data?.propertyName} · ${formatMoney(payment.data.amount, payment.data.currency ?? "GHS")} paid. The full address is now on your booking.`}>

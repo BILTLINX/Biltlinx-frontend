@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { showSuccessToast } from "@/components/shared/AppToast";
 import { AppShell } from "@/components/shared/AppShell";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
+import { LocationCombobox } from "@/components/shared/LocationCombobox";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { SelectField } from "@/components/shared/SelectField";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -148,7 +149,7 @@ function ProfileSection({ provider }: { provider: ProviderDto | null }) {
       <div className="grid gap-2.5 sm:grid-cols-2">
         <input className={FIELD} placeholder="Display name" value={form.displayName} onChange={(event) => set("displayName", event.target.value)} />
         <input className={FIELD} placeholder="Headline (one line)" value={form.headline} onChange={(event) => set("headline", event.target.value)} />
-        <input className={FIELD} placeholder="City" value={form.city} onChange={(event) => set("city", event.target.value)} />
+        <LocationCombobox pick="city" ariaLabel="City" placeholder="City" value={form.city} onChange={(value) => set("city", value)} inputClassName={FIELD} />
         <input className={FIELD} placeholder="Other areas you serve (comma separated)" value={form.areas} onChange={(event) => set("areas", event.target.value)} />
         <input className={FIELD} placeholder="Service radius (km)" inputMode="numeric" value={form.radius} onChange={(event) => set("radius", event.target.value)} />
         <label className="flex items-center gap-2 text-[13px] text-[#334155]">

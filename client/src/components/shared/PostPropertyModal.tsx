@@ -1,30 +1,62 @@
 "use client";
 
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { showErrorToast, showSuccessToast } from "@/components/shared/AppToast";
+import { showSuccessToast } from "@/components/shared/AppToast";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { Tooltip } from "@/components/shared/Tooltip";
 import { useAnimatedSheet } from "@/hooks/useAnimatedSheet";
-import { DUMMY_LISTINGS, type PropertyListing } from "@/lib/dummy-listings";
-import { cn } from "@/lib/utils";
-import { usePostsFeed } from "@/context/PostsContext";
+import { FEED_KEY } from "@/hooks/useFeed";
+import { PROPERTIES_KEY, useMyProperties } from "@/hooks/useProperties";
+import { notifyError } from "@/lib/errors";
 import { MODAL_FRAME } from "@/lib/modal-styles";
+import { postListing } from "@/lib/properties-api";
+import { FALLBACK_PROPERTY_IMAGE, propertyKind, propertyLocation, propertyPrice, propertyPriceUnit } from "@/lib/property-mapper";
+import { cn } from "@/lib/utils";
+import type { PropertyDto } from "@/types/api/schema";
 
+const APPROVED_QUERY = { status: "Approved", availability: "Active" } as const;
 
 interface PostPropertyModalProps {
   open: boolean;
   onClose: () => void;
 }
 
+function listingImage(item: PropertyDto) {
+  return item.media?.[0]?.url ?? FALLBACK_PROPERTY_IMAGE;
+}
+
+function listingMeta(item: PropertyDto) {
+  const parts = [propertyKind(item), propertyLocation(item)];
+  if (item.bedrooms !== null) parts.push(`${item.bedrooms} Bed`);
+  if (item.bathrooms !== null) parts.push(`${item.bathrooms} Bath`);
+  return parts.join(" | ");
+}
+
 export function PostPropertyModal({ open, onClose }: PostPropertyModalProps) {
-  const { addPost } = usePostsFeed();
+  const queryClient = useQueryClient();
   const [note, setNote] = useState("");
-  const [listingId, setListingId] = useState<string>(DUMMY_LISTINGS[0].id);
-  const listing = DUMMY_LISTINGS.find((item) => item.id === listingId) ?? null;
+  const [pickedId, setPickedId] = useState("");
+  const mine = useMyProperties(APPROVED_QUERY, open);
+  const listings = useMemo(() => mine.items.filter((item) => !item.postedAt), [mine.items]);
+  const listingId = listings.some((item) => item.id === pickedId) ? pickedId : (listings[0]?.id ?? "");
+  const listing = listings.find((item) => item.id === listingId) ?? null;
 
   const { mounted, closing } = useAnimatedSheet(open);
+
+  const post = useMutation({
+    mutationFn: () => postListing(listingId, note),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: FEED_KEY });
+      void queryClient.invalidateQueries({ queryKey: PROPERTIES_KEY });
+      showSuccessToast("Your property has been posted");
+      handleClose();
+    },
+    onError: (error) => notifyError(error, "The property could not be posted."),
+  });
 
   useEffect(() => {
     if (!open) return;
@@ -44,7 +76,7 @@ export function PostPropertyModal({ open, onClose }: PostPropertyModalProps) {
 
   function resetState() {
     setNote("");
-    setListingId(DUMMY_LISTINGS[0].id);
+    setPickedId("");
   }
 
   function handleClose() {
@@ -53,14 +85,8 @@ export function PostPropertyModal({ open, onClose }: PostPropertyModalProps) {
   }
 
   function handlePost() {
-    if (!listing) {
-      showErrorToast("Choose a listing to post");
-      return;
-    }
-    addPost({ kind: "property", note, listing });
-    showSuccessToast("Your property has been posted");
-    resetState();
-    onClose();
+    if (!listing || post.isPending) return;
+    post.mutate();
   }
 
   return createPortal(
@@ -116,6 +142,7 @@ export function PostPropertyModal({ open, onClose }: PostPropertyModalProps) {
               value={note}
               onChange={(event) => setNote(event.target.value)}
               rows={2}
+              maxLength={2000}
               placeholder="Add a note about this property ..."
               className="w-full flex-1 resize-none rounded-lg px-3 py-3.5 text-base leading-6 text-night-900 placeholder:text-[#475568] focus:outline-none"
             />
@@ -133,32 +160,44 @@ export function PostPropertyModal({ open, onClose }: PostPropertyModalProps) {
 
           <div className="flex w-full flex-col gap-2.5 rounded-2xl border border-[#e2e8f0] p-4">
             <p className="text-sm text-[#111826]">Choose from My Listings</p>
-            <div className="flex w-full items-center gap-4">
-              <ListingDropdown value={listingId} onChange={setListingId} />
-              <Tooltip label="Remove listing">
-                <button
-                  type="button"
-                  aria-label="Remove listing"
-                  onClick={() => setListingId("")}
-                  className="flex size-8 shrink-0 items-center justify-center"
-                >
-                  <NavIcon icon="/icons/poll-trash-delete.svg" color="night" size={16} className="bg-[#ef4444]" />
-                </button>
-              </Tooltip>
-            </div>
+            {mine.isPending ? (
+              <p className="text-sm text-[#475568]">Loading your listings...</p>
+            ) : listings.length === 0 ? (
+              <p className="text-sm text-[#475568]">
+                You have no approved listings waiting to be posted.{" "}
+                <Link href="/manage/listings/new" onClick={handleClose} className="font-medium text-brand-900">
+                  Create a listing
+                </Link>
+              </p>
+            ) : (
+              <div className="flex w-full items-center gap-4">
+                <ListingDropdown listings={listings} value={listingId} onChange={setPickedId} />
+                <Tooltip label="Remove listing">
+                  <button
+                    type="button"
+                    aria-label="Remove listing"
+                    onClick={() => setPickedId("")}
+                    className="flex size-8 shrink-0 items-center justify-center"
+                  >
+                    <NavIcon icon="/icons/poll-trash-delete.svg" color="night" size={16} className="bg-[#ef4444]" />
+                  </button>
+                </Tooltip>
+              </div>
+            )}
           </div>
 
           {listing && (
             <div className="flex w-full items-stretch overflow-hidden rounded-2xl border border-[#e2e8f0]">
               <span className="relative h-[120px] w-[35%] shrink-0 sm:w-[203px]">
-                <Image src={listing.images[0]} alt="" fill className="object-cover" sizes="(max-width: 640px) 35vw, 203px" />
+                <Image src={listingImage(listing)} alt="" fill className="object-cover" sizes="(max-width: 640px) 35vw, 203px" />
               </span>
               <div className="flex flex-1 flex-col justify-end gap-1 bg-[#f8fafc] px-4 py-3">
-                <p className="text-lg font-semibold text-[#334154] sm:text-xl">{listing.priceLine}</p>
-                <p className="text-xs font-bold text-[#334154]">{listing.subLine}</p>
-                <p className="text-[9px] font-light text-[#334154]">
-                  {listing.location} - {listing.beds} Bed | {listing.baths} Bath
+                <p className="text-lg font-semibold text-[#334154] sm:text-xl">
+                  {propertyPrice(listing)}
+                  {propertyPriceUnit(listing) && <span className="text-sm font-normal"> / {propertyPriceUnit(listing)}</span>}
                 </p>
+                <p className="text-xs font-bold text-[#334154]">{listing.name}</p>
+                <p className="text-[9px] font-light text-[#334154]">{listingMeta(listing)}</p>
               </div>
             </div>
           )}
@@ -174,10 +213,10 @@ export function PostPropertyModal({ open, onClose }: PostPropertyModalProps) {
             <button
               type="button"
               onClick={handlePost}
-              disabled={!listing}
+              disabled={!listing || post.isPending}
               className="flex h-8 flex-1 items-center justify-center rounded-xl bg-brand-900 px-3 text-sm text-white hover:bg-brand-900/90 disabled:cursor-not-allowed disabled:opacity-50 sm:rounded-lg"
             >
-              Post All
+              {post.isPending ? "Posting..." : "Post All"}
             </button>
           </div>
         </div>
@@ -187,11 +226,19 @@ export function PostPropertyModal({ open, onClose }: PostPropertyModalProps) {
   );
 }
 
-function ListingDropdown({ value, onChange }: { value: string; onChange: (id: string) => void }) {
+function ListingDropdown({
+  listings,
+  value,
+  onChange,
+}: {
+  listings: PropertyDto[];
+  value: string;
+  onChange: (id: string) => void;
+}) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLButtonElement | null>(null);
   const [position, setPosition] = useState<{ top: number; left: number; width: number } | null>(null);
-  const selected = DUMMY_LISTINGS.find((item) => item.id === value);
+  const selected = listings.find((item) => item.id === value);
 
   function toggleOpen() {
     setOpen((v) => {
@@ -214,7 +261,7 @@ function ListingDropdown({ value, onChange }: { value: string; onChange: (id: st
         className="flex h-12 w-full items-center justify-between gap-2 rounded-lg border border-[#cbd5e0] bg-white px-3 text-left"
       >
         <span className="min-w-0 flex-1 truncate text-sm text-[#334154]">
-          {selected ? selected.title : "Select a listing"}
+          {selected ? selected.name : "Select a listing"}
         </span>
         <NavIcon
           icon="/icons/poll-chevron-down.svg"
@@ -234,7 +281,7 @@ function ListingDropdown({ value, onChange }: { value: string; onChange: (id: st
               className="absolute rounded-[26px] border border-[rgba(15,22,33,0.12)] bg-white p-2.5 shadow-[0_12px_32px_-12px_rgba(15,23,42,0.18)]"
             >
               <div className="flex max-h-[240px] flex-col gap-1 overflow-y-auto rounded-2xl bg-white/90 p-2.5">
-                {DUMMY_LISTINGS.map((item) => (
+                {listings.map((item) => (
                   <button
                     key={item.id}
                     type="button"
@@ -248,9 +295,9 @@ function ListingDropdown({ value, onChange }: { value: string; onChange: (id: st
                     )}
                   >
                     <span className="relative size-9 shrink-0 overflow-hidden rounded-md">
-                      <Image src={item.images[0]} alt="" fill className="object-cover" sizes="36px" />
+                      <Image src={listingImage(item)} alt="" fill className="object-cover" sizes="36px" />
                     </span>
-                    <span className="min-w-0 flex-1 truncate text-[13.5px] leading-[20.25px] tracking-[-0.337px] text-[#334155]">{item.title}</span>
+                    <span className="min-w-0 flex-1 truncate text-[13.5px] leading-[20.25px] tracking-[-0.337px] text-[#334155]">{item.name}</span>
                     {item.id === value && (
                       <NavIcon icon="/icons/visibility-tick-check.svg" color="brand" size={16} className="shrink-0 bg-[#1465e6]" />
                     )}
@@ -264,5 +311,3 @@ function ListingDropdown({ value, onChange }: { value: string; onChange: (id: st
     </div>
   );
 }
-
-export type { PropertyListing };

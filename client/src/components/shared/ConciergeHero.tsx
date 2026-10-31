@@ -3,7 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { showErrorToast } from "@/components/shared/AppToast";
-import { PROMPT_EXAMPLE, PROMPT_STARTERS } from "@/lib/dummy-concierge";
+
+const PROMPT_EXAMPLE = "e.g. “I bought land in Oyibi and want to build a 3-bed house”";
+const PROMPT_STARTERS = ["Build on my land", "Fix something at home", "Find a home to rent", "Renovate or furnish", "Manage my rental property"];
 
 /** The "What do you need done?" prompt (Figma node 1044:22432): a free-text request plus one-tap starters. */
 export function ConciergeHero() {

@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createContext, useCallback, useContext, useMemo, type ReactNode } from "react";
 import { showErrorToast } from "@/components/shared/AppToast";
 import { FEED_KEY } from "@/hooks/useFeed";
-import type { PropertyListing, ServiceListing, StayListing } from "@/lib/dummy-listings";
+import type { ServiceListing, StayListing } from "@/lib/dummy-listings";
 import { notifyError } from "@/lib/errors";
 import { createPost, deletePost } from "@/lib/social-api";
 import { uploadAll } from "@/lib/upload";
@@ -14,7 +14,6 @@ export type NewPostInput =
   | { kind: "media"; text: string; files: File[] }
   | { kind: "poll"; question: string; options: string[] }
   | { kind: "article"; headline: string; body: string; files?: File[] }
-  | { kind: "property"; note: string; listing: PropertyListing }
   | { kind: "stay"; note: string; listing: StayListing }
   | { kind: "service"; note: string; files: File[]; listing?: ServiceListing };
 
@@ -77,8 +76,8 @@ export function PostsProvider({ children }: { children: ReactNode }) {
 
   const addPost = useCallback(
     async (input: NewPostInput) => {
-      if (input.kind === "property" || input.kind === "stay") {
-        showErrorToast("Listings are posted from the listing wizard, which is coming soon.");
+      if (input.kind === "stay") {
+        showErrorToast("Stays are posted from the stay manager, which is coming soon.");
         return false;
       }
       try {

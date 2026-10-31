@@ -644,6 +644,7 @@ export interface PropertyDto {
   isOwn: boolean;
   createdAt: string;
   updatedAt: string | null;
+  postedAt: string | null;
 }
 
 export interface PropertyMediaDto {

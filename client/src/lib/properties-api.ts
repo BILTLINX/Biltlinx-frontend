@@ -62,6 +62,10 @@ export function getPropertyDocuments(id: string) {
   return apiRequest<ListingDocumentDto[]>(`/properties/${id}/documents`);
 }
 
+export function postListing(id: string, note?: string) {
+  return apiRequest<PropertyDto>(`/properties/${id}/post`, { method: "POST", body: { note: note?.trim() || undefined } });
+}
+
 export function reportUnavailable(id: string) {
   return apiRequest(`/properties/${id}/report-unavailable`, { method: "POST" });
 }

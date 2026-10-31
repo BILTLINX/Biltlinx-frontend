@@ -11,6 +11,7 @@ import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { CenteredDialog } from "@/components/shared/CenteredDialog";
 import { DetailAside } from "@/components/shared/DetailAside";
 import { ListingCard } from "@/components/shared/ListingCard";
+import { LocationCombobox } from "@/components/shared/LocationCombobox";
 import { ChoiceChip, FIELD_BOX, FIELD_INPUT, FormField } from "@/components/shared/ModalFormParts";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { PageContainer } from "@/components/shared/PageContainer";
@@ -219,6 +220,7 @@ function ListingEditor() {
       isOwn: true,
       createdAt: new Date().toISOString(),
       updatedAt: null,
+      postedAt: null,
     }),
     href: undefined,
     cta: "Request viewing",
@@ -347,7 +349,9 @@ function ListingEditor() {
               <section className={CARD}>
                 <h2 className={CARD_TITLE}>3 · Location</h2>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <TextField label="City or area" value={form.city} onChange={(value) => set("city", value)} placeholder="e.g. East Legon, Accra" />
+                  <FormField label="City or area">
+                    <LocationCombobox value={form.city} onChange={(value) => set("city", value)} placeholder="e.g. East Legon, Accra" ariaLabel="City or area" icon />
+                  </FormField>
                   <FormField label="Address">
                     <label className={cn(FIELD_BOX, "border-gray-200")}>
                       <NavIcon icon="/icons/post-options-location.svg" size={16} className="shrink-0 bg-gray-500" />
