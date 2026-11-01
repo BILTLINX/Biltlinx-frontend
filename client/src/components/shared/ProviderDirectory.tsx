@@ -1,13 +1,11 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AppShell } from "@/components/shared/AppShell";
 import { EmptyState, type EmptyIcon } from "@/components/shared/EmptyState";
-import { filterText, FilterPanel, type FilterSection, type FilterValues } from "@/components/shared/FilterPanel";
+import { filterList, filterText, FilterPanel, type FilterSection, type FilterValues } from "@/components/shared/FilterPanel";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { ProviderCard } from "@/components/shared/ProviderCard";
-import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useProviders, useTaxonomy } from "@/hooks/useServices";
 import { errorMessage } from "@/lib/errors";
@@ -42,18 +40,17 @@ interface ProviderDirectoryProps {
 }
 
 export function ProviderDirectory({ kind, title, subtitle, activeChildKey, rightRail }: ProviderDirectoryProps) {
-  const router = useRouter();
   const taxonomy = useTaxonomy();
   const search = useDebouncedSearch();
-  const [filters, setFilters] = useState<FilterValues>({ category: "", city: "", verified: "", urgent: "" });
+  const [filters, setFilters] = useState<FilterValues>({ category: [], city: "", verified: "", urgent: "" });
   const sentinel = useRef<HTMLDivElement | null>(null);
 
   function clearFilters() {
-    setFilters({ category: "", city: "", verified: "", urgent: "" });
+    setFilters({ category: [], city: "", verified: "", urgent: "" });
   }
 
   const city = filterText(filters, "city");
-  const category = filterText(filters, "category");
+  const category = filterList(filters, "category").join(",");
   const verifiedOnly = filterText(filters, "verified") === "true";
   const urgent = filterText(filters, "urgent") === "true";
   const { items, total, isPending, isError, error, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } = useProviders({
@@ -75,7 +72,7 @@ export function ProviderDirectory({ kind, title, subtitle, activeChildKey, right
 
   const categories = (kind === "professional" ? taxonomy.data?.professions : taxonomy.data?.trades) ?? [];
   const sections: FilterSection[] = [
-    { type: "options", label: FILTER[kind].label, key: "category", display: "list", searchable: true, options: categories.map((item) => ({ value: item, label: item })) },
+    { type: "options", label: FILTER[kind].label, key: "category", display: "list", multiple: true, searchable: true, options: categories.map((item) => ({ value: item, label: item })) },
     { type: "text", label: "City", key: "city", placeholder: "Any city" },
     { type: "toggle", label: "Credential verified", key: "verified", text: "Credential verified" },
     { type: "toggle", label: "Urgent jobs", key: "urgent", text: "Urgent jobs" },
@@ -89,12 +86,8 @@ export function ProviderDirectory({ kind, title, subtitle, activeChildKey, right
             <h1 className="text-2xl font-bold leading-8 text-[#0f172a]">{title}</h1>
             <p className="text-sm leading-5 text-gray-500">{subtitle}</p>
           </div>
-          <Button variant="outline" onClick={() => router.push("/manage/provider")} className="h-10 w-auto shrink-0 self-start rounded-[10px] px-4 sm:self-auto lg:rounded-[10px]">
-            {kind === "professional" ? "Join as a professional" : "Join as an artisan"}
-          </Button>
+          <FilterPanel className="shrink-0 sm:max-w-[45%] sm:justify-end" sections={sections} values={filters} onChange={setFilters} />
         </div>
-
-        <FilterPanel sections={sections} values={filters} onChange={setFilters} />
 
         <p className="text-sm font-medium leading-5 text-[#0f172a]">{isPending ? "Searching…" : `${total} ${total === 1 ? "result" : "results"}`}</p>
 

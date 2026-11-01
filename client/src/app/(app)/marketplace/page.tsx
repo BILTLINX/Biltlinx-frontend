@@ -2,23 +2,20 @@
 
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { keepPreviousData } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AppShell } from "@/components/shared/AppShell";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { FilterDropdown } from "@/components/shared/FilterDropdown";
-import { filterText, FilterPanel, type FilterSection, type FilterValues } from "@/components/shared/FilterPanel";
+import { filterList, filterText, FilterPanel, type FilterSection, type FilterValues } from "@/components/shared/FilterPanel";
 import { ListingCard } from "@/components/shared/ListingCard";
 import { MarketplaceRail } from "@/components/shared/MarketplaceRail";
 import { PageContainer } from "@/components/shared/PageContainer";
-import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { comingSoonHref } from "@/lib/coming-soon";
 import { errorMessage } from "@/lib/errors";
 import { getFacets, KIND_LABEL, offerToCard, searchMarketplace } from "@/lib/marketplace-api";
 import { useDebouncedSearch } from "@/context/SearchContext";
 
-const NO_FILTERS: FilterValues = { kind: "", city: "", category: "", currency: "", minPrice: "", maxPrice: "", unit: "" };
+const NO_FILTERS: FilterValues = { kind: [], city: "", category: "", currency: "", minPrice: "", maxPrice: "", unit: "" };
 const CURRENCIES = [
   { value: "GHS", label: "GHS" },
   { value: "USD", label: "USD" },
@@ -30,36 +27,35 @@ const SORTS = [
 ];
 
 export default function MarketplacePage() {
-  const router = useRouter();
   const facets = useQuery({ queryKey: ["marketplace", "facets"], queryFn: getFacets, staleTime: Infinity });
   const search = useDebouncedSearch();
   const [filters, setFilters] = useState<FilterValues>(NO_FILTERS);
-  const kind = filterText(filters, "kind");
+  const kindKey = filterList(filters, "kind").join(",");
   const city = filterText(filters, "city");
   const category = filterText(filters, "category");
   const currency = filterText(filters, "currency");
   const minPrice = filterText(filters, "minPrice");
   const maxPrice = filterText(filters, "maxPrice");
   const unit = filterText(filters, "unit");
-  const [sort, setSort] = useState("");
+  const sort = filterText(filters, "sort");
   const sentinel = useRef<HTMLDivElement | null>(null);
 
   function clearFilters() {
     setFilters(NO_FILTERS);
-    setSort("");
   }
 
   const units = useMemo(() => {
     const byKind = facets.data?.unitsByKind ?? {};
-    const keys = kind ? [kind] : Object.keys(byKind);
+    const keys = kindKey ? kindKey.split(",") : Object.keys(byKind);
     const set = new Set(keys.flatMap((key) => byKind[key] ?? []));
     return (facets.data?.units ?? []).filter((item) => item.unit && set.has(item.unit));
-  }, [facets.data, kind]);
-  const singleUnit = kind !== "" && (facets.data?.unitsByKind?.[kind]?.length ?? 0) === 1;
+  }, [facets.data, kindKey]);
+  const singleUnit = kindKey !== "" && units.length === 1;
   const wantsPrice = minPrice.trim() !== "" || maxPrice.trim() !== "";
   const needsUnit = wantsPrice && !singleUnit && unit === "";
   const sections: FilterSection[] = [
-    { type: "options", label: "Category", key: "kind", display: "list", options: (facets.data?.kinds ?? []).map((item) => ({ value: item, label: KIND_LABEL[item] ?? item })) },
+    { type: "options", label: "Sort by", key: "sort", display: "chips", options: SORTS.filter((option) => option.value !== "") },
+    { type: "options", label: "Category", key: "kind", display: "list", multiple: true, options: (facets.data?.kinds ?? []).map((item) => ({ value: item, label: KIND_LABEL[item] ?? item })) },
     { type: "range", label: "Price", minKey: "minPrice", maxKey: "maxPrice", prefix: "GHS" },
     { type: "options", label: "Priced per", key: "unit", display: "chips", options: units.map((item) => ({ value: item.unit ?? "", label: item.label ?? item.unit ?? "" })), hidden: singleUnit },
     { type: "options", label: "Currency", key: "currency", display: "chips", options: CURRENCIES },
@@ -71,12 +67,12 @@ export default function MarketplacePage() {
 
   const query = {
     q: search || undefined,
-    kind: kind || undefined,
+    kind: kindKey || undefined,
     city: city.trim() || undefined,
     category: category.trim() || undefined,
     currency: currency || undefined,
     sort: sort || undefined,
-    unit: unit || (singleUnit ? facets.data?.unitsByKind?.[kind]?.[0] : undefined),
+    unit: unit || (singleUnit ? units[0]?.unit ?? undefined : undefined),
     minPrice: !needsUnit && minPrice.trim() && Number.isFinite(min) ? min : undefined,
     maxPrice: !needsUnit && maxPrice.trim() && Number.isFinite(max) ? max : undefined,
   };
@@ -107,22 +103,18 @@ export default function MarketplacePage() {
             <h1 className="text-2xl font-bold leading-8 text-[#0f172a]">Marketplace</h1>
             <p className="text-sm leading-5 text-gray-500">Buy, rent, hire, book or order anything for the built environment. Every listing shows its price.</p>
           </div>
-          <div className="flex shrink-0 gap-2">
-            <Button variant="outline" onClick={() => router.push(comingSoonHref("Saved searches"))} className="h-10 w-auto rounded-[10px] px-4 lg:rounded-[10px]">
-              Saved searches
-            </Button>
-            <Button variant="primary" onClick={() => router.push("/manage/listings/new")} className="h-10 w-auto rounded-[10px] px-4 lg:rounded-[10px]">
-              List on Marketplace
-            </Button>
-          </div>
+          <FilterPanel
+            className="shrink-0 sm:max-w-[45%] sm:justify-end"
+            sections={sections}
+            values={filters}
+            onChange={(next) => setFilters(filterList(next, "kind").join(",") !== kindKey ? { ...next, unit: "" } : next)}
+          />
         </div>
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <FilterPanel sections={sections} values={filters} onChange={(next) => setFilters(filterText(next, "kind") !== kind ? { ...next, unit: "" } : next)} />
           <p className="text-sm font-medium text-[#0f172a]">
             {result.isPending ? "Searching…" : `${total.toLocaleString("en-GH")} live listings${city.trim() ? ` in ${city.trim()}` : ""}`}
           </p>
-          <FilterDropdown variant="text" label="Sort" value={sort} onChange={setSort} options={SORTS} className="ml-auto self-center" />
         </div>
         {needsUnit && <p className="text-xs text-[#b45309]">Choose what it is priced per, so we only compare like with like.</p>}
 

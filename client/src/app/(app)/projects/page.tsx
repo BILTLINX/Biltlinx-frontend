@@ -8,7 +8,6 @@ import { ProjectCard } from "@/components/shared/ProjectCard";
 import { ProjectsRail } from "@/components/shared/ProjectsRail";
 import { filterList, FilterPanel, type FilterSection } from "@/components/shared/FilterPanel";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { Button } from "@/components/ui/Button";
 import { comingSoonHref } from "@/lib/coming-soon";
 import { PROJECT_FILTERS, PROJECTS } from "@/lib/dummy-projects";
 import { useSearchTerm } from "@/context/SearchContext";
@@ -53,20 +52,13 @@ export default function ProjectsPage() {
               Follow developments and builds across Ghana, from groundbreaking to handover.
             </p>
           </div>
-          <Button
-            variant="primary"
-            onClick={comingSoon("Start a project")}
-            className="h-10 w-auto shrink-0 self-start rounded-[10px] px-4 sm:self-auto lg:rounded-[10px]"
-          >
-            Start a project
-          </Button>
+          <FilterPanel
+            className="shrink-0 sm:max-w-[45%] sm:justify-end"
+            sections={STATUS_SECTIONS}
+            values={{ status: statuses }}
+            onChange={(next) => setStatuses(filterList(next, "status"))}
+          />
         </div>
-
-        <FilterPanel
-          sections={STATUS_SECTIONS}
-          values={{ status: statuses }}
-          onChange={(next) => setStatuses(filterList(next, "status"))}
-        />
 
         {projects.length > 0 ? (
           <div className="flex flex-col gap-6">

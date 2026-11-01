@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { RailCta } from "@/components/shared/RailCta";
 import { Button } from "@/components/ui/Button";
 
 const CARD = "flex flex-col gap-2.5 rounded-2xl border border-gray-200 bg-white p-4";
@@ -11,6 +12,8 @@ export function ProfessionalsRail() {
 
   return (
     <div className="flex w-full flex-col gap-4">
+      <RailCta variant="outline" title="Are you a professional?" body="Get verified and be found by people who need your skills." label="Join as a professional" href="/manage/provider" />
+
       <section className={CARD}>
         <h2 className="text-sm font-bold leading-5 text-[#0f172a]">What the badges mean</h2>
         <p className="text-xs leading-[17px] text-gray-500">

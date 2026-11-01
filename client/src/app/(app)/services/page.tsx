@@ -1,15 +1,12 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/shared/AppShell";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { FilterDropdown } from "@/components/shared/FilterDropdown";
-import { filterText, FilterPanel, type FilterSection, type FilterValues } from "@/components/shared/FilterPanel";
+import { filterList, filterText, FilterPanel, type FilterSection, type FilterValues } from "@/components/shared/FilterPanel";
 import { OfferingCard } from "@/components/shared/OfferingCard";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { ServicesRail } from "@/components/shared/ServicesRail";
-import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useOfferings, useTaxonomy, useTradeSuggestions } from "@/hooks/useServices";
 import { errorMessage } from "@/lib/errors";
@@ -25,31 +22,29 @@ const SORTS = [
 const FIELD = "h-12 min-w-0 rounded-xl border border-gray-200 bg-white px-3 text-sm text-[#0f172a] focus:border-brand-900 focus:outline-none";
 
 export default function ServicesPage() {
-  const router = useRouter();
   const taxonomy = useTaxonomy();
   const search = useDebouncedSearch();
-  const [filters, setFilters] = useState<FilterValues>({ category: "", city: "", maxPrice: "" });
-  const [sort, setSort] = useState<(typeof SORTS)[number]["value"]>("");
+  const [filters, setFilters] = useState<FilterValues>({ category: [], city: "", maxPrice: "", sort: "" });
   const [problem, setProblem] = useState("");
 
   function clearFilters() {
-    setFilters({ category: "", city: "", maxPrice: "" });
-    setSort("");
+    setFilters({ category: [], city: "", maxPrice: "", sort: "" });
     setProblem("");
   }
   const suggestions = useTradeSuggestions(problem);
   const sentinel = useRef<HTMLDivElement | null>(null);
 
-  const category = filterText(filters, "category");
+  const category = filterList(filters, "category").join(",");
   const city = filterText(filters, "city");
   const maxPrice = filterText(filters, "maxPrice");
+  const sort = filterText(filters, "sort");
   const max = Number(maxPrice);
   const { items, total, isPending, isError, error, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } = useOfferings({
     q: search || undefined,
     category: category || undefined,
     city: city.trim() || undefined,
     maxPrice: maxPrice.trim() && Number.isFinite(max) ? max : undefined,
-    sort: sort || undefined,
+    sort: (sort || undefined) as "priceAsc" | "priceDesc" | undefined,
   });
 
   useEffect(() => {
@@ -62,7 +57,8 @@ export default function ServicesPage() {
 
   const categories = [...(taxonomy.data?.professions ?? []), ...(taxonomy.data?.trades ?? [])];
   const sections: FilterSection[] = [
-    { type: "options", label: "Category", key: "category", display: "list", searchable: true, options: categories.map((item) => ({ value: item, label: item })) },
+    { type: "options", label: "Sort by", key: "sort", display: "chips", options: SORTS.filter((option) => option.value !== "") },
+    { type: "options", label: "Category", key: "category", display: "list", multiple: true, searchable: true, options: categories.map((item) => ({ value: item, label: item })) },
     { type: "text", label: "City", key: "city", placeholder: "Any city" },
     { type: "text", label: "Max price (GHS)", key: "maxPrice", placeholder: "Any price", numeric: true },
   ];
@@ -75,9 +71,7 @@ export default function ServicesPage() {
             <h1 className="text-2xl font-bold leading-8 text-[#0f172a]">Services</h1>
             <p className="text-sm leading-5 text-gray-500">Priced services from professionals, artisans and companies. Compare what is included before you book.</p>
           </div>
-          <Button variant="outline" onClick={() => router.push("/manage/provider")} className="h-10 w-auto shrink-0 self-start rounded-[10px] px-4 sm:self-auto lg:rounded-[10px]">
-            Offer a service
-          </Button>
+          <FilterPanel className="shrink-0 sm:max-w-[45%] sm:justify-end" sections={sections} values={filters} onChange={setFilters} />
         </div>
 
         <div className="flex flex-col gap-2 rounded-2xl bg-[#eff5ff] p-4">
@@ -90,7 +84,7 @@ export default function ServicesPage() {
               <div className="flex flex-wrap items-center gap-2 text-[13px]">
                 <span className="text-brand-900">Try:</span>
                 {suggestions.data?.slice(0, 4).map((item) => (
-                  <button key={item.trade} type="button" onClick={() => setFilters((current) => ({ ...current, category: item.trade ?? "" }))} className="rounded-full bg-white px-3 py-1 font-medium text-brand-900 shadow-sm hover:bg-gray-50">
+                  <button key={item.trade} type="button" onClick={() => setFilters((current) => ({ ...current, category: item.trade ? [item.trade] : [] }))} className="rounded-full bg-white px-3 py-1 font-medium text-brand-900 shadow-sm hover:bg-gray-50">
                     {item.trade}
                   </button>
                 ))}
@@ -98,11 +92,6 @@ export default function ServicesPage() {
               {suggestions.data?.some((item) => item.warning) && <p className="rounded-lg bg-[#fef3c7] p-2.5 text-xs leading-[17px] text-[#b45309]">{suggestions.data.find((item) => item.warning)?.warning}</p>}
             </div>
           )}
-        </div>
-
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <FilterPanel sections={sections} values={filters} onChange={setFilters} />
-          <FilterDropdown label="Sort" value={sort} onChange={(value) => setSort(value as typeof sort)} options={SORTS} />
         </div>
 
         <p className="text-sm font-medium text-[#0f172a]">{isPending ? "Searching…" : `${total} ${total === 1 ? "service" : "services"}`}</p>

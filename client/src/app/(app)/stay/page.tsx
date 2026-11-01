@@ -4,13 +4,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useRef } from "react";
 import { AppShell } from "@/components/shared/AppShell";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { FilterDropdown } from "@/components/shared/FilterDropdown";
 import { filterList, filterText, FilterPanel, type FilterSection } from "@/components/shared/FilterPanel";
 import { ListingCard } from "@/components/shared/ListingCard";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { StayRail } from "@/components/shared/StayRail";
 import { StaySearchBar, type StaySearchValue } from "@/components/shared/StaySearchBar";
-import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useStaySearch } from "@/hooks/useStay";
 import { errorMessage } from "@/lib/errors";
@@ -72,7 +70,8 @@ function StayContent() {
   }
 
   const sections: FilterSection[] = [
-    { type: "options", label: "Stay type", key: "type", display: "chips", options: STAY_TYPES.map((type) => ({ value: type, label: STAY_TYPE_LABEL[type] })) },
+    { type: "options", label: "Sort by", key: "sort", display: "chips", options: SORTS },
+    { type: "options", label: "Stay type", key: "type", display: "chips", multiple: true, options: STAY_TYPES.map((type) => ({ value: type, label: STAY_TYPE_LABEL[type] })) },
     {
       type: "options",
       label: "Amenities",
@@ -95,14 +94,12 @@ function StayContent() {
             <h1 className="text-2xl font-bold leading-8 text-[#0f172a]">Stay</h1>
             <p className="text-sm leading-5 text-gray-500">Short stays: apartments, guest houses and hotels, booked by the night.</p>
           </div>
-          <div className="flex shrink-0 gap-2">
-            <Button variant="outline" onClick={() => router.push("/stay/bookings")} className="h-10 w-auto rounded-[10px] px-4 lg:rounded-[10px]">
-              My bookings
-            </Button>
-            <Button variant="outline" onClick={() => router.push("/manage/stay")} className="h-10 w-auto rounded-[10px] px-4 lg:rounded-[10px]">
-              Host a stay
-            </Button>
-          </div>
+          <FilterPanel
+            className="shrink-0 sm:max-w-[45%] sm:justify-end"
+            sections={sections}
+            values={{ type: query.type?.split(",").filter(Boolean) ?? [], amenities: query.amenities ?? [], sort: query.sort ?? "" }}
+            onChange={(next) => update({ type: filterList(next, "type").join(",") || undefined, amenities: filterList(next, "amenities").join(",") || undefined, sort: filterText(next, "sort") || undefined })}
+          />
         </div>
 
         <div ref={searchBar}>
@@ -113,18 +110,11 @@ function StayContent() {
           />
         </div>
 
-        <FilterPanel
-          sections={sections}
-          values={{ type: query.type ?? "", amenities: query.amenities ?? [] }}
-          onChange={(next) => update({ type: filterText(next, "type") || undefined, amenities: filterList(next, "amenities").join(",") || undefined })}
-        />
-
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
           <p className="text-sm leading-5 text-[#0f172a]">
             {isPending ? "Searching…" : `${total} ${total === 1 ? "stay" : "stays"}`}
             {nights > 0 ? ` · prices for ${nights} ${nights === 1 ? "night" : "nights"}` : " · prices per night, before fees"}
           </p>
-          <FilterDropdown label="Sort" value={query.sort ?? "newest"} onChange={(sort) => update({ sort })} options={SORTS} />
         </div>
 
         {isPending && (

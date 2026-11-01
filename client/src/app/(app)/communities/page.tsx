@@ -9,7 +9,6 @@ import { CommunitiesRail } from "@/components/shared/CommunitiesRail";
 import { CommunityCard } from "@/components/shared/CommunityCard";
 import { DiscussionRow } from "@/components/shared/DiscussionRow";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { Button } from "@/components/ui/Button";
 import { comingSoonHref } from "@/lib/coming-soon";
 import {
   COMMUNITIES,
@@ -65,21 +64,13 @@ export default function CommunitiesPage() {
               Ask questions, share know-how and meet neighbours, builders and owners.
             </p>
           </div>
-          <Button
-            variant="primary"
-            onClick={comingSoon("Create a community")}
-            className="h-10 w-auto shrink-0 self-start rounded-[10px] px-4 sm:self-auto lg:rounded-[10px]"
-          >
-            Create a community
-          </Button>
+          <FilterPanel
+            className="shrink-0 sm:max-w-[45%] sm:justify-end"
+            sections={SHOW_SECTIONS}
+            values={{ show: shows }}
+            onChange={(next) => setShows(filterList(next, "show"))}
+          />
         </div>
-
-
-        <FilterPanel
-          sections={SHOW_SECTIONS}
-          values={{ show: shows }}
-          onChange={(next) => setShows(filterList(next, "show"))}
-        />
 
         <section className="flex flex-col gap-3">
           <div className="flex items-center justify-between">

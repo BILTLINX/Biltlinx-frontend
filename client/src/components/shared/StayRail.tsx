@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { RailCta } from "@/components/shared/RailCta";
 import { Button } from "@/components/ui/Button";
 
 const CARD = "flex flex-col gap-2.5 rounded-2xl border border-gray-200 bg-white p-4";
@@ -12,6 +13,8 @@ export function StayRail() {
 
   return (
     <div className="flex w-full flex-col gap-4">
+      <RailCta variant="outline" title="Your trips" body="See the stays you have booked, and manage or cancel them." label="My bookings" href="/stay/bookings" />
+
       <section className={CARD}>
         <h2 className="text-sm font-bold leading-5 text-[#0f172a]">Staying longer than a month?</h2>
         <p className="text-xs leading-[17px] text-gray-500">
