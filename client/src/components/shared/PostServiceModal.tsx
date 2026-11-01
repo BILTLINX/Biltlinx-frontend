@@ -4,10 +4,12 @@ import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { showErrorToast, showSuccessToast } from "@/components/shared/AppToast";
+import { ListingLinkHelp, NoVerifiedListing } from "@/components/shared/ListingLinkHelp";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { Tooltip } from "@/components/shared/Tooltip";
 import { useAnimatedSheet } from "@/hooks/useAnimatedSheet";
-import { DUMMY_SERVICES, type ServiceListing } from "@/lib/dummy-listings";
+import { useMyOfferings } from "@/hooks/useServices";
+import { toPostService, type ServiceListing } from "@/lib/post-listings";
 import { cn } from "@/lib/utils";
 import { usePostsFeed } from "@/context/PostsContext";
 import { MODAL_FRAME } from "@/lib/modal-styles";
@@ -32,10 +34,14 @@ export function PostServiceModal({ open, onClose, initialTab = "listing" }: Post
   const { addPost } = usePostsFeed();
   const [tab, setTab] = useState<ServiceTab>(initialTab);
   const [note, setNote] = useState("");
-  const [listingId, setListingId] = useState<string>(DUMMY_SERVICES[0].id);
+  const offerings = useMyOfferings(open);
+  const options = useMemo(() => (offerings.data ?? []).filter((offering) => offering.status === "Published").map(toPostService), [offerings.data]);
+  // undefined: nothing chosen yet, so the first verified service is used; null: the service was removed.
+  const [listingId, setListingId] = useState<string | null | undefined>(undefined);
   const [files, setFiles] = useState<File[]>([]);
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const listing = tab === "listing" ? (DUMMY_SERVICES.find((item) => item.id === listingId) ?? null) : null;
+  const listing = tab === "listing" && listingId !== null ? (options.find((item) => item.id === listingId) ?? options[0] ?? null) : null;
+  const noListing = tab === "listing" && !offerings.isLoading && options.length === 0;
 
   const previews = useMemo(
     () => files.map((file) => ({ url: URL.createObjectURL(file), isVideo: file.type.startsWith("video/") })),
@@ -81,7 +87,7 @@ export function PostServiceModal({ open, onClose, initialTab = "listing" }: Post
   function resetState() {
     setTab(initialTab);
     setNote("");
-    setListingId(DUMMY_SERVICES[0].id);
+    setListingId(undefined);
     setFiles([]);
   }
 
@@ -163,6 +169,7 @@ export function PostServiceModal({ open, onClose, initialTab = "listing" }: Post
             ))}
           </div>
 
+          {!noListing && (
           <div className="flex w-full items-start gap-3">
             <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#eef2ff] text-[13px] font-extrabold text-[#4f46e5]">
               SL
@@ -185,78 +192,87 @@ export function PostServiceModal({ open, onClose, initialTab = "listing" }: Post
               </button>
             </Tooltip>
           </div>
+          )}
 
-          {tab === "listing" && (
+          {tab === "listing" && !noListing && (
             <div className="flex w-full flex-col gap-2.5 rounded-2xl border border-[#e2e8f0] p-4">
               <p className="text-sm text-[#111826]">Choose a service listings</p>
               <div className="flex w-full items-center gap-4">
-                <ServiceDropdown value={listingId} onChange={setListingId} />
+                <ServiceDropdown options={options} value={listing?.id ?? ""} onChange={setListingId} />
                 <Tooltip label="Remove listing">
                   <button
                     type="button"
                     aria-label="Remove listing"
-                    onClick={() => setListingId("")}
+                    onClick={() => setListingId(null)}
                     className="flex size-8 shrink-0 items-center justify-center"
                   >
                     <NavIcon icon="/icons/poll-trash-delete.svg" color="night" size={16} className="bg-[#ef4444]" />
                   </button>
                 </Tooltip>
               </div>
+              <ListingLinkHelp noun="service" manageHref="/manage/provider" manageLabel="Services" onNavigate={handleClose} />
             </div>
           )}
 
-          <input
-            ref={inputRef}
-            type="file"
-            multiple
-            accept={MEDIA_ACCEPT.join(",")}
-            className="hidden"
-            onChange={(event) => addFiles(event.target.files)}
-          />
+          {noListing && <NoVerifiedListing icon="services-sad" noun="service" manageHref="/manage/provider" manageLabel="Services" onNavigate={handleClose} />}
 
-          {previews.length === 0 ? (
-            <div className="flex h-[120px] w-full flex-col items-center justify-center gap-1.5 rounded-[27px] border border-dashed border-[#cbd5e0] bg-[#f8fafc] px-6 text-center sm:rounded-lg">
-              <p className="text-xs text-[#19161d]">Add before / after photos (recommended)</p>
-              <p className="text-xs text-[#86888a]">or</p>
-              <button
-                type="button"
-                onClick={() => inputRef.current?.click()}
-                className="flex h-6 items-center justify-center gap-1.5 rounded-[40px] border border-[#e2e8f0] bg-[#e8edf5] px-2 text-xs text-[#19161d]"
-              >
-                Choose files
-                <NavIcon icon="/icons/create-menu-upload-arrow.svg" color="night" className="bg-[#19161d]" size={14} />
-              </button>
-            </div>
-          ) : (
-            <div className="flex w-full flex-wrap gap-2.5">
-              {previews.map((preview, index) => (
-                <div key={preview.url} className="relative size-16 shrink-0 overflow-hidden rounded-lg bg-gray-100 sm:h-[61px] sm:w-[97px] sm:rounded-md">
-                  {preview.isVideo ? (
-                    <video src={preview.url} className="size-full object-cover" muted />
-                  ) : (
-                    <Image src={preview.url} alt="" fill className="object-cover" sizes="97px" />
-                  )}
+
+          {!noListing && (
+            <>
+              <input
+                ref={inputRef}
+                type="file"
+                multiple
+                accept={MEDIA_ACCEPT.join(",")}
+                className="hidden"
+                onChange={(event) => addFiles(event.target.files)}
+              />
+
+              {previews.length === 0 ? (
+                <div className="flex h-[120px] w-full flex-col items-center justify-center gap-1.5 rounded-[27px] border border-dashed border-[#cbd5e0] bg-[#f8fafc] px-6 text-center sm:rounded-lg">
+                  <p className="text-xs text-[#19161d]">Add before / after photos (recommended)</p>
+                  <p className="text-xs text-[#86888a]">or</p>
                   <button
                     type="button"
-                    aria-label="Remove file"
-                    onClick={() => removeFile(index)}
-                    className="absolute left-1 top-1 flex size-4 items-center justify-center rounded-full bg-white text-[10px] leading-none text-night-900"
+                    onClick={() => inputRef.current?.click()}
+                    className="flex h-6 items-center justify-center gap-1.5 rounded-[40px] border border-[#e2e8f0] bg-[#e8edf5] px-2 text-xs text-[#19161d]"
                   >
-                    &times;
+                    Choose files
+                    <NavIcon icon="/icons/create-menu-upload-arrow.svg" color="night" className="bg-[#19161d]" size={14} />
                   </button>
                 </div>
-              ))}
-              <button
-                type="button"
-                aria-label="Add more media"
-                onClick={() => inputRef.current?.click()}
-                className="flex size-16 shrink-0 items-center justify-center rounded-lg border border-dashed border-[#cbd5e0] text-[#94a3b8] hover:border-brand-900 hover:text-brand-900 sm:h-[61px] sm:w-[97px] sm:rounded-md"
-              >
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                  <path d="M10 3V17M3 10H17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                </svg>
-              </button>
-            </div>
+              ) : (
+                <div className="flex w-full flex-wrap gap-2.5">
+                  {previews.map((preview, index) => (
+                    <div key={preview.url} className="relative size-16 shrink-0 overflow-hidden rounded-lg bg-gray-100 sm:h-[61px] sm:w-[97px] sm:rounded-md">
+                      {preview.isVideo ? (
+                        <video src={preview.url} className="size-full object-cover" muted />
+                      ) : (
+                        <Image src={preview.url} alt="" fill className="object-cover" sizes="97px" />
+                      )}
+                      <button
+                        type="button"
+                        aria-label="Remove file"
+                        onClick={() => removeFile(index)}
+                        className="absolute left-1 top-1 flex size-4 items-center justify-center rounded-full bg-white text-[10px] leading-none text-night-900"
+                      >
+                        &times;
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    aria-label="Add more media"
+                    onClick={() => inputRef.current?.click()}
+                    className="flex size-16 shrink-0 items-center justify-center rounded-lg border border-dashed border-[#cbd5e0] text-[#94a3b8] hover:border-brand-900 hover:text-brand-900 sm:h-[61px] sm:w-[97px] sm:rounded-md"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                      <path d="M10 3V17M3 10H17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+            </>
           )}
 
           <div className="flex w-full items-center justify-end gap-2">
@@ -265,16 +281,18 @@ export function PostServiceModal({ open, onClose, initialTab = "listing" }: Post
               onClick={handleClose}
               className="flex h-8 items-center justify-center rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-4 text-sm text-red-500 sm:rounded-lg"
             >
-              Cancel
+              {noListing ? "Close" : "Cancel"}
             </button>
-            <button
-              type="button"
-              onClick={handlePost}
-              disabled={tab === "listing" && !listing}
-              className="flex h-8 flex-1 items-center justify-center rounded-xl bg-brand-900 px-3 text-sm text-white hover:bg-brand-900/90 disabled:cursor-not-allowed disabled:opacity-50 sm:rounded-lg"
-            >
-              Post All
-            </button>
+            {!noListing && (
+              <button
+                type="button"
+                onClick={handlePost}
+                disabled={tab === "listing" && !listing}
+                className="flex h-8 flex-1 items-center justify-center rounded-xl bg-brand-900 px-3 text-sm text-white hover:bg-brand-900/90 disabled:cursor-not-allowed disabled:opacity-50 sm:rounded-lg"
+              >
+                Post
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -283,11 +301,11 @@ export function PostServiceModal({ open, onClose, initialTab = "listing" }: Post
   );
 }
 
-function ServiceDropdown({ value, onChange }: { value: string; onChange: (id: string) => void }) {
+function ServiceDropdown({ options, value, onChange }: { options: ServiceListing[]; value: string; onChange: (id: string) => void }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLButtonElement | null>(null);
   const [position, setPosition] = useState<{ top: number; left: number; width: number } | null>(null);
-  const selected = DUMMY_SERVICES.find((item) => item.id === value);
+  const selected = options.find((item) => item.id === value);
 
   function toggleOpen() {
     setOpen((v) => {
@@ -329,7 +347,7 @@ function ServiceDropdown({ value, onChange }: { value: string; onChange: (id: st
               style={{ top: position.top, left: position.left, width: position.width }}
               className="absolute flex max-h-[220px] flex-col gap-0.5 overflow-y-auto rounded-lg border border-[#cbd5e0] bg-white p-1 shadow-[0px_24px_60px_-15px_rgba(0,0,0,0.15)]"
             >
-              {DUMMY_SERVICES.map((item) => (
+              {options.map((item) => (
                 <button
                   key={item.id}
                   type="button"

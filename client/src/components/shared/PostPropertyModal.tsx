@@ -2,10 +2,10 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
-import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { showSuccessToast } from "@/components/shared/AppToast";
+import { ListingLinkHelp, NoVerifiedListing } from "@/components/shared/ListingLinkHelp";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { Tooltip } from "@/components/shared/Tooltip";
 import { useAnimatedSheet } from "@/hooks/useAnimatedSheet";
@@ -23,6 +23,8 @@ const APPROVED_QUERY = { status: "Approved", availability: "Active" } as const;
 interface PostPropertyModalProps {
   open: boolean;
   onClose: () => void;
+  /** A listing to preselect, e.g. when opened from the Listings page. */
+  initialId?: string;
 }
 
 function listingImage(item: PropertyDto) {
@@ -36,14 +38,16 @@ function listingMeta(item: PropertyDto) {
   return parts.join(" | ");
 }
 
-export function PostPropertyModal({ open, onClose }: PostPropertyModalProps) {
+export function PostPropertyModal({ open, onClose, initialId = "" }: PostPropertyModalProps) {
   const queryClient = useQueryClient();
   const [note, setNote] = useState("");
-  const [pickedId, setPickedId] = useState("");
+  const [pickedId, setPickedId] = useState(initialId);
   const mine = useMyProperties(APPROVED_QUERY, open);
   const listings = useMemo(() => mine.items.filter((item) => !item.postedAt), [mine.items]);
   const listingId = listings.some((item) => item.id === pickedId) ? pickedId : (listings[0]?.id ?? "");
   const listing = listings.find((item) => item.id === listingId) ?? null;
+  const loading = mine.isPending;
+  const empty = !loading && listings.length === 0;
 
   const { mounted, closing } = useAnimatedSheet(open);
 
@@ -76,7 +80,7 @@ export function PostPropertyModal({ open, onClose }: PostPropertyModalProps) {
 
   function resetState() {
     setNote("");
-    setPickedId("");
+    setPickedId(initialId);
   }
 
   function handleClose() {
@@ -134,42 +138,38 @@ export function PostPropertyModal({ open, onClose }: PostPropertyModalProps) {
             <span className="size-6 shrink-0 sm:hidden" aria-hidden />
           </div>
 
-          <div className="flex w-full items-start gap-3">
-            <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#eef2ff] text-[13px] font-extrabold text-[#4f46e5]">
-              SL
-            </span>
-            <textarea
-              value={note}
-              onChange={(event) => setNote(event.target.value)}
-              rows={2}
-              maxLength={2000}
-              placeholder="Add a note about this property ..."
-              className="w-full flex-1 resize-none rounded-lg px-3 py-3.5 text-base leading-6 text-night-900 placeholder:text-[#475568] focus:outline-none"
-            />
-            <Tooltip label="Clear note" side="bottom">
-              <button
-                type="button"
-                aria-label="Clear note"
-                onClick={() => setNote("")}
-                className="flex size-6 shrink-0 items-center justify-center"
-              >
-                <NavIcon icon="/icons/poll-close-outline.svg" color="night" size={16} />
-              </button>
-            </Tooltip>
-          </div>
+          {loading && <p className="py-10 text-center text-sm text-gray-500">Loading your listings…</p>}
 
-          <div className="flex w-full flex-col gap-2.5 rounded-2xl border border-[#e2e8f0] p-4">
-            <p className="text-sm text-[#111826]">Choose from My Listings</p>
-            {mine.isPending ? (
-              <p className="text-sm text-[#475568]">Loading your listings...</p>
-            ) : listings.length === 0 ? (
-              <p className="text-sm text-[#475568]">
-                You have no approved listings waiting to be posted.{" "}
-                <Link href="/manage/listings/new" onClick={handleClose} className="font-medium text-brand-900">
-                  Create a listing
-                </Link>
-              </p>
-            ) : (
+          {empty && <NoVerifiedListing icon="home-sad" noun="property" manageHref="/manage/listings" manageLabel="Listings" onNavigate={handleClose} />}
+
+          {!loading && !empty && (
+            <>
+            <div className="flex w-full items-start gap-3">
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#eef2ff] text-[13px] font-extrabold text-[#4f46e5]">
+                SL
+              </span>
+              <textarea
+                value={note}
+                onChange={(event) => setNote(event.target.value)}
+                rows={2}
+                maxLength={2000}
+                placeholder="Add a note about this property ..."
+                className="w-full flex-1 resize-none rounded-lg px-3 py-3.5 text-base leading-6 text-night-900 placeholder:text-[#475568] focus:outline-none"
+              />
+              <Tooltip label="Clear note" side="bottom">
+                <button
+                  type="button"
+                  aria-label="Clear note"
+                  onClick={() => setNote("")}
+                  className="flex size-6 shrink-0 items-center justify-center"
+                >
+                  <NavIcon icon="/icons/poll-close-outline.svg" color="night" size={16} />
+                </button>
+              </Tooltip>
+            </div>
+
+            <div className="flex w-full flex-col gap-2.5 rounded-2xl border border-[#e2e8f0] p-4">
+              <p className="text-sm text-[#111826]">Choose from My Listings</p>
               <div className="flex w-full items-center gap-4">
                 <ListingDropdown listings={listings} value={listingId} onChange={setPickedId} />
                 <Tooltip label="Remove listing">
@@ -183,23 +183,25 @@ export function PostPropertyModal({ open, onClose }: PostPropertyModalProps) {
                   </button>
                 </Tooltip>
               </div>
-            )}
-          </div>
-
-          {listing && (
-            <div className="flex w-full items-stretch overflow-hidden rounded-2xl border border-[#e2e8f0]">
-              <span className="relative h-[120px] w-[35%] shrink-0 sm:w-[203px]">
-                <Image src={listingImage(listing)} alt="" fill className="object-cover" sizes="(max-width: 640px) 35vw, 203px" />
-              </span>
-              <div className="flex flex-1 flex-col justify-end gap-1 bg-[#f8fafc] px-4 py-3">
-                <p className="text-lg font-semibold text-[#334154] sm:text-xl">
-                  {propertyPrice(listing)}
-                  {propertyPriceUnit(listing) && <span className="text-sm font-normal"> / {propertyPriceUnit(listing)}</span>}
-                </p>
-                <p className="text-xs font-bold text-[#334154]">{listing.name}</p>
-                <p className="text-[9px] font-light text-[#334154]">{listingMeta(listing)}</p>
-              </div>
+              <ListingLinkHelp noun="property" manageHref="/manage/listings" manageLabel="Listings" onNavigate={handleClose} />
             </div>
+
+            {listing && (
+              <div className="flex w-full items-stretch overflow-hidden rounded-2xl border border-[#e2e8f0]">
+                <span className="relative h-[120px] w-[35%] shrink-0 sm:w-[203px]">
+                  <Image src={listingImage(listing)} alt="" fill className="object-cover" sizes="(max-width: 640px) 35vw, 203px" />
+                </span>
+                <div className="flex flex-1 flex-col justify-end gap-1 bg-[#f8fafc] px-4 py-3">
+                  <p className="text-lg font-semibold text-[#334154] sm:text-xl">
+                    {propertyPrice(listing)}
+                    {propertyPriceUnit(listing) && <span className="text-sm font-normal"> / {propertyPriceUnit(listing)}</span>}
+                  </p>
+                  <p className="text-xs font-bold text-[#334154]">{listing.name}</p>
+                  <p className="text-[9px] font-light text-[#334154]">{listingMeta(listing)}</p>
+                </div>
+              </div>
+            )}
+            </>
           )}
 
           <div className="flex w-full items-center justify-end gap-2">
@@ -208,16 +210,18 @@ export function PostPropertyModal({ open, onClose }: PostPropertyModalProps) {
               onClick={handleClose}
               className="flex h-8 items-center justify-center rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-4 text-sm text-red-500 sm:rounded-lg"
             >
-              Cancel
+              {empty ? "Close" : "Cancel"}
             </button>
-            <button
-              type="button"
-              onClick={handlePost}
-              disabled={!listing || post.isPending}
-              className="flex h-8 flex-1 items-center justify-center rounded-xl bg-brand-900 px-3 text-sm text-white hover:bg-brand-900/90 disabled:cursor-not-allowed disabled:opacity-50 sm:rounded-lg"
-            >
-              {post.isPending ? "Posting..." : "Post All"}
-            </button>
+            {!empty && (
+              <button
+                type="button"
+                onClick={handlePost}
+                disabled={!listing || post.isPending}
+                className="flex h-8 flex-1 items-center justify-center rounded-xl bg-brand-900 px-3 text-sm text-white hover:bg-brand-900/90 disabled:cursor-not-allowed disabled:opacity-50 sm:rounded-lg"
+              >
+                {post.isPending ? "Posting..." : "Post"}
+              </button>
+            )}
           </div>
         </div>
       </div>

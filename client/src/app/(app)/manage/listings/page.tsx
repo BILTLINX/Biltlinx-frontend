@@ -13,6 +13,7 @@ import { ListingActionDialog } from "@/components/shared/ListingActionDialog";
 import { ListingDocumentsDialog } from "@/components/shared/ListingDocumentsDialog";
 import { ManageTabs } from "@/components/shared/ManageTabs";
 import { NavIcon } from "@/components/shared/NavIcon";
+import { PostPropertyModal } from "@/components/shared/PostPropertyModal";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -91,6 +92,7 @@ export default function ManageListingsPage() {
   const [action, setAction] = useState<{ property: PropertyDto; action: RowAction } | null>(null);
   const [documentsFor, setDocumentsFor] = useState<PropertyDto | null>(null);
   const [menuFor, setMenuFor] = useState<string | null>(null);
+  const [postFor, setPostFor] = useState<PropertyDto | null>(null);
 
   const summary = useQuery({ queryKey: ["properties", "summary"], queryFn: getPortfolioSummary });
   const listings = useMyProperties({ q: search || undefined, status: filter === "all" || filter === "drafts" ? undefined : filter }, filter !== "drafts");
@@ -253,7 +255,7 @@ export default function ManageListingsPage() {
                           open={menuFor === property.id}
                           onToggle={() => setMenuFor(menuFor === property.id ? null : property.id)}
                           onClose={() => setMenuFor(null)}
-                          items={[{ label: "Documents", run: () => setDocumentsFor(property) }, ...rowActions(property).map((item) => ({ label: item.label, run: () => setAction({ property, action: item.action }) }))]}
+                          items={[...(property.status === "Approved" ? [{ label: "Post to feed", run: () => setPostFor(property) }] : []), { label: "Documents", run: () => setDocumentsFor(property) }, ...rowActions(property).map((item) => ({ label: item.label, run: () => setAction({ property, action: item.action }) }))]}
                         />
                       </div>
                     </td>
@@ -277,6 +279,7 @@ export default function ManageListingsPage() {
         )}
       </PageContainer>
 
+      {postFor && <PostPropertyModal open onClose={() => setPostFor(null)} initialId={postFor.id} />}
       <ListingActionDialog property={action?.property ?? null} action={action?.action ?? null} onClose={() => setAction(null)} />
       <ListingDocumentsDialog propertyId={documentsFor?.id ?? null} title={documentsFor?.name ?? ""} onClose={() => setDocumentsFor(null)} />
     </AppShell>

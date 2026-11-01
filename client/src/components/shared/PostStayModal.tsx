@@ -1,13 +1,17 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { showErrorToast, showSuccessToast } from "@/components/shared/AppToast";
+import { ListingLinkHelp, NoVerifiedListing } from "@/components/shared/ListingLinkHelp";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { Tooltip } from "@/components/shared/Tooltip";
 import { useAnimatedSheet } from "@/hooks/useAnimatedSheet";
-import { DUMMY_STAYS, type StayListing } from "@/lib/dummy-listings";
+import { useQuery } from "@tanstack/react-query";
+import { STAY_KEY } from "@/hooks/useStay";
+import { listOperatorProperties } from "@/lib/stay-api";
+import { toPostStay, type StayListing } from "@/lib/post-listings";
 import { cn } from "@/lib/utils";
 import { usePostsFeed } from "@/context/PostsContext";
 import { MODAL_FRAME } from "@/lib/modal-styles";
@@ -21,8 +25,13 @@ interface PostStayModalProps {
 export function PostStayModal({ open, onClose }: PostStayModalProps) {
   const { addPost } = usePostsFeed();
   const [note, setNote] = useState("");
-  const [listingId, setListingId] = useState<string>(DUMMY_STAYS[0].id);
-  const listing = DUMMY_STAYS.find((item) => item.id === listingId) ?? null;
+  const stays = useQuery({ queryKey: [...STAY_KEY, "operator"], queryFn: listOperatorProperties, enabled: open });
+  const options = useMemo(() => (stays.data ?? []).filter((stay) => stay.status === "Published").map(toPostStay), [stays.data]);
+  // undefined: nothing chosen yet, so the first verified stay is used; null: the stay was removed.
+  const [listingId, setListingId] = useState<string | null | undefined>(undefined);
+  const listing = listingId === null ? null : (options.find((item) => item.id === listingId) ?? options[0] ?? null);
+  const loading = stays.isLoading;
+  const empty = !loading && options.length === 0;
 
   const { mounted, closing } = useAnimatedSheet(open);
 
@@ -44,7 +53,7 @@ export function PostStayModal({ open, onClose }: PostStayModalProps) {
 
   function resetState() {
     setNote("");
-    setListingId(DUMMY_STAYS[0].id);
+    setListingId(undefined);
   }
 
   function handleClose() {
@@ -108,62 +117,71 @@ export function PostStayModal({ open, onClose }: PostStayModalProps) {
             <span className="size-6 shrink-0 sm:hidden" aria-hidden />
           </div>
 
-          <div className="flex w-full items-start gap-3">
-            <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#eef2ff] text-[13px] font-extrabold text-[#4f46e5]">
-              SL
-            </span>
-            <textarea
-              value={note}
-              onChange={(event) => setNote(event.target.value)}
-              rows={2}
-              placeholder="Highlight what makes this room special…"
-              className="w-full flex-1 resize-none rounded-lg px-3 py-3.5 text-base leading-6 text-night-900 placeholder:text-[#475568] focus:outline-none"
-            />
-            <Tooltip label="Clear note" side="bottom">
-              <button
-                type="button"
-                aria-label="Clear note"
-                onClick={() => setNote("")}
-                className="flex size-6 shrink-0 items-center justify-center"
-              >
-                <NavIcon icon="/icons/poll-close-outline.svg" color="night" size={16} />
-              </button>
-            </Tooltip>
-          </div>
+          {loading && <p className="py-10 text-center text-sm text-gray-500">Loading your stays…</p>}
 
-          <div className="flex w-full flex-col gap-2.5 rounded-2xl border border-[#e2e8f0] p-4">
-            <p className="text-sm text-[#111826]">Choose room / unit type</p>
-            <div className="flex w-full items-center gap-4">
-              <StayDropdown value={listingId} onChange={setListingId} />
-              <Tooltip label="Remove listing">
+          {empty && <NoVerifiedListing icon="stay-sad" noun="stay" manageHref="/manage/stay" manageLabel="Stays" onNavigate={handleClose} />}
+
+          {!loading && !empty && (
+            <>
+            <div className="flex w-full items-start gap-3">
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#eef2ff] text-[13px] font-extrabold text-[#4f46e5]">
+                SL
+              </span>
+              <textarea
+                value={note}
+                onChange={(event) => setNote(event.target.value)}
+                rows={2}
+                placeholder="Highlight what makes this room special…"
+                className="w-full flex-1 resize-none rounded-lg px-3 py-3.5 text-base leading-6 text-night-900 placeholder:text-[#475568] focus:outline-none"
+              />
+              <Tooltip label="Clear note" side="bottom">
                 <button
                   type="button"
-                  aria-label="Remove listing"
-                  onClick={() => setListingId("")}
-                  className="flex size-8 shrink-0 items-center justify-center"
+                  aria-label="Clear note"
+                  onClick={() => setNote("")}
+                  className="flex size-6 shrink-0 items-center justify-center"
                 >
-                  <NavIcon icon="/icons/poll-trash-delete.svg" color="night" size={16} className="bg-[#ef4444]" />
+                  <NavIcon icon="/icons/poll-close-outline.svg" color="night" size={16} />
                 </button>
               </Tooltip>
             </div>
-          </div>
 
-          {listing && (
-            <div className="flex w-full items-stretch overflow-hidden rounded-2xl border border-[#e2e8f0]">
-              <span className="relative h-[120px] w-[35%] shrink-0 sm:w-[203px]">
-                <Image src={listing.image} alt="" fill className="object-cover" sizes="(max-width: 640px) 35vw, 203px" />
-              </span>
-              <div className="flex flex-1 flex-col justify-end gap-1 bg-[#f8fafc] px-4 py-3">
-                <p className="text-lg font-semibold text-[#334154] sm:text-xl">
-                  {listing.priceLine}
-                  {listing.priceSuffix && <span className="text-xs font-normal">{listing.priceSuffix}</span>}
-                </p>
-                <p className="text-xs font-bold text-[#334154]">{listing.subLine}</p>
-                <p className="text-[9px] font-light text-[#334154]">
-                  {listing.location} - {listing.beds} Bed | {listing.baths} Bath
-                </p>
+            <div className="flex w-full flex-col gap-2.5 rounded-2xl border border-[#e2e8f0] p-4">
+              <p className="text-sm text-[#111826]">Choose room / unit type</p>
+              <div className="flex w-full items-center gap-4">
+                <StayDropdown options={options} value={listing?.id ?? ""} onChange={setListingId} />
+                <Tooltip label="Remove listing">
+                  <button
+                    type="button"
+                    aria-label="Remove listing"
+                    onClick={() => setListingId(null)}
+                    className="flex size-8 shrink-0 items-center justify-center"
+                  >
+                    <NavIcon icon="/icons/poll-trash-delete.svg" color="night" size={16} className="bg-[#ef4444]" />
+                  </button>
+                </Tooltip>
               </div>
+              <ListingLinkHelp noun="stay" manageHref="/manage/stay" manageLabel="Stays" onNavigate={handleClose} />
             </div>
+
+            {listing && (
+              <div className="flex w-full items-stretch overflow-hidden rounded-2xl border border-[#e2e8f0]">
+                <span className="relative h-[120px] w-[35%] shrink-0 sm:w-[203px]">
+                  <Image src={listing.image} alt="" fill className="object-cover" sizes="(max-width: 640px) 35vw, 203px" />
+                </span>
+                <div className="flex flex-1 flex-col justify-end gap-1 bg-[#f8fafc] px-4 py-3">
+                  <p className="text-lg font-semibold text-[#334154] sm:text-xl">
+                    {listing.priceLine}
+                    {listing.priceSuffix && <span className="text-xs font-normal">{listing.priceSuffix}</span>}
+                  </p>
+                  <p className="text-xs font-bold text-[#334154]">{listing.subLine}</p>
+                  <p className="text-[9px] font-light text-[#334154]">
+                    {listing.location}
+                  </p>
+                </div>
+              </div>
+            )}
+            </>
           )}
 
           <div className="flex w-full items-center justify-end gap-2">
@@ -172,16 +190,18 @@ export function PostStayModal({ open, onClose }: PostStayModalProps) {
               onClick={handleClose}
               className="flex h-8 items-center justify-center rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-4 text-sm text-red-500 sm:rounded-lg"
             >
-              Cancel
+              {empty ? "Close" : "Cancel"}
             </button>
-            <button
-              type="button"
-              onClick={handlePost}
-              disabled={!listing}
-              className="flex h-8 flex-1 items-center justify-center rounded-xl bg-brand-900 px-3 text-sm text-white hover:bg-brand-900/90 disabled:cursor-not-allowed disabled:opacity-50 sm:rounded-lg"
-            >
-              Post All
-            </button>
+            {!empty && (
+              <button
+                type="button"
+                onClick={handlePost}
+                disabled={!listing}
+                className="flex h-8 flex-1 items-center justify-center rounded-xl bg-brand-900 px-3 text-sm text-white hover:bg-brand-900/90 disabled:cursor-not-allowed disabled:opacity-50 sm:rounded-lg"
+              >
+                Post
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -190,11 +210,11 @@ export function PostStayModal({ open, onClose }: PostStayModalProps) {
   );
 }
 
-function StayDropdown({ value, onChange }: { value: string; onChange: (id: string) => void }) {
+function StayDropdown({ options, value, onChange }: { options: StayListing[]; value: string; onChange: (id: string) => void }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLButtonElement | null>(null);
   const [position, setPosition] = useState<{ top: number; left: number; width: number } | null>(null);
-  const selected = DUMMY_STAYS.find((item) => item.id === value);
+  const selected = options.find((item) => item.id === value);
 
   function toggleOpen() {
     setOpen((v) => {
@@ -236,7 +256,7 @@ function StayDropdown({ value, onChange }: { value: string; onChange: (id: strin
               style={{ top: position.top, left: position.left, width: position.width }}
               className="absolute flex max-h-[220px] flex-col gap-0.5 overflow-y-auto rounded-lg border border-[#cbd5e0] bg-white p-1 shadow-[0px_24px_60px_-15px_rgba(0,0,0,0.15)]"
             >
-              {DUMMY_STAYS.map((item) => (
+              {options.map((item) => (
                 <button
                   key={item.id}
                   type="button"
