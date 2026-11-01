@@ -50,7 +50,7 @@ export function PostCard({ post }: PostCardProps) {
 
   return (
     <article className="flex w-full flex-col gap-[15px] rounded-[29px] border border-gray-200 bg-white p-[15px] sm:rounded-[15px]">
-      <PostHeader post={post} saved={saved} onToggleSave={() => setSaved((v) => !v)} />
+      <PostHeader post={post} />
 
       <div className="h-px w-full bg-gray-200" />
 
@@ -106,7 +106,7 @@ export function PostCard({ post }: PostCardProps) {
   );
 }
 
-function PostHeader({ post, saved, onToggleSave }: { post: PostCardData; saved: boolean; onToggleSave: () => void }) {
+function PostHeader({ post }: { post: PostCardData }) {
   const { following, toggle: toggleFollow } = useFollowAccount(post.authorId, post.authorFollowed);
 
   return (
@@ -155,10 +155,6 @@ function PostHeader({ post, saved, onToggleSave }: { post: PostCardData; saved: 
         )}
         <PostOptionsControl
           post={post}
-          saved={saved}
-          onToggleSave={onToggleSave}
-          following={following}
-          onToggleFollow={toggleFollow}
           className="relative block size-[23px] shrink-0"
         >
           <Image src="/icons/more-horizontal.svg" alt="" fill sizes="23px" className="sm:hidden" />

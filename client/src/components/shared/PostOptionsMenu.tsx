@@ -22,15 +22,9 @@ export type PostOptionsGroup = PostOptionsItem[];
 
 interface ViewerOptionsInput {
   authorName: string;
-  saved: boolean;
-  following: boolean;
-  onToggleSave: () => void;
   /** Whether this home is already in the compare tray. */
   inCompare: boolean;
   onAddToCompare: () => void;
-  onCopyLink: () => void;
-  onShare: () => void;
-  onToggleFollow: () => void;
   onMute: () => void;
   onNotInterested: () => void;
   onWhySeeing: () => void;
@@ -39,10 +33,9 @@ interface ViewerOptionsInput {
 
 /** Options for someone else's post (Figma node 1054:26067). */
 export function buildViewerOptions(input: ViewerOptionsInput): PostOptionsGroup[] {
-  const { authorName, saved, following, inCompare } = input;
+  const { authorName, inCompare } = input;
   return [
     [
-      { key: "save", icon: "/icons/post-options-bookmark.svg", iconSize: 15, label: saved ? "Unsave post" : "Save post", onSelect: input.onToggleSave },
       {
         key: "compare",
         icon: "/icons/post-options-compare.svg",
@@ -51,17 +44,8 @@ export function buildViewerOptions(input: ViewerOptionsInput): PostOptionsGroup[
         description: inCompare ? "Take this out of the compare tray" : "Compare this with others you’ve picked",
         onSelect: input.onAddToCompare,
       },
-      { key: "copy", icon: "/icons/post-options-copy-link.svg", iconSize: 14, label: "Copy link", onSelect: input.onCopyLink },
-      { key: "share", icon: "/icons/post-options-share-to.svg", iconSize: 14, label: "Share to…", onSelect: input.onShare },
     ],
     [
-      {
-        key: "follow",
-        icon: "/icons/post-options-follow.svg",
-        iconSize: 15,
-        label: `${following ? "Unfollow" : "Follow"} ${authorName}`,
-        onSelect: input.onToggleFollow,
-      },
       {
         key: "mute",
         icon: "/icons/post-options-mute.svg",
@@ -91,7 +75,6 @@ interface OwnerOptionsInput {
   onWhoCanComment: () => void;
   onTurnOffComments: () => void;
   onHideLikeCount: () => void;
-  onCopyLink: () => void;
   onDelete: () => void;
 }
 
@@ -122,7 +105,6 @@ export function buildOwnerOptions(input: OwnerOptionsInput): PostOptionsGroup[] 
       { key: "comments-off", icon: "/icons/post-options-not-interested.svg", iconSize: 15, label: "Turn off comments", onSelect: input.onTurnOffComments },
       { key: "hide-likes", icon: "/icons/post-options-hide-likes.svg", iconSize: 15, label: "Hide like count", onSelect: input.onHideLikeCount },
     ],
-    [{ key: "copy", icon: "/icons/post-options-copy-link.svg", iconSize: 14, label: "Copy link", onSelect: input.onCopyLink }],
     [{ key: "delete", icon: "/icons/post-options-report.svg", iconSize: 15, label: "Delete post", destructive: true, onSelect: input.onDelete }],
   ];
 }

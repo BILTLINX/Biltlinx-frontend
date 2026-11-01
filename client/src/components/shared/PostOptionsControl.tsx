@@ -11,7 +11,6 @@ import { WhySeeingPostModal } from "@/components/shared/WhySeeingPostModal";
 import { useCompare, type CompareKind } from "@/context/CompareContext";
 import { usePostsFeed } from "@/context/PostsContext";
 import { comingSoonHref } from "@/lib/coming-soon";
-import { copyPostLink, sharePost } from "@/lib/post-actions";
 import type { PostCardData } from "@/types/post";
 
 /** What a post can be compared as; polls and plain text posts cannot. */
@@ -25,10 +24,6 @@ const COMPARE_KIND: Partial<Record<NonNullable<PostCardData["variant"]>, Compare
 
 interface PostOptionsControlProps {
   post: PostCardData;
-  saved: boolean;
-  onToggleSave: () => void;
-  following: boolean;
-  onToggleFollow: () => void;
   /** Classes for the trigger button; its icon is passed as `children`. */
   className?: string;
   children: ReactNode;
@@ -37,10 +32,6 @@ interface PostOptionsControlProps {
 /** The "Post options" trigger together with its menu and the report / delete / why-am-I-seeing-this dialogs it opens. */
 export function PostOptionsControl({
   post,
-  saved,
-  onToggleSave,
-  following,
-  onToggleFollow,
   className,
   children,
 }: PostOptionsControlProps) {
@@ -82,14 +73,10 @@ export function PostOptionsControl({
                 onWhoCanComment: comingSoon("Who can comment"),
                 onTurnOffComments: comingSoon("Turn off comments"),
                 onHideLikeCount: comingSoon("Hide like count"),
-                onCopyLink: () => copyPostLink(post),
                 onDelete: () => setDeleteOpen(true),
               })
             : buildViewerOptions({
                 authorName: post.authorName,
-                saved,
-                following,
-                onToggleSave,
                 inCompare: compare.has(post.id),
                 onAddToCompare: () => {
                   const kind = post.variant ? COMPARE_KIND[post.variant] : undefined;
@@ -108,9 +95,6 @@ export function PostOptionsControl({
                     href: post.variant === "property" ? `/properties/${post.id}` : undefined,
                   });
                 },
-                onCopyLink: () => copyPostLink(post),
-                onShare: () => sharePost(post),
-                onToggleFollow,
                 onMute: comingSoon("Mute"),
                 onNotInterested: comingSoon("Not interested"),
                 onWhySeeing: () => setWhySeeingOpen(true),
