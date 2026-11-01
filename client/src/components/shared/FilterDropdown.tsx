@@ -23,7 +23,7 @@ type FilterDropdownProps = {
 );
 
 /** An icon from /icons placed in a square box with the padding it was exported with. */
-function BoxIcon({ name, size, inset, bleed }: { name: string; size: number; inset: string; bleed: string }) {
+export function BoxIcon({ name, size, inset, bleed }: { name: string; size: number; inset: string; bleed: string }) {
   return (
     <span aria-hidden className="relative block shrink-0" style={{ width: size, height: size }}>
       <span className="absolute" style={{ inset }}>

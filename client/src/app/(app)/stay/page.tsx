@@ -5,6 +5,7 @@ import { Suspense, useMemo, useRef } from "react";
 import { AppShell } from "@/components/shared/AppShell";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { FilterDropdown } from "@/components/shared/FilterDropdown";
+import { filterList, filterText, FilterPanel, type FilterSection } from "@/components/shared/FilterPanel";
 import { ListingCard } from "@/components/shared/ListingCard";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { StayRail } from "@/components/shared/StayRail";
@@ -70,6 +71,19 @@ function StayContent() {
     update({ type: undefined, amenities: undefined, breakfast: undefined, sort: undefined });
   }
 
+  const sections: FilterSection[] = [
+    { type: "options", label: "Stay type", key: "type", display: "chips", options: STAY_TYPES.map((type) => ({ value: type, label: STAY_TYPE_LABEL[type] })) },
+    {
+      type: "options",
+      label: "Amenities",
+      key: "amenities",
+      display: "list",
+      multiple: true,
+      searchable: true,
+      options: STAY_AMENITIES.map((amenity) => ({ value: amenity, label: amenity.replace(/([a-z])([A-Z])/g, "$1 $2") })),
+    },
+  ];
+
   const { cards, total, isPending, isError, error, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } = useStaySearch(query);
   const nights = nightsBetween(query.checkIn, query.checkOut);
 
@@ -99,21 +113,11 @@ function StayContent() {
           />
         </div>
 
-        <div className="flex flex-wrap gap-2.5">
-          <FilterDropdown
-            label="Stay type"
-            value={query.type ?? ""}
-            onChange={(type) => update({ type: type || undefined })}
-            options={[{ value: "", label: "All stays" }, ...STAY_TYPES.map((type) => ({ value: type, label: STAY_TYPE_LABEL[type] }))]}
-          />
-          <FilterDropdown
-            multiple
-            label="Amenities"
-            value={query.amenities ?? []}
-            onChange={(amenities) => update({ amenities: amenities.length > 0 ? amenities.join(",") : undefined })}
-            options={STAY_AMENITIES.map((amenity) => ({ value: amenity, label: amenity.replace(/([a-z])([A-Z])/g, "$1 $2") }))}
-          />
-        </div>
+        <FilterPanel
+          sections={sections}
+          values={{ type: query.type ?? "", amenities: query.amenities ?? [] }}
+          onChange={(next) => update({ type: filterText(next, "type") || undefined, amenities: filterList(next, "amenities").join(",") || undefined })}
+        />
 
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
           <p className="text-sm leading-5 text-[#0f172a]">

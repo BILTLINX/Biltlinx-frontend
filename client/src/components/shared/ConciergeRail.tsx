@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { useMyConciergeRequests } from "@/hooks/useConcierge";
 import { cn } from "@/lib/utils";
 import type { ConciergeStatus } from "@/types/api/concierge";
@@ -29,11 +30,19 @@ export function ConciergeRail({ selectedId }: { selectedId?: string }) {
       </section>
 
       <section className={CARD}>
-        <h2 className="text-base font-bold leading-[23px] text-[#0f172a]">Your requests</h2>
+        {(requests.isPending || items.length > 0) && <h2 className="text-base font-bold leading-[23px] text-[#0f172a]">Your requests</h2>}
         {requests.isPending ? (
           <p className="text-xs text-gray-500">Loading…</p>
         ) : items.length === 0 ? (
-          <p className="text-xs leading-[17px] text-gray-500">Nothing yet. Describe what you need and Concierge will build a plan.</p>
+          <EmptyState
+            size="compact"
+            icon="concierge"
+            header="Your requests"
+            title="Nothing here yet"
+            body="Describe what you need and Concierge will build you a plan."
+            primary={{ label: "Start a request", href: "/concierge/new" }}
+            className="border-0 p-0"
+          />
         ) : (
           items.map((item) => (
             <Link

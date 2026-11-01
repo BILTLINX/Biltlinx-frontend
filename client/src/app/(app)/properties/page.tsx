@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/shared/AppShell";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { FilterDropdown } from "@/components/shared/FilterDropdown";
+import { filterText, FilterPanel, type FilterSection, type FilterValues } from "@/components/shared/FilterPanel";
 import { ListingCard } from "@/components/shared/ListingCard";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { PropertiesRail } from "@/components/shared/PropertiesRail";
@@ -41,8 +42,6 @@ const SORT_OPTIONS: { label: string; value: NonNullable<PropertyQuery["sort"]> }
   { label: "Price: high to low", value: "price_desc" },
 ];
 
-const FIELD = "h-12 min-w-0 rounded-xl border border-gray-200 bg-white px-3 text-sm text-[#0f172a] focus:border-brand-900 focus:outline-none";
-
 function numberOrUndefined(value: string) {
   const parsed = Number(value);
   return value.trim() !== "" && Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
@@ -52,26 +51,26 @@ export default function PropertiesPage() {
   const router = useRouter();
   const [tab, setTab] = useState<TabKey>("buy");
   const search = useDebouncedSearch();
-  const [minPrice, setMinPrice] = useState("");
-  const [maxPrice, setMaxPrice] = useState("");
-  const [bedrooms, setBedrooms] = useState("");
+  const [filters, setFilters] = useState<FilterValues>({ minPrice: "", maxPrice: "", bedrooms: "" });
   const [sort, setSort] = useState<NonNullable<PropertyQuery["sort"]>>("newest");
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   function clearFilters() {
-    setMinPrice("");
-    setMaxPrice("");
-    setBedrooms("");
+    setFilters({ minPrice: "", maxPrice: "", bedrooms: "" });
     setSort("newest");
   }
 
+  const sections: FilterSection[] = [
+    { type: "range", label: "Price", minKey: "minPrice", maxKey: "maxPrice", prefix: "GHS" },
+    { type: "options", label: "Bedrooms", key: "bedrooms", display: "chips", options: BEDROOM_OPTIONS.filter((option) => option.value !== ""), hidden: tab !== "buy" && tab !== "rent" },
+  ];
   const active = TABS.find((item) => item.key === tab) ?? TABS[0];
   const { cards, total, isPending, isError, error, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } = useProperties({
     ...active.query,
     q: search || undefined,
-    minPrice: numberOrUndefined(minPrice),
-    maxPrice: numberOrUndefined(maxPrice),
-    minBedrooms: tab === "land" || tab === "commercial" ? undefined : numberOrUndefined(bedrooms),
+    minPrice: numberOrUndefined(filterText(filters, "minPrice")),
+    maxPrice: numberOrUndefined(filterText(filters, "maxPrice")),
+    minBedrooms: tab === "land" || tab === "commercial" ? undefined : numberOrUndefined(filterText(filters, "bedrooms")),
     sort,
   });
 
@@ -128,29 +127,9 @@ export default function PropertiesPage() {
           })}
         </div>
 
-        <div className="flex flex-col gap-3 lg:flex-row">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:flex">
-            <input
-              value={minPrice}
-              onChange={(event) => setMinPrice(event.target.value)}
-              inputMode="numeric"
-              placeholder="Min price"
-              aria-label="Minimum price"
-              className={cn(FIELD, "lg:w-[120px]")}
-            />
-            <input
-              value={maxPrice}
-              onChange={(event) => setMaxPrice(event.target.value)}
-              inputMode="numeric"
-              placeholder="Max price"
-              aria-label="Maximum price"
-              className={cn(FIELD, "lg:w-[120px]")}
-            />
-            {(tab === "buy" || tab === "rent") && (
-              <FilterDropdown label="Bedrooms" value={bedrooms} onChange={setBedrooms} options={BEDROOM_OPTIONS} className="lg:self-center" />
-            )}
-            <FilterDropdown label="Sort" value={sort} onChange={(value) => setSort(value as NonNullable<PropertyQuery["sort"]>)} options={SORT_OPTIONS} className="lg:self-center" />
-          </div>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <FilterPanel sections={sections} values={filters} onChange={setFilters} />
+          <FilterDropdown label="Sort" value={sort} onChange={(value) => setSort(value as NonNullable<PropertyQuery["sort"]>)} options={SORT_OPTIONS} />
         </div>
 
         <div className="flex items-center justify-between gap-3">

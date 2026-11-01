@@ -30,6 +30,7 @@ const TRIO = {
   projects: ["houses", "build", "manage"],
   feed: ["wave", "newspaper", "megaphone"],
   marketplace: ["houses", "label", "stay"],
+  concierge: ["houses", "wave", "memo"],
   follow: ["megaphone", "wave", "sparkles"],
   trends: ["newspaper", "sparkles", "bell"],
 } as const satisfies Record<string, readonly [string, string, string]>;

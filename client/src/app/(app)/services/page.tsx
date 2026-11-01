@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/shared/AppShell";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { FilterDropdown } from "@/components/shared/FilterDropdown";
+import { filterText, FilterPanel, type FilterSection, type FilterValues } from "@/components/shared/FilterPanel";
 import { OfferingCard } from "@/components/shared/OfferingCard";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { ServicesRail } from "@/components/shared/ServicesRail";
@@ -27,22 +28,21 @@ export default function ServicesPage() {
   const router = useRouter();
   const taxonomy = useTaxonomy();
   const search = useDebouncedSearch();
-  const [category, setCategory] = useState("");
-  const [city, setCity] = useState("");
-  const [maxPrice, setMaxPrice] = useState("");
+  const [filters, setFilters] = useState<FilterValues>({ category: "", city: "", maxPrice: "" });
   const [sort, setSort] = useState<(typeof SORTS)[number]["value"]>("");
   const [problem, setProblem] = useState("");
 
   function clearFilters() {
-    setCategory("");
-    setCity("");
-    setMaxPrice("");
+    setFilters({ category: "", city: "", maxPrice: "" });
     setSort("");
     setProblem("");
   }
   const suggestions = useTradeSuggestions(problem);
   const sentinel = useRef<HTMLDivElement | null>(null);
 
+  const category = filterText(filters, "category");
+  const city = filterText(filters, "city");
+  const maxPrice = filterText(filters, "maxPrice");
   const max = Number(maxPrice);
   const { items, total, isPending, isError, error, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } = useOfferings({
     q: search || undefined,
@@ -61,6 +61,11 @@ export default function ServicesPage() {
   }, [hasNextPage, isFetchingNextPage, fetchNextPage, items.length]);
 
   const categories = [...(taxonomy.data?.professions ?? []), ...(taxonomy.data?.trades ?? [])];
+  const sections: FilterSection[] = [
+    { type: "options", label: "Category", key: "category", display: "list", searchable: true, options: categories.map((item) => ({ value: item, label: item })) },
+    { type: "text", label: "City", key: "city", placeholder: "Any city" },
+    { type: "text", label: "Max price (GHS)", key: "maxPrice", placeholder: "Any price", numeric: true },
+  ];
 
   return (
     <AppShell activeKey="services" activeChildKey="services" contentFullWidth rightRail={<ServicesRail />}>
@@ -85,7 +90,7 @@ export default function ServicesPage() {
               <div className="flex flex-wrap items-center gap-2 text-[13px]">
                 <span className="text-brand-900">Try:</span>
                 {suggestions.data?.slice(0, 4).map((item) => (
-                  <button key={item.trade} type="button" onClick={() => setCategory(item.trade ?? "")} className="rounded-full bg-white px-3 py-1 font-medium text-brand-900 shadow-sm hover:bg-gray-50">
+                  <button key={item.trade} type="button" onClick={() => setFilters((current) => ({ ...current, category: item.trade ?? "" }))} className="rounded-full bg-white px-3 py-1 font-medium text-brand-900 shadow-sm hover:bg-gray-50">
                     {item.trade}
                   </button>
                 ))}
@@ -95,13 +100,10 @@ export default function ServicesPage() {
           )}
         </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <input value={city} onChange={(event) => setCity(event.target.value)} placeholder="City" aria-label="City" className={cn(FIELD, "sm:w-[140px]")} />
-          <input value={maxPrice} onChange={(event) => setMaxPrice(event.target.value)} placeholder="Max price (GHS)" inputMode="numeric" aria-label="Maximum price" className={cn(FIELD, "sm:w-[150px]")} />
-          <FilterDropdown label="Sort" value={sort} onChange={(value) => setSort(value as typeof sort)} options={SORTS} className="sm:self-center" />
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <FilterPanel sections={sections} values={filters} onChange={setFilters} />
+          <FilterDropdown label="Sort" value={sort} onChange={(value) => setSort(value as typeof sort)} options={SORTS} />
         </div>
-
-        <FilterDropdown label="Category" value={category} onChange={setCategory} options={[{ value: "", label: "All" }, ...categories.map((item) => ({ value: item, label: item }))]} />
 
         <p className="text-sm font-medium text-[#0f172a]">{isPending ? "Searching…" : `${total} ${total === 1 ? "service" : "services"}`}</p>
 

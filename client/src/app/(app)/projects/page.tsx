@@ -6,21 +6,27 @@ import { AppShell } from "@/components/shared/AppShell";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { ProjectCard } from "@/components/shared/ProjectCard";
 import { ProjectsRail } from "@/components/shared/ProjectsRail";
-import { FilterDropdown } from "@/components/shared/FilterDropdown";
+import { filterList, FilterPanel, type FilterSection } from "@/components/shared/FilterPanel";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { Button } from "@/components/ui/Button";
 import { comingSoonHref } from "@/lib/coming-soon";
-import { PROJECT_FILTERS, PROJECTS, type ProjectFilter } from "@/lib/dummy-projects";
+import { PROJECT_FILTERS, PROJECTS } from "@/lib/dummy-projects";
 import { useSearchTerm } from "@/context/SearchContext";
 
-const FILTER_FIELDS = [
-  { label: "Stage", value: "Any stage" },
-  { label: "Type", value: "Residential" },
+const STATUS_SECTIONS: FilterSection[] = [
+  {
+    type: "options",
+    label: "Status",
+    key: "status",
+    display: "chips",
+    multiple: true,
+    options: PROJECT_FILTERS.filter((item) => item !== "All").map((item) => ({ value: item, label: item })),
+  },
 ];
 
 export default function ProjectsPage() {
   const router = useRouter();
-  const [filter, setFilter] = useState<ProjectFilter>("All");
+  const [statuses, setStatuses] = useState<string[]>([]);
   const [followed, setFollowed] = useState<string[]>([]);
   const comingSoon = (feature: string) => () => router.push(comingSoonHref(feature));
 
@@ -28,10 +34,10 @@ export default function ProjectsPage() {
   const projects = useMemo(() => {
     return PROJECTS.filter(
       (project) =>
-        (filter === "All" || (filter === "Following" ? followed.includes(project.id) : project.stage === filter)) &&
+        (statuses.length === 0 || statuses.some((status) => (status === "Following" ? followed.includes(project.id) : project.stage === status))) &&
         (!term || `${project.name} ${project.developer} ${project.area}`.toLowerCase().includes(term)),
     );
-  }, [filter, term, followed]);
+  }, [statuses, term, followed]);
 
   function toggleFollow(id: string) {
     setFollowed((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
@@ -56,23 +62,11 @@ export default function ProjectsPage() {
           </Button>
         </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <div className="grid grid-cols-2 gap-3 sm:flex">
-            {FILTER_FIELDS.map((field) => (
-              <button
-                key={field.label}
-                type="button"
-                onClick={comingSoon(`${field.label} filter`)}
-                className="flex h-12 min-w-0 flex-col items-start justify-center rounded-xl border border-gray-200 bg-white px-4 text-left sm:w-[170px]"
-              >
-                <span className="text-[11px] font-medium leading-[14px] text-gray-500">{field.label}</span>
-                <span className="w-full truncate text-sm font-medium leading-5 text-[#0f172a]">{field.value}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <FilterDropdown label="Status" value={filter} onChange={(value) => setFilter(value as typeof filter)} options={PROJECT_FILTERS.map((item) => ({ value: item, label: item }))} />
+        <FilterPanel
+          sections={STATUS_SECTIONS}
+          values={{ status: statuses }}
+          onChange={(next) => setStatuses(filterList(next, "status"))}
+        />
 
         {projects.length > 0 ? (
           <div className="flex flex-col gap-6">
@@ -93,7 +87,7 @@ export default function ProjectsPage() {
               icon="projects"
               title="No projects here yet"
               body="No developer has listed a project at this stage. Follow developers to hear first when they break ground."
-              primary={{ label: "Show all projects", onClick: () => setFilter("All") }}
+              primary={{ label: "Show all projects", onClick: () => setStatuses([]) }}
               secondary={{ label: "Start a project", onClick: comingSoon("Start a project") }}
             />
           )
