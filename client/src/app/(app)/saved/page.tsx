@@ -1,5 +1,7 @@
 "use client";
 
+import { useSearchTerm } from "@/context/SearchContext";
+import { SearchEmpty } from "@/components/shared/SearchEmpty";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -18,10 +20,12 @@ export default function SavedPage() {
   const [filter, setFilter] = useState<SavedFilter>("All");
   const comingSoon = (feature: string) => () => router.push(comingSoonHref(feature));
 
+  const term = useSearchTerm();
   const items = useMemo(
-    () => SAVED_ITEMS.filter((item) => filter === "All" || item.filter === filter),
-    [filter],
+    () => SAVED_ITEMS.filter((item) => (filter === "All" || item.filter === filter) && (!term || `${item.title} ${item.kind}`.toLowerCase().includes(term))),
+    [filter, term],
   );
+  const collections = useMemo(() => SAVED_COLLECTIONS.filter((collection) => !term || `${collection.name} ${collection.summary}`.toLowerCase().includes(term)), [term]);
 
   return (
     <AppShell activeKey="you" activeChildKey="saved" contentFullWidth rightRail={<SavedRail />}>
@@ -47,7 +51,7 @@ export default function SavedPage() {
         <section className="flex flex-col gap-3">
           <h2 className="text-base font-bold leading-[23px] text-[#0f172a]">Collections</h2>
           <div className="grid grid-cols-[repeat(auto-fill,minmax(min(170px,100%),1fr))] gap-3">
-            {SAVED_COLLECTIONS.map((collection) => (
+            {collections.map((collection) => (
               <button
                 key={collection.id}
                 type="button"
@@ -74,6 +78,8 @@ export default function SavedPage() {
                 <SavedItemRow key={item.id} item={item} />
               ))}
             </div>
+          ) : term ? (
+            <SearchEmpty noun="saved items" />
           ) : (
             <p className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500">
               Nothing saved here yet.

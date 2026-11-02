@@ -1,5 +1,6 @@
 "use client";
 
+import { DateTimeField } from "@/components/shared/ViewingSlotPickers";
 import Link from "next/link";
 import { use, useState } from "react";
 import { showSuccessToast } from "@/components/shared/AppToast";
@@ -152,7 +153,9 @@ function ProviderTools({ request }: { request: QuoteRequestDto }) {
         <div className="flex flex-col gap-2 rounded-xl bg-[#fef3c7] p-3.5">
           <p className="text-[13px] font-medium text-[#b45309]">This job needs a site visit before you can quote.</p>
           <div className="flex flex-wrap gap-2">
-            <input type="datetime-local" value={at} onChange={(event) => setAt(event.target.value)} aria-label="Visit time" className={FIELD} />
+            <div className="w-full sm:w-[320px]">
+              <DateTimeField value={at} onChange={setAt} />
+            </div>
             <input value={fee} onChange={(event) => setFee(event.target.value)} placeholder="Visit fee (GHS)" inputMode="numeric" className={cn(FIELD, "w-36")} />
             <button
               type="button"

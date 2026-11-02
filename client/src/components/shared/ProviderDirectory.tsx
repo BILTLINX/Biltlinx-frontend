@@ -1,5 +1,6 @@
 "use client";
 
+import { SearchEmpty } from "@/components/shared/SearchEmpty";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AppShell } from "@/components/shared/AppShell";
 import { EmptyState, type EmptyIcon } from "@/components/shared/EmptyState";
@@ -106,7 +107,8 @@ export function ProviderDirectory({ kind, title, subtitle, activeChildKey, right
             </button>
           </div>
         )}
-        {!isPending && !isError && items.length === 0 && (
+        {!isPending && !isError && items.length === 0 && search && <SearchEmpty noun="results" />}
+        {!isPending && !isError && items.length === 0 && !search && (
           <EmptyState
             mood="sad"
             icon={NO_RESULTS[kind].icon}

@@ -1,5 +1,6 @@
 "use client";
 
+import { SearchEmpty } from "@/components/shared/SearchEmpty";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/shared/AppShell";
@@ -149,7 +150,8 @@ export default function PropertiesPage() {
           </div>
         )}
 
-        {!isPending && !isError && cards.length === 0 && (
+        {!isPending && !isError && cards.length === 0 && search && <SearchEmpty noun="properties" />}
+        {!isPending && !isError && cards.length === 0 && !search && (
           <EmptyState
             mood="sad"
             icon="home-sad"

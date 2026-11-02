@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { BoxIcon, type FilterOption } from "@/components/shared/FilterDropdown";
+import { DatePickerField, todayKey } from "@/components/shared/ViewingSlotPickers";
 import { useAnimatedSheet } from "@/hooks/useAnimatedSheet";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +25,10 @@ export type FilterSection = { label: string; hidden?: boolean } & (
   | { type: "range"; minKey: string; maxKey: string; prefix?: string }
   | { type: "text"; key: string; placeholder?: string; numeric?: boolean }
   | { type: "toggle"; key: string; text: string }
+  /** A from / to pair of days, e.g. check in and check out. */
+  | { type: "dates"; fromKey: string; toKey: string; fromLabel?: string; toLabel?: string }
+  /** A whole number with minus and plus buttons; empty means "any". */
+  | { type: "count"; key: string; noun: string; min?: number; max?: number }
 );
 
 export function filterText(values: FilterValues, key: string) {
@@ -43,6 +48,9 @@ export function emptyFilters(sections: readonly FilterSection[]): FilterValues {
     if (section.type === "range") {
       values[section.minKey] = "";
       values[section.maxKey] = "";
+    } else if (section.type === "dates") {
+      values[section.fromKey] = "";
+      values[section.toKey] = "";
     } else {
       values[section.key] = section.type === "options" && section.multiple ? [] : "";
     }
@@ -57,6 +65,17 @@ interface ActiveChip {
   without: FilterValues;
 }
 
+function shortDate(key: string) {
+  return new Date(`${key}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+}
+
+/** The day after a yyyy-mm-dd day, so a check-out can't be chosen on or before its check-in. */
+function nextDay(key: string) {
+  const date = new Date(`${key}T00:00:00`);
+  date.setDate(date.getDate() + 1);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
 function activeChips(sections: readonly FilterSection[], values: FilterValues): ActiveChip[] {
   const chips: ActiveChip[] = [];
   for (const section of sections) {
@@ -68,6 +87,15 @@ function activeChips(sections: readonly FilterSection[], values: FilterValues): 
       const prefix = section.prefix ? `${section.prefix} ` : "";
       const label = min && max ? `${prefix}${min} – ${max}` : min ? `From ${prefix}${min}` : `Up to ${prefix}${max}`;
       chips.push({ id: section.minKey, label, without: { [section.minKey]: "", [section.maxKey]: "" } });
+    } else if (section.type === "dates") {
+      const from = filterText(values, section.fromKey);
+      const to = filterText(values, section.toKey);
+      if (!from && !to) continue;
+      const label = from && to ? `${shortDate(from)} – ${shortDate(to)}` : from ? `From ${shortDate(from)}` : `Until ${shortDate(to)}`;
+      chips.push({ id: section.fromKey, label, without: { [section.fromKey]: "", [section.toKey]: "" } });
+    } else if (section.type === "count") {
+      const count = filterText(values, section.key);
+      if (count) chips.push({ id: section.key, label: `${count} ${section.noun}${count === "1" ? "" : "s"}`, without: { [section.key]: "" } });
     } else if (section.type === "text" || section.type === "toggle") {
       const value = filterText(values, section.key);
       if (value) chips.push({ id: section.key, label: section.type === "toggle" ? section.text : value, without: { [section.key]: "" } });
@@ -194,6 +222,39 @@ function SectionBody({ section, values, onChange }: { section: FilterSection; va
           Max
           <input value={filterText(values, section.maxKey)} onChange={(event) => onChange({ [section.maxKey]: event.target.value })} inputMode="numeric" placeholder="Any" className={input} />
         </label>
+      </div>
+    );
+  }
+  if (section.type === "dates") {
+    const from = filterText(values, section.fromKey);
+    const to = filterText(values, section.toKey);
+    const label = "text-[11px] font-medium leading-[14px] text-gray-500";
+    return (
+      <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-1.5">
+          <span className={label}>{section.fromLabel ?? "Check in"}</span>
+          <DatePickerField value={from} onChange={(next) => onChange({ [section.fromKey]: next, [section.toKey]: to && to <= next ? "" : to })} />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <span className={label}>{section.toLabel ?? "Check out"}</span>
+          <DatePickerField value={to} min={from ? nextDay(from) : todayKey()} onChange={(next) => onChange({ [section.toKey]: next })} />
+        </div>
+      </div>
+    );
+  }
+  if (section.type === "count") {
+    const min = section.min ?? 1;
+    const count = Number(filterText(values, section.key)) || 0;
+    const step = "flex size-9 items-center justify-center rounded-full border border-gray-200 bg-white text-lg leading-none text-[#334155] hover:bg-gray-50 disabled:opacity-40";
+    return (
+      <div className="flex items-center gap-4">
+        <button type="button" aria-label={`Fewer ${section.noun}s`} disabled={count === 0} onClick={() => onChange({ [section.key]: count <= min ? "" : String(count - 1) })} className={step}>
+          −
+        </button>
+        <span className="min-w-12 text-center text-sm font-medium text-[#0f172a]">{count === 0 ? "Any" : count}</span>
+        <button type="button" aria-label={`More ${section.noun}s`} disabled={section.max !== undefined && count >= section.max} onClick={() => onChange({ [section.key]: String(Math.max(min, count + 1)) })} className={step}>
+          +
+        </button>
       </div>
     );
   }

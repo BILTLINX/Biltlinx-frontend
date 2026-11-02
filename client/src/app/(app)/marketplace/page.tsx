@@ -1,5 +1,6 @@
 "use client";
 
+import { SearchEmpty } from "@/components/shared/SearchEmpty";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { keepPreviousData } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -134,7 +135,8 @@ export default function MarketplacePage() {
             </button>
           </div>
         )}
-        {!result.isPending && !result.isError && cards.length === 0 && (
+        {!result.isPending && !result.isError && cards.length === 0 && search && <SearchEmpty noun="listings" />}
+        {!result.isPending && !result.isError && cards.length === 0 && !search && (
           <EmptyState
             mood="sad"
             icon="search-sad"

@@ -1,5 +1,6 @@
 "use client";
 
+import { SearchEmpty } from "@/components/shared/SearchEmpty";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/shared/AppShell";
@@ -73,7 +74,7 @@ export default function ProjectsPage() {
           </div>
         ) : (
           term ? (
-            <p className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500">No projects match your search.</p>
+            <SearchEmpty noun="projects" />
           ) : (
             <EmptyState
               icon="projects"

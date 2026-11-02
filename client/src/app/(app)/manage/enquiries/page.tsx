@@ -1,5 +1,6 @@
 "use client";
 
+import { DateTimeField } from "@/components/shared/ViewingSlotPickers";
 import Link from "next/link";
 import { useState } from "react";
 import { AppShell } from "@/components/shared/AppShell";
@@ -34,7 +35,6 @@ const VIEWING_TONE: Record<string, string> = {
   Cancelled: "bg-[#f1f5f9] text-[#334155]",
 };
 
-const FIELD = "h-10 rounded-[10px] border border-gray-200 bg-white px-3 text-[13px] text-[#0f172a] focus:border-brand-900 focus:outline-none";
 
 /** Manage · Enquiries & leads (Figma node 1059:29837): the lead pipeline, viewing requests and what you have sent as a seeker. */
 export default function ManageEnquiriesPage() {
@@ -198,7 +198,9 @@ function IncomingViewings() {
           )}
           {proposing === viewing.id && (
             <div className="flex flex-wrap gap-2">
-              <input type="datetime-local" value={at} onChange={(event) => setAt(event.target.value)} aria-label="New time" className={FIELD} />
+              <div className="w-full sm:w-[320px]">
+                <DateTimeField value={at} onChange={setAt} />
+              </div>
               <button
                 type="button"
                 disabled={!at}

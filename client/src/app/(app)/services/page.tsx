@@ -1,5 +1,6 @@
 "use client";
 
+import { SearchEmpty } from "@/components/shared/SearchEmpty";
 import { useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/shared/AppShell";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -111,7 +112,8 @@ export default function ServicesPage() {
             </button>
           </div>
         )}
-        {!isPending && !isError && items.length === 0 && (
+        {!isPending && !isError && items.length === 0 && search && <SearchEmpty noun="services" />}
+        {!isPending && !isError && items.length === 0 && !search && (
           <EmptyState
             mood="sad"
             icon="services-sad"

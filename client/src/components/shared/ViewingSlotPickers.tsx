@@ -36,13 +36,13 @@ interface DatePickerFieldProps {
   /** yyyy-mm-dd, or "" when nothing is chosen yet. */
   value: string;
   onChange: (value: string) => void;
-  /** Earliest selectable day, yyyy-mm-dd. */
-  min: string;
+  /** Earliest selectable day, yyyy-mm-dd. Today when left out. */
+  min?: string;
   invalid?: boolean;
 }
 
 /** Date field whose calendar opens in the app's frosted dropdown panel (the stay availability calendar's grid, one month at a time). */
-export function DatePickerField({ value, onChange, min, invalid }: DatePickerFieldProps) {
+export function DatePickerField({ value, onChange, min = todayKey(), invalid }: DatePickerFieldProps) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const [view, setView] = useState(() => {
@@ -206,4 +206,20 @@ interface TimeSelectFieldProps {
 /** Time-slot field. */
 export function TimeSelectField({ value, onChange }: TimeSelectFieldProps) {
   return <OptionSelectField value={value} options={TIME_SLOTS} onChange={onChange} icon="/icons/timer-clock-watch.svg" minPanelWidth={210} />;
+}
+
+const CLOCK_TIMES = Array.from({ length: 34 }, (_, index) => {
+  const minutes = 6 * 60 + index * 30;
+  return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+});
+
+/** A day and a time of day in the app's own pickers; the value is `yyyy-mm-ddThh:mm`, like a datetime-local input's. */
+export function DateTimeField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const [date, time = ""] = value.split("T");
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)_112px] gap-2">
+      <DatePickerField value={date} onChange={(next) => onChange(`${next}T${time || "09:00"}`)} />
+      <OptionSelectField value={time} options={CLOCK_TIMES} placeholder="Time" onChange={(next) => onChange(`${date || todayKey()}T${next}`)} minPanelWidth={112} maxPanelHeight={240} hideScrollbar />
+    </div>
+  );
 }

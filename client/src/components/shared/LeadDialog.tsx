@@ -1,5 +1,6 @@
 "use client";
 
+import { DateTimeField } from "@/components/shared/ViewingSlotPickers";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { CenteredDialog } from "@/components/shared/CenteredDialog";
@@ -147,7 +148,9 @@ export function LeadDialog({ leadId, onClose }: { leadId: string | null; onClose
                   </p>
                 )}
                 <div className="flex flex-wrap gap-2">
-                  <input type="datetime-local" value={followAt} onChange={(event) => setFollowAt(event.target.value)} aria-label="Follow-up time" className={FIELD} />
+                  <div className="w-full sm:w-[320px]">
+                    <DateTimeField value={followAt} onChange={setFollowAt} />
+                  </div>
                   <input value={followNote} onChange={(event) => setFollowNote(event.target.value)} placeholder="Note" className={cn(FIELD, "min-w-0 flex-1")} />
                   <button
                     type="button"

@@ -1,5 +1,6 @@
 "use client";
 
+import { SearchEmpty } from "@/components/shared/SearchEmpty";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/shared/AppShell";
@@ -102,7 +103,7 @@ export default function CommunitiesPage() {
                 secondary={{ label: "Start a community", onClick: comingSoon("Create a community") }}
               />
             ) : (
-              <p className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500">No communities match your search.</p>
+              <SearchEmpty noun="communities" />
             )
           )}
         </section>

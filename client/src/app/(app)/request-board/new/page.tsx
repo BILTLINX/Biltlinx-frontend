@@ -1,5 +1,6 @@
 "use client";
 
+import { DatePickerField } from "@/components/shared/ViewingSlotPickers";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { showSuccessToast } from "@/components/shared/AppToast";
@@ -83,7 +84,7 @@ export default function NewRequestPage() {
             <div className="grid gap-3 sm:grid-cols-2">
               <SelectField value={category} onChange={setCategory} aria-label="Trade or profession" placeholder="Trade or profession" options={categories.map((item) => ({ value: item, label: item }))} />
               <LocationCombobox value={city} onChange={setCity} placeholder="City or area" ariaLabel="City" pick="city" inputClassName={FIELD} />
-              <input type="date" value={start} onChange={(event) => setStart(event.target.value)} className={FIELD} aria-label="Preferred start" />
+              <DatePickerField value={start} onChange={setStart} />
               <input value={budget} onChange={(event) => setBudget(event.target.value)} placeholder="Budget in GHS (optional)" inputMode="numeric" className={FIELD} aria-label="Budget" />
             </div>
             {!category && (suggestions.data?.length ?? 0) > 0 && (

@@ -1,5 +1,6 @@
 "use client";
 
+import { DatePickerField } from "@/components/shared/ViewingSlotPickers";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -203,8 +204,8 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
           </h2>
           <p className="text-sm text-gray-500">Allowed until 24 hours before check-in, and only if it does not cost more than you paid. To stay longer, use Extend.</p>
           <div className="grid grid-cols-2 gap-2">
-            <input type="date" value={checkIn} onChange={(event) => setCheckIn(event.target.value)} aria-label="New check in" className={FIELD} />
-            <input type="date" value={checkOut} min={checkIn} onChange={(event) => setCheckOut(event.target.value)} aria-label="New check out" className={FIELD} />
+            <DatePickerField value={checkIn} onChange={setCheckIn} />
+            <DatePickerField value={checkOut} min={checkIn || undefined} onChange={setCheckOut} />
           </div>
           <div className="flex justify-end gap-2.5">
             <button type="button" onClick={() => setDialog(null)} className="h-10 rounded-[10px] border border-gray-200 px-4 text-sm font-medium">

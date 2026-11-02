@@ -1,5 +1,6 @@
 "use client";
 
+import { DatePickerField } from "@/components/shared/ViewingSlotPickers";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { showSuccessToast } from "@/components/shared/AppToast";
@@ -99,10 +100,10 @@ export function EnquiryModal({ open, onClose, listingId, title, isRental, curren
         </label>
 
         {isRental ? (
-          <label className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1.5">
             <span className="text-[13px] font-semibold leading-[19px] text-[#0f172a]">Move-in date (optional)</span>
-            <input type="date" value={moveIn} onChange={(event) => setMoveIn(event.target.value)} className={FIELD} />
-          </label>
+            <DatePickerField value={moveIn} onChange={setMoveIn} />
+          </div>
         ) : (
           <div role="radiogroup" aria-label="How will you pay" className="flex flex-col gap-1.5">
             <span className="text-[13px] font-semibold leading-[19px] text-[#0f172a]">How will you pay (optional)</span>

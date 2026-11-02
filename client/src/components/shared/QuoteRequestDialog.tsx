@@ -1,5 +1,6 @@
 "use client";
 
+import { DatePickerField } from "@/components/shared/ViewingSlotPickers";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { showSuccessToast } from "@/components/shared/AppToast";
@@ -129,10 +130,10 @@ export function QuoteRequestDialog({ open, onClose, target }: { open: boolean; o
         {safetyCritical && taxonomy.data?.safetyWarning && <p className="rounded-xl bg-[#fef3c7] p-3 text-[13px] leading-[19px] text-[#b45309]">{taxonomy.data.safetyWarning}</p>}
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <label className="flex flex-col gap-1.5 text-[13px] font-semibold text-[#0f172a]">
+          <div className="flex flex-col gap-1.5 text-[13px] font-semibold text-[#0f172a]">
             Preferred start (optional)
-            <input type="date" value={start} onChange={(event) => setStart(event.target.value)} className={FIELD} />
-          </label>
+            <DatePickerField value={start} onChange={setStart} />
+          </div>
           <label className="flex flex-col gap-1.5 text-[13px] font-semibold text-[#0f172a]">
             Budget in GHS (optional)
             <input value={budget} onChange={(event) => setBudget(event.target.value)} inputMode="numeric" className={FIELD} />

@@ -9,12 +9,17 @@ import { showSuccessToast } from "@/components/shared/AppToast";
 import { BillingTab } from "@/components/shared/BillingTab";
 import { GeneralSettingsTab } from "@/components/shared/GeneralSettingsTab";
 import { NavIcon } from "@/components/shared/NavIcon";
+import { ProfileEditForm } from "@/components/shared/ProfileEditForm";
 import { PrivacyTab } from "@/components/shared/PrivacyTab";
 import { SecurityTab } from "@/components/shared/SecurityTab";
 import { TeamsTab } from "@/components/shared/TeamsTab";
 import { useOrganization } from "@/context/OrganizationContext";
 import { useSession } from "@/context/SessionContext";
+import { updateProfile } from "@/lib/account-api";
+import { notifyError } from "@/lib/errors";
 import { formatDate } from "@/lib/format";
+import { PROFILE_PHOTO_MAX_BYTES, PROFILE_PHOTO_TYPES } from "@/lib/dummy-onboarding";
+import { uploadMedia } from "@/lib/upload";
 import { cn } from "@/lib/utils";
 
 const TABS = [
@@ -85,7 +90,7 @@ function AccountSettings() {
   return (
     <AppShell contentFullWidth rightRail={rail}>
       <div className="mx-auto flex w-full max-w-[762px] flex-col gap-4 pb-6 pt-2">
-        <ProfileBanner />
+        <ProfileHero />
         <nav className="no-scrollbar flex h-[43px] w-full items-stretch overflow-x-auto rounded-2xl border border-[#e6e7ec] bg-white pl-4 pr-2.5" aria-label="Account sections">
           {TABS.map((item) => (
             <button
@@ -121,36 +126,71 @@ function AccountSettings() {
   );
 }
 
-function ProfileBanner() {
-  const { user } = useSession();
+function ProfileHero() {
+  const { user, refresh } = useSession();
+  const fileInput = useRef<HTMLInputElement | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  async function changePhoto(file: File | undefined) {
+    if (!file) return;
+    if (!PROFILE_PHOTO_TYPES.includes(file.type)) {
+      notifyError(new Error("Use a JPG or PNG photo."));
+      return;
+    }
+    if (file.size > PROFILE_PHOTO_MAX_BYTES) {
+      notifyError(new Error("That photo is over 5 MB. Choose a smaller one."));
+      return;
+    }
+    setUploading(true);
+    try {
+      const uploaded = await uploadMedia(file, { allowVideo: false });
+      await updateProfile({ photoPath: uploaded.path });
+      await refresh();
+      showSuccessToast("Your photo was updated");
+    } catch (error) {
+      notifyError(error, "Your photo could not be updated. Please try again.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
   return (
-    <div className="flex flex-col items-center">
-      <div className="relative h-[181px] w-full overflow-hidden rounded-[32px] border-[10px] border-white/20 bg-[#1465e6]">
-        <Image src="/icons/account-banner-star.svg" alt="" width={80} height={118} unoptimized className="absolute right-[16%] top-[112px]" />
-        <Image src="/icons/account-banner-stars.svg" alt="" width={211} height={232} unoptimized className="absolute -top-[69px] left-[72%]" />
-        <Image src="/icons/account-banner-stars.svg" alt="" width={211} height={232} unoptimized className="absolute -left-[39px] -top-[33px]" />
-      </div>
-      <div className="relative -mt-[68px] flex w-[calc(100%-24px)] items-center justify-between gap-2 rounded-2xl bg-gradient-to-b from-[#cfddfa] via-white to-white p-3 shadow-[0px_20px_27px_0px_rgba(0,0,0,0.06)] sm:w-[calc(100%-54px)] sm:rounded-[33px]">
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="relative block size-14 shrink-0 sm:size-[72px]">
-            <span className="relative block size-full overflow-hidden rounded-[23px] bg-[#eef2ff]">
-              <Image src={user?.profilePicUrl ?? PLACEHOLDER_AVATAR} alt={user?.username ?? "Your photo"} fill className="object-cover" sizes="72px" />
-            </span>
-            <span className="absolute -bottom-[2px] -right-[2px] flex items-center rounded-full border border-dashed border-[#ff8d28] bg-gradient-to-r from-[#ff8d28] via-[#ff3d9a] to-[#a43dff] p-1.5">
-              <Image src="/icons/account-banner-upload.svg" alt="Upload photo" width={10} height={10} unoptimized />
-            </span>
+    <div className="flex items-center justify-between gap-3 rounded-[33px] border border-gray-200 bg-white/80 p-4 shadow-[0px_20px_27px_0px_rgba(0,0,0,0.05)] backdrop-blur-[13.5px] sm:p-6">
+      <div className="flex min-w-0 items-center gap-2">
+        <span className="relative block size-[72px] shrink-0">
+          <span className="relative block size-full overflow-hidden rounded-[23px] bg-[#eef2ff]">
+            <Image src={user?.profilePicUrl ?? PLACEHOLDER_AVATAR} alt={user?.username ?? "Your photo"} fill className="object-cover" sizes="72px" />
           </span>
-          <div className="flex min-w-0 flex-col items-start gap-0.5">
-            <p className="truncate text-base font-semibold leading-4 text-[#0f1621]">{user?.username}</p>
-            <p className="flex items-center gap-1.5 text-[11px] text-[#0f1621]">
-              <NavIcon icon="/icons/map-pin-02-sm.svg" color="night" size={12} />
-              {user?.location || (user ? `Member since ${formatDate(user.createdAt)}` : "")}
-            </p>
-            <span className="flex h-4 w-fit shrink-0 items-center whitespace-nowrap rounded-full bg-[#e2e8f0] px-2 text-[10px] leading-4 text-[#1465e6]">{user?.isVerified ? "ID verified" : "ID not verified yet"}</span>
-          </div>
+          <button
+            type="button"
+            aria-label="Change photo"
+            disabled={uploading}
+            onClick={() => fileInput.current?.click()}
+            className="absolute -bottom-[1.67px] -right-[2.17px] flex items-center rounded-[29px] border border-dashed border-[#ff8d28] bg-gradient-to-r from-[#ff8d28] via-[#e24bb9] to-[#983fe0] p-1 shadow-[0px_4px_4px_0px_rgba(0,0,0,0.1)] backdrop-blur-[13.5px] hover:opacity-90 disabled:opacity-60"
+          >
+            <Image src="/icons/account-banner-upload.svg" alt="" width={12} height={12} unoptimized />
+          </button>
+          <input
+            ref={fileInput}
+            type="file"
+            accept={PROFILE_PHOTO_TYPES.join(",")}
+            className="hidden"
+            onChange={(event) => {
+              void changePhoto(event.target.files?.[0]);
+              event.target.value = "";
+            }}
+          />
+        </span>
+        <div className="flex min-w-0 flex-col items-start">
+          <p className="max-w-full truncate text-base font-semibold leading-4 text-[#0f1621]">{user?.username}</p>
+          <p className="flex h-6 items-center gap-1.5 px-2 text-[11px] leading-4 text-[#0f1621]">
+            <NavIcon icon="/icons/map-pin-02-sm.svg" color="night" size={14} />
+            {user?.location || (user ? `Member since ${formatDate(user.createdAt)}` : "")}
+          </p>
+          <span className="flex h-4 w-fit shrink-0 items-center whitespace-nowrap rounded-full bg-[#e2e8f0] px-2 text-[10px] leading-4 text-[#1465e6]">{user?.isVerified ? "ID verified" : "ID not verified yet"}</span>
         </div>
-        <SwitchRoleMenu />
       </div>
+      <SwitchRoleMenu />
     </div>
   );
 }
@@ -192,7 +232,7 @@ function SwitchRoleMenu() {
         className="flex h-9 items-center gap-1.5 rounded-2xl bg-white px-3 text-xs text-[#404040] hover:bg-gray-50 sm:h-10 sm:gap-2 sm:rounded-[10px] sm:px-4 sm:text-sm"
       >
         Switch role
-        <NavIcon icon="/icons/poll-chevron-down.svg" color="night" size={10} />
+        <NavIcon icon="/icons/poll-chevron-down.svg" color="night" size={16} />
       </button>
 
       {open && (
@@ -227,12 +267,14 @@ function SwitchRoleMenu() {
 
 function ProfileTab() {
   const { user } = useSession();
+  const [editing, setEditing] = useState(false);
 
   const personal: Field[] = [
     { key: "displayName", label: "Display name", value: user?.username ?? "" },
     { key: "email", label: "Email", value: user?.accounts[0]?.email ?? "" },
     { key: "phone", label: "Phone number", value: user?.primaryContact ?? "" },
     ...(user?.otherContact ? [{ key: "other", label: "Other contact", value: user.otherContact }] : []),
+    { key: "location", label: "Location", value: user?.location ?? "" },
     { key: "bio", label: "Bio", value: user?.bio ?? "" },
     { key: "status", label: "Account status", value: user?.status ?? "" },
   ];
@@ -241,11 +283,21 @@ function ProfileTab() {
     <div className="flex flex-col gap-4 px-2 pb-2 sm:px-4 sm:pb-4">
       <div className="flex flex-col gap-1">
         <h1 className="text-lg font-semibold text-night-900">Profile</h1>
-        <p className="text-[13px] text-gray-600">Your account details. To change your email, phone or location, use the Security tab.</p>
+        <p className="text-[13px] text-gray-600">Your account details. To change your email or phone, use the Security tab.</p>
       </div>
 
       <section className="flex flex-col gap-5 rounded-2xl border border-gray-200 bg-white p-4 sm:p-5">
-        <h2 className="text-[15px] font-medium text-night-900">Personal Information</h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-[15px] font-medium text-night-900">Personal Information</h2>
+          {!editing && (
+            <button type="button" onClick={() => setEditing(true)} className="text-[13px] font-medium text-brand-900 hover:underline">
+              Edit profile
+            </button>
+          )}
+        </div>
+        {editing ? (
+          <ProfileEditForm onDone={() => setEditing(false)} />
+        ) : (
         <dl className="grid grid-cols-1 gap-x-12 gap-y-4 sm:grid-cols-2">
           {personal.map((field) => (
             <div key={field.key} className="flex items-center justify-between gap-3 border-b border-gray-200 pb-2 text-[13px]">
@@ -254,6 +306,7 @@ function ProfileTab() {
             </div>
           ))}
         </dl>
+        )}
       </section>
     </div>
   );

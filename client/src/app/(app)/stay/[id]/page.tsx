@@ -1,5 +1,6 @@
 "use client";
 
+import { DatePickerField } from "@/components/shared/ViewingSlotPickers";
 import { useMutation } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
@@ -24,11 +25,6 @@ import type { PriceBreakdownDto, RatePlanDto, RoomDto } from "@/types/api/schema
 import { cn } from "@/lib/utils";
 
 const CARD = "flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-4";
-
-function todayKey() {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-}
 
 function PriceLines({ price }: { price: PriceBreakdownDto }) {
   return (
@@ -249,15 +245,15 @@ function StayDetail({ id }: { id: string }) {
 
               <aside className="flex w-full flex-col gap-3.5 rounded-2xl border border-gray-200 bg-white p-5 xl:sticky xl:top-0 xl:w-[360px] xl:shrink-0 xl:self-start">
                 <h2 className="text-base font-bold text-[#0f172a]">Your stay</h2>
-                <div className="grid grid-cols-2 overflow-hidden rounded-xl border border-gray-200">
-                  <label className="flex flex-col gap-0.5 px-3.5 py-2.5">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex flex-col gap-1">
                     <span className="text-[10px] font-bold text-gray-500">CHECK IN</span>
-                    <input type="date" min={todayKey()} value={checkIn} onChange={(event) => setCheckIn(event.target.value)} className="w-full bg-transparent text-sm font-semibold text-[#0f172a] focus:outline-none" />
-                  </label>
-                  <label className="flex flex-col gap-0.5 border-l border-gray-200 px-3.5 py-2.5">
+                    <DatePickerField value={checkIn} onChange={setCheckIn} />
+                  </div>
+                  <div className="flex flex-col gap-1">
                     <span className="text-[10px] font-bold text-gray-500">CHECK OUT</span>
-                    <input type="date" min={checkIn || todayKey()} value={checkOut} onChange={(event) => setCheckOut(event.target.value)} className="w-full bg-transparent text-sm font-semibold text-[#0f172a] focus:outline-none" />
-                  </label>
+                    <DatePickerField value={checkOut} min={checkIn || undefined} onChange={setCheckOut} />
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <label className="flex flex-col gap-0.5 rounded-xl border border-gray-200 px-3.5 py-2.5">

@@ -1,5 +1,6 @@
 "use client";
 
+import { DatePickerField } from "@/components/shared/ViewingSlotPickers";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -251,8 +252,8 @@ function RoomsManager({ stay }: { stay: StayDetailDto }) {
 
             {blockDraft ? (
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                <input type="date" className={MINI} value={blockDraft.from} onChange={(event) => setBlock({ ...block, [item.id]: { ...blockDraft, from: event.target.value } })} aria-label="Block from" />
-                <input type="date" className={MINI} value={blockDraft.to} onChange={(event) => setBlock({ ...block, [item.id]: { ...blockDraft, to: event.target.value } })} aria-label="Block to" />
+                <DatePickerField value={blockDraft.from} onChange={(value) => setBlock({ ...block, [item.id]: { ...blockDraft, from: value } })} />
+                <DatePickerField value={blockDraft.to} min={blockDraft.from || undefined} onChange={(value) => setBlock({ ...block, [item.id]: { ...blockDraft, to: value } })} />
                 <input className={MINI} placeholder="Units" inputMode="numeric" value={blockDraft.units} onChange={(event) => setBlock({ ...block, [item.id]: { ...blockDraft, units: event.target.value } })} />
                 <input className={MINI} placeholder="Reason" value={blockDraft.reason} onChange={(event) => setBlock({ ...block, [item.id]: { ...blockDraft, reason: event.target.value } })} />
                 <button type="button" disabled={!blockDraft.from || !blockDraft.to || blockMutation.isPending} onClick={() => blockMutation.mutate(item.id)} className="h-10 rounded-[10px] border border-gray-200 px-4 text-sm font-medium disabled:opacity-50 sm:w-fit">
@@ -411,7 +412,9 @@ function StayEditor({ id }: { id: string }) {
               <div className="grid gap-3 sm:grid-cols-3">
                 <Text label="Check in from" type="time" value={form.checkInFrom} onChange={(value) => set("checkInFrom", value)} />
                 <Text label="Check out by" type="time" value={form.checkOutBy} onChange={(value) => set("checkOutBy", value)} />
-                <Text label="Opens on" type="date" value={form.opensOn} onChange={(value) => set("opensOn", value)} />
+                <FormField label="Opens on">
+                  <DatePickerField value={form.opensOn} onChange={(value) => set("opensOn", value)} />
+                </FormField>
               </div>
               <FormField label="House rules">
                 <textarea value={form.houseRules} onChange={(event) => set("houseRules", event.target.value)} rows={3} className="rounded-[10px] border border-gray-200 px-3.5 py-2.5 text-sm text-[#0f172a] focus:border-brand-900 focus:outline-none" />
@@ -425,8 +428,8 @@ function StayEditor({ id }: { id: string }) {
                 {form.periods.map((period, index) => (
                   <div key={index} className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                     <input className={cn(MINI, "col-span-2 sm:col-span-1")} placeholder="Name" value={period.name} onChange={(event) => set("periods", form.periods.map((p, i) => (i === index ? { ...p, name: event.target.value } : p)))} />
-                    <input type="date" className={MINI} value={period.startsOn} onChange={(event) => set("periods", form.periods.map((p, i) => (i === index ? { ...p, startsOn: event.target.value } : p)))} />
-                    <input type="date" className={MINI} value={period.endsOn} onChange={(event) => set("periods", form.periods.map((p, i) => (i === index ? { ...p, endsOn: event.target.value } : p)))} />
+                    <DatePickerField value={period.startsOn} onChange={(value) => set("periods", form.periods.map((p, i) => (i === index ? { ...p, startsOn: value } : p)))} />
+                    <DatePickerField value={period.endsOn} min={period.startsOn || undefined} onChange={(value) => set("periods", form.periods.map((p, i) => (i === index ? { ...p, endsOn: value } : p)))} />
                     <button type="button" onClick={() => set("periods", form.periods.filter((_, i) => i !== index))} className="text-[13px] font-medium text-[#dc2626]">
                       Remove
                     </button>

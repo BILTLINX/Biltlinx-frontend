@@ -1,14 +1,15 @@
 "use client";
 
+import { useDebouncedSearch } from "@/context/SearchContext";
+import { SearchEmpty } from "@/components/shared/SearchEmpty";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useMemo, useRef } from "react";
+import { Suspense, useMemo } from "react";
 import { AppShell } from "@/components/shared/AppShell";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { filterList, filterText, FilterPanel, type FilterSection } from "@/components/shared/FilterPanel";
 import { ListingCard } from "@/components/shared/ListingCard";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { StayRail } from "@/components/shared/StayRail";
-import { StaySearchBar, type StaySearchValue } from "@/components/shared/StaySearchBar";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useStaySearch } from "@/hooks/useStay";
 import { errorMessage } from "@/lib/errors";
@@ -29,8 +30,8 @@ function numberParam(value: string | null) {
 function StayContent() {
   const router = useRouter();
   const params = useSearchParams();
-  const searchBar = useRef<HTMLDivElement | null>(null);
 
+  const search = useDebouncedSearch();
   const query = useMemo<Omit<StaySearchQuery, "page" | "results">>(
     () => ({
       destination: params.get("destination") ?? undefined,
@@ -55,21 +56,15 @@ function StayContent() {
     router.replace(`/stay?${next.toString()}`);
   }
 
-  function search(value: StaySearchValue) {
-    update({
-      destination: value.destination.trim() || undefined,
-      checkIn: value.checkIn,
-      checkOut: value.checkOut,
-      guests: value.guests ? String(value.guests) : undefined,
-      rooms: value.rooms ? String(value.rooms) : undefined,
-    });
-  }
-
   function clearFilters() {
-    update({ type: undefined, amenities: undefined, breakfast: undefined, sort: undefined });
+    update({ destination: undefined, checkIn: undefined, checkOut: undefined, guests: undefined, rooms: undefined, type: undefined, amenities: undefined, breakfast: undefined, sort: undefined });
   }
 
   const sections: FilterSection[] = [
+    { type: "text", label: "Where", key: "destination", placeholder: "City or area" },
+    { type: "dates", label: "Dates", fromKey: "checkIn", toKey: "checkOut" },
+    { type: "count", label: "Guests", key: "guests", noun: "guest", max: 20 },
+    { type: "count", label: "Rooms", key: "rooms", noun: "room", max: 10 },
     { type: "options", label: "Sort by", key: "sort", display: "chips", options: SORTS },
     { type: "options", label: "Stay type", key: "type", display: "chips", multiple: true, options: STAY_TYPES.map((type) => ({ value: type, label: STAY_TYPE_LABEL[type] })) },
     {
@@ -83,7 +78,8 @@ function StayContent() {
     },
   ];
 
-  const { cards, total, isPending, isError, error, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } = useStaySearch(query);
+  const searchQuery = useMemo(() => ({ ...query, destination: search || query.destination }), [query, search]);
+  const { cards, total, isPending, isError, error, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } = useStaySearch(searchQuery);
   const nights = nightsBetween(query.checkIn, query.checkOut);
 
   return (
@@ -97,16 +93,26 @@ function StayContent() {
           <FilterPanel
             className="shrink-0 sm:max-w-[45%] sm:justify-end"
             sections={sections}
-            values={{ type: query.type?.split(",").filter(Boolean) ?? [], amenities: query.amenities ?? [], sort: query.sort ?? "" }}
-            onChange={(next) => update({ type: filterList(next, "type").join(",") || undefined, amenities: filterList(next, "amenities").join(",") || undefined, sort: filterText(next, "sort") || undefined })}
-          />
-        </div>
-
-        <div ref={searchBar}>
-          <StaySearchBar
-            key={params.toString()}
-            value={{ destination: query.destination ?? "", checkIn: query.checkIn, checkOut: query.checkOut, guests: query.guests, rooms: query.rooms }}
-            onSearch={search}
+            values={{
+              destination: query.destination ?? "",
+              checkIn: query.checkIn ?? "",
+              checkOut: query.checkOut ?? "",
+              guests: query.guests ? String(query.guests) : "",
+              rooms: query.rooms ? String(query.rooms) : "",
+              type: query.type?.split(",").filter(Boolean) ?? [],
+              amenities: query.amenities ?? [],
+              sort: query.sort ?? "",
+            }}
+            onChange={(next) =>
+              update({
+                destination: filterText(next, "destination").trim() || undefined,
+                checkIn: filterText(next, "checkIn") || undefined,
+                checkOut: filterText(next, "checkOut") || undefined,
+                guests: filterText(next, "guests") || undefined,
+                rooms: filterText(next, "rooms") || undefined,
+                type: filterList(next, "type").join(",") || undefined, amenities: filterList(next, "amenities").join(",") || undefined, sort: filterText(next, "sort") || undefined,
+              })
+            }
           />
         </div>
 
@@ -132,13 +138,14 @@ function StayContent() {
             </button>
           </div>
         )}
-        {!isPending && !isError && cards.length === 0 && (
+        {!isPending && !isError && cards.length === 0 && search && <SearchEmpty noun="stays" />}
+        {!isPending && !isError && cards.length === 0 && !search && (
           <EmptyState
             mood="sad"
             icon="stay-sad"
             title="No stays for these dates"
             body="Try other dates or a nearby area. Popular weekends in Accra fill up fast."
-            primary={{ label: "Change dates", onClick: () => searchBar.current?.scrollIntoView({ behavior: "smooth", block: "center" }) }}
+            primary={{ label: "Clear dates", onClick: () => update({ checkIn: undefined, checkOut: undefined }) }}
             secondary={{ label: "Clear filters", onClick: clearFilters }}
           />
         )}
