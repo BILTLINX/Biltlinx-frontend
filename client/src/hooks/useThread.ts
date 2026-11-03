@@ -41,7 +41,7 @@ export function useThread(conversationId: string) {
 
   const acknowledge = useCallback(
     (list: MessageDto[]) => {
-      const incoming = list.filter((message) => message.senderAccountId !== user?.id && message.senderAccountId !== null);
+      const incoming = list.filter((message) => message.senderAccountId !== user?.id);
       const top = incoming.reduce((max, message) => Math.max(max, message.seq), 0);
       if (top > readSeq.current) {
         readSeq.current = top;

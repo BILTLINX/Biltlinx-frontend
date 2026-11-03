@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useMemo, useState } from "react";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { HorizontalScroller } from "@/components/ui/HorizontalScroller";
 import { useConversations } from "@/hooks/useMessaging";
 import { errorMessage } from "@/lib/errors";
 import { formatRelative } from "@/lib/format";
@@ -53,7 +54,7 @@ export function ConversationList({ activeId, onSelect, className }: Conversation
     <aside className={cn("flex min-h-0 flex-col border-gray-200 bg-white lg:border-r", className)}>
       <div className="flex shrink-0 flex-col gap-3 p-4">
         <h1 className="text-xl font-bold leading-[29px] text-[#0f172a]">Messages</h1>
-        <div role="tablist" aria-label="Message filter" className="no-scrollbar flex gap-1.5 overflow-x-auto">
+        <HorizontalScroller role="tablist" aria-label="Message filter" className="gap-1.5">
           {FILTERS.map((item) => (
             <button
               key={item}
@@ -69,7 +70,7 @@ export function ConversationList({ activeId, onSelect, className }: Conversation
               {item}
             </button>
           ))}
-        </div>
+        </HorizontalScroller>
       </div>
 
       <ul className="no-scrollbar min-h-0 flex-1 overflow-y-auto">
