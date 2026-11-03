@@ -805,7 +805,7 @@ export interface MessageDto {
   body: string | null;
   deleted: boolean;
   edited: boolean;
-  card: CardDto;
+  card: CardDto | null;
   attachments: AttachmentDto[] | null;
   createdAt: string;
   status: string | null;

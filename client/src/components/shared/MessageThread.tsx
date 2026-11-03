@@ -29,7 +29,7 @@ interface CardInfo {
 }
 
 function describeCard(message: ThreadMessage): CardInfo {
-  const card = message.card;
+  const card = message.card ?? { refType: null, refId: null, snapshot: null };
   const snapshot = (card.snapshot ?? {}) as Record<string, unknown>;
   const text = (key: string) => (typeof snapshot[key] === "string" ? (snapshot[key] as string) : undefined);
   switch (card.refType) {
@@ -196,7 +196,7 @@ export function MessageThread({ conversation, onBack, className }: MessageThread
         )}
         {thread.messages.map((message) => {
           const mine = message.senderAccountId === user?.id;
-          const isCard = message.card.refType !== null;
+          const isCard = message.card?.refType != null;
           const canEdit = mine && !isCard && !message.deleted && !message.pending && message.attachments?.length === 0 && now - new Date(message.createdAt.endsWith("Z") ? message.createdAt : `${message.createdAt}Z`).getTime() < EDIT_WINDOW_MS;
 
           if (isCard) {
