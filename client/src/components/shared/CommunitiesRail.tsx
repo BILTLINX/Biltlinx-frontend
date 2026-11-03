@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { RailCta } from "@/components/shared/RailCta";
 import { comingSoonHref } from "@/lib/coming-soon";
 import { COMMUNITY_EVENTS, JOINED_COMMUNITIES } from "@/lib/dummy-communities";
 import { cn } from "@/lib/utils";
@@ -21,6 +22,8 @@ export function CommunitiesRail() {
 
   return (
     <div className="flex w-full flex-col gap-4">
+      <RailCta title="Start a community" body="Bring neighbours, builders and owners together around what you care about." label="Create a community" href={comingSoonHref("Create a community")} />
+
       <section className={CARD}>
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-base font-bold leading-[23px] text-[#0f172a]">Your communities</h2>

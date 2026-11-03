@@ -1,40 +1,51 @@
 "use client";
 
+import { SearchEmpty } from "@/components/shared/SearchEmpty";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/shared/AppShell";
+import { filterList, FilterPanel, type FilterSection } from "@/components/shared/FilterPanel";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { CommunitiesRail } from "@/components/shared/CommunitiesRail";
 import { CommunityCard } from "@/components/shared/CommunityCard";
 import { DiscussionRow } from "@/components/shared/DiscussionRow";
-import { FilterDropdown } from "@/components/shared/FilterDropdown";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { Button } from "@/components/ui/Button";
 import { comingSoonHref } from "@/lib/coming-soon";
 import {
   COMMUNITIES,
   COMMUNITY_FILTERS,
   DISCUSSIONS,
   FILTER_TYPES,
-  type CommunityFilter,
 } from "@/lib/dummy-communities";
 import { useSearchTerm } from "@/context/SearchContext";
 
+const SHOW_SECTIONS: FilterSection[] = [
+  {
+    type: "options",
+    label: "Show",
+    key: "show",
+    display: "chips",
+    multiple: true,
+    options: COMMUNITY_FILTERS.filter((item) => item !== "For you").map((item) => ({ value: item, label: item })),
+  },
+];
+
 export default function CommunitiesPage() {
   const router = useRouter();
-  const [filter, setFilter] = useState<CommunityFilter>("For you");
+  const [shows, setShows] = useState<string[]>([]);
   const [joined, setJoined] = useState<string[]>([]);
   const comingSoon = (feature: string) => () => router.push(comingSoonHref(feature));
 
   const term = useSearchTerm();
+  const mineOnly = shows.length === 1 && shows[0] === "My communities";
   const communities = useMemo(() => {
-    const type = FILTER_TYPES[filter];
     return COMMUNITIES.filter(
       (community) =>
-        (filter === "My communities" ? joined.includes(community.id) : !type || community.type === type) &&
+        (shows.length === 0 ||
+          shows.some((show) => (show === "My communities" ? joined.includes(community.id) : community.type === FILTER_TYPES[show as keyof typeof FILTER_TYPES]))) &&
         (!term || `${community.name} ${community.description}`.toLowerCase().includes(term)),
     );
-  }, [filter, term, joined]);
+  }, [shows, term, joined]);
 
   const discussions = useMemo(() => {
     return DISCUSSIONS.filter((discussion) => communities.some((community) => community.id === discussion.communityId) && (!term || discussion.question.toLowerCase().includes(term)));
@@ -54,22 +65,18 @@ export default function CommunitiesPage() {
               Ask questions, share know-how and meet neighbours, builders and owners.
             </p>
           </div>
-          <Button
-            variant="primary"
-            onClick={comingSoon("Create a community")}
-            className="h-10 w-auto shrink-0 self-start rounded-[10px] px-4 sm:self-auto lg:rounded-[10px]"
-          >
-            Create a community
-          </Button>
+          <FilterPanel
+            className="shrink-0 sm:max-w-[45%] sm:justify-end"
+            sections={SHOW_SECTIONS}
+            values={{ show: shows }}
+            onChange={(next) => setShows(filterList(next, "show"))}
+          />
         </div>
-
-
-        <FilterDropdown label="Show" value={filter} onChange={(value) => setFilter(value as typeof filter)} options={COMMUNITY_FILTERS.map((item) => ({ value: item, label: item }))} />
 
         <section className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-bold leading-[23px] text-[#0f172a]">
-              {filter === "My communities" ? "Your communities" : "Suggested for you"}
+              {mineOnly ? "Your communities" : "Suggested for you"}
             </h2>
             <button type="button" onClick={comingSoon("All communities")} className="text-[13px] font-medium text-brand-900">
               See all ›
@@ -87,16 +94,16 @@ export default function CommunitiesPage() {
               ))}
             </div>
           ) : (
-            filter === "My communities" ? (
+            mineOnly ? (
               <EmptyState
                 icon="communities"
                 title="You haven’t joined a community yet"
                 body="Find your estate, your trade or fellow diaspora buyers. Ask questions, share tips, swap trusted contacts."
-                primary={{ label: "Explore communities", onClick: () => setFilter("For you") }}
+                primary={{ label: "Explore communities", onClick: () => setShows([]) }}
                 secondary={{ label: "Start a community", onClick: comingSoon("Create a community") }}
               />
             ) : (
-              <p className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500">No communities match your search.</p>
+              <SearchEmpty noun="communities" />
             )
           )}
         </section>

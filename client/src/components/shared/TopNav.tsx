@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { showSuccessToast } from "@/components/shared/AppToast";
 import { AddRoleModal } from "@/components/shared/AddRoleModal";
@@ -14,6 +14,7 @@ import { Tooltip } from "@/components/shared/Tooltip";
 import { usePostModals } from "@/hooks/usePostModals";
 import { useAccountBadge } from "@/hooks/useDisplayName";
 import { useSearch } from "@/context/SearchContext";
+import { searchPlaceholder } from "@/lib/search-placeholders";
 import { useSession } from "@/context/SessionContext";
 
 export function TopNav() {
@@ -27,6 +28,7 @@ export function TopNav() {
   const createMenuRef = useRef<HTMLDivElement | null>(null);
   const { openPostModal, modals } = usePostModals();
   const { query, setQuery } = useSearch();
+  const placeholder = searchPlaceholder(usePathname());
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [mobileQuickOpen, setMobileQuickOpen] = useState(false);
   const [mobileQuickMode, setMobileQuickMode] = useState<QuickComposerMode>("post");
@@ -80,7 +82,7 @@ export function TopNav() {
             <span className="relative block size-[15px] shrink-0">
               <Image src="/icons/search.svg" alt="" fill sizes="15px" />
             </span>
-            <input autoFocus type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search this page" aria-label="Search this page" className="min-w-0 flex-1 bg-transparent text-[13px] text-[#0f172a] placeholder:text-gray-500 focus:outline-none" />
+            <input autoFocus type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={placeholder} aria-label={placeholder} className="min-w-0 flex-1 bg-transparent text-[13px] text-[#0f172a] placeholder:text-gray-500 focus:outline-none" />
           </label>
           <button type="button" onClick={() => setMobileSearchOpen(false)} className="shrink-0 px-2 text-[13px] font-medium text-brand-900">
             Done
@@ -100,7 +102,7 @@ export function TopNav() {
             <span className="relative block size-[15px] shrink-0">
               <Image src="/icons/search.svg" alt="" fill sizes="15px" />
             </span>
-            <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search this page" aria-label="Search this page" className="min-w-0 flex-1 bg-transparent text-[13px] text-[#0f172a] placeholder:text-gray-500 focus:outline-none" />
+            <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={placeholder} aria-label={placeholder} className="min-w-0 flex-1 bg-transparent text-[13px] text-[#0f172a] placeholder:text-gray-500 focus:outline-none" />
           </label>
         </div>
 

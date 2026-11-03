@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createContext, useCallback, useContext, useMemo, type ReactNode } from "react";
 import { showErrorToast } from "@/components/shared/AppToast";
 import { FEED_KEY } from "@/hooks/useFeed";
-import type { ServiceListing, StayListing } from "@/lib/dummy-listings";
+import type { ServiceListing, StayListing } from "@/lib/post-listings";
 import { notifyError } from "@/lib/errors";
 import { createPost, deletePost } from "@/lib/social-api";
 import { uploadAll } from "@/lib/upload";

@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { RailCta } from "@/components/shared/RailCta";
 import { Button } from "@/components/ui/Button";
 import { comingSoonHref } from "@/lib/coming-soon";
 import { SITE_UPDATES } from "@/lib/dummy-projects";
@@ -13,6 +14,8 @@ export function ProjectsRail() {
 
   return (
     <div className="flex w-full flex-col gap-4">
+      <RailCta title="Building something?" body="Start a project so people can follow it from groundbreaking to handover." label="Start a project" href={comingSoonHref("Start a project")} />
+
       <section className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-4">
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-base font-bold leading-[23px] text-[#0f172a]">Latest site updates</h2>

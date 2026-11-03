@@ -1,18 +1,15 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { SearchEmpty } from "@/components/shared/SearchEmpty";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AppShell } from "@/components/shared/AppShell";
 import { EmptyState, type EmptyIcon } from "@/components/shared/EmptyState";
-import { FilterDropdown } from "@/components/shared/FilterDropdown";
-import { NavIcon } from "@/components/shared/NavIcon";
+import { filterList, filterText, FilterPanel, type FilterSection, type FilterValues } from "@/components/shared/FilterPanel";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { ProviderCard } from "@/components/shared/ProviderCard";
-import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useProviders, useTaxonomy } from "@/hooks/useServices";
 import { errorMessage } from "@/lib/errors";
-import { cn } from "@/lib/utils";
 import { useDebouncedSearch } from "@/context/SearchContext";
 
 const NO_RESULTS: Record<ProviderDirectoryProps["kind"], { icon: EmptyIcon; title: string; body: string; post: string }> = {
@@ -44,22 +41,19 @@ interface ProviderDirectoryProps {
 }
 
 export function ProviderDirectory({ kind, title, subtitle, activeChildKey, rightRail }: ProviderDirectoryProps) {
-  const router = useRouter();
   const taxonomy = useTaxonomy();
   const search = useDebouncedSearch();
-  const [city, setCity] = useState("");
-  const [category, setCategory] = useState("");
-  const [verifiedOnly, setVerifiedOnly] = useState(false);
-  const [urgent, setUrgent] = useState(false);
+  const [filters, setFilters] = useState<FilterValues>({ category: [], city: "", verified: "", urgent: "" });
   const sentinel = useRef<HTMLDivElement | null>(null);
 
   function clearFilters() {
-    setCity("");
-    setCategory("");
-    setVerifiedOnly(false);
-    setUrgent(false);
+    setFilters({ category: [], city: "", verified: "", urgent: "" });
   }
 
+  const city = filterText(filters, "city");
+  const category = filterList(filters, "category").join(",");
+  const verifiedOnly = filterText(filters, "verified") === "true";
+  const urgent = filterText(filters, "urgent") === "true";
   const { items, total, isPending, isError, error, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } = useProviders({
     kind,
     q: search || undefined,
@@ -78,7 +72,12 @@ export function ProviderDirectory({ kind, title, subtitle, activeChildKey, right
   }, [hasNextPage, isFetchingNextPage, fetchNextPage, items.length]);
 
   const categories = (kind === "professional" ? taxonomy.data?.professions : taxonomy.data?.trades) ?? [];
-  const chip = "whitespace-nowrap rounded-full px-3.5 py-2 text-[13px] font-medium leading-[18px]";
+  const sections: FilterSection[] = [
+    { type: "options", label: FILTER[kind].label, key: "category", display: "list", multiple: true, searchable: true, options: categories.map((item) => ({ value: item, label: item })) },
+    { type: "text", label: "City", key: "city", placeholder: "Any city" },
+    { type: "toggle", label: "Credential verified", key: "verified", text: "Credential verified" },
+    { type: "toggle", label: "Urgent jobs", key: "urgent", text: "Urgent jobs" },
+  ];
 
   return (
     <AppShell activeKey="people" activeChildKey={activeChildKey} contentFullWidth rightRail={rightRail}>
@@ -88,31 +87,7 @@ export function ProviderDirectory({ kind, title, subtitle, activeChildKey, right
             <h1 className="text-2xl font-bold leading-8 text-[#0f172a]">{title}</h1>
             <p className="text-sm leading-5 text-gray-500">{subtitle}</p>
           </div>
-          <Button variant="outline" onClick={() => router.push("/manage/provider")} className="h-10 w-auto shrink-0 self-start rounded-[10px] px-4 sm:self-auto lg:rounded-[10px]">
-            {kind === "professional" ? "Join as a professional" : "Join as an artisan"}
-          </Button>
-        </div>
-
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <label className="flex h-12 items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 sm:w-[200px]">
-            <NavIcon icon="/icons/post-options-location.svg" size={14} className="bg-[#0f172a]" />
-            <input value={city} onChange={(event) => setCity(event.target.value)} placeholder="City" aria-label="City" className="min-w-0 flex-1 bg-transparent text-sm font-medium focus:outline-none" />
-          </label>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <FilterDropdown
-            label={FILTER[kind].label}
-            value={category}
-            onChange={setCategory}
-            options={[{ value: "", label: FILTER[kind].all }, ...categories.map((item) => ({ value: item, label: item }))]}
-          />
-          <button type="button" aria-pressed={verifiedOnly} onClick={() => setVerifiedOnly((v) => !v)} className={cn(chip, verifiedOnly ? "bg-[#eff5ff] text-brand-900 ring-1 ring-brand-900" : "border border-gray-200 bg-white text-[#334155]")}>
-            Credential verified
-          </button>
-          <button type="button" aria-pressed={urgent} onClick={() => setUrgent((v) => !v)} className={cn(chip, urgent ? "bg-[#eff5ff] text-brand-900 ring-1 ring-brand-900" : "border border-gray-200 bg-white text-[#334155]")}>
-            Urgent jobs
-          </button>
+          <FilterPanel className="shrink-0 sm:max-w-[45%] sm:justify-end" sections={sections} values={filters} onChange={setFilters} />
         </div>
 
         <p className="text-sm font-medium leading-5 text-[#0f172a]">{isPending ? "Searching…" : `${total} ${total === 1 ? "result" : "results"}`}</p>
@@ -132,7 +107,8 @@ export function ProviderDirectory({ kind, title, subtitle, activeChildKey, right
             </button>
           </div>
         )}
-        {!isPending && !isError && items.length === 0 && (
+        {!isPending && !isError && items.length === 0 && search && <SearchEmpty noun="results" />}
+        {!isPending && !isError && items.length === 0 && !search && (
           <EmptyState
             mood="sad"
             icon={NO_RESULTS[kind].icon}

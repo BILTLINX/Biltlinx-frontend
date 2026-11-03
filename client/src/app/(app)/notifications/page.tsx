@@ -1,5 +1,7 @@
 "use client";
 
+import { useSearchTerm } from "@/context/SearchContext";
+import { SearchEmpty } from "@/components/shared/SearchEmpty";
 import Link from "next/link";
 import { AppShell } from "@/components/shared/AppShell";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -12,7 +14,9 @@ import { errorMessage } from "@/lib/errors";
 
 export default function NotificationsPage() {
   const { data, isPending, error } = useActionNeeded();
-  const cards = (data ?? []).map(toActionCard);
+  const term = useSearchTerm();
+  const all = (data ?? []).map(toActionCard);
+  const cards = all.filter((card) => !term || `${card.title} ${card.detail}`.toLowerCase().includes(term));
 
   return (
     <AppShell contentFullWidth>
@@ -29,7 +33,8 @@ export default function NotificationsPage() {
           </div>
         )}
         {error && <p className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500">{errorMessage(error)}</p>}
-        {!isPending && !error && cards.length === 0 && (
+        {!isPending && !error && all.length > 0 && cards.length === 0 && <SearchEmpty noun="notifications" />}
+        {!isPending && !error && all.length === 0 && (
           <EmptyState
             mood="celebrate"
             icon="bell-celebrate"

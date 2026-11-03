@@ -53,10 +53,6 @@ export function PostDetailCard({ post, commentsCount }: PostDetailCardProps) {
         {!post.isOwn && <PostFollowButton following={following} onToggle={toggleFollow} name={post.authorName} />}
         <PostOptionsControl
           post={post}
-          saved={saved}
-          onToggleSave={() => setSaved((v) => !v)}
-          following={following}
-          onToggleFollow={toggleFollow}
           className="relative block size-[23px] shrink-0"
         >
           <Image src="/icons/more-horizontal.svg" alt="" fill sizes="23px" className="sm:hidden" />

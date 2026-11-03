@@ -1,13 +1,13 @@
 "use client";
 
+import { useSearchTerm } from "@/context/SearchContext";
+import { SearchEmpty } from "@/components/shared/SearchEmpty";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AppShell } from "@/components/shared/AppShell";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { RequestBoardRail } from "@/components/shared/RequestBoardRail";
-import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useIncomingQuoteRequests, useMyQuoteRequests } from "@/hooks/useServices";
 import { comingSoonHref } from "@/lib/coming-soon";
@@ -46,11 +46,12 @@ function RequestRow({ request, mine }: { request: QuoteRequestDto; mine: boolean
 }
 
 export default function RequestBoardPage() {
-  const router = useRouter();
   const [tab, setTab] = useState<Tab>("mine");
   const mine = useMyQuoteRequests();
   const incoming = useIncomingQuoteRequests();
   const active = tab === "mine" ? mine : incoming;
+  const term = useSearchTerm();
+  const requests = (active.data ?? []).filter((request) => !term || `${request.title} ${request.description} ${request.category} ${request.city}`.toLowerCase().includes(term));
   const empty = TABS.find((item) => item.key === tab)?.empty;
 
   return (
@@ -61,9 +62,6 @@ export default function RequestBoardPage() {
             <h1 className="text-2xl font-bold leading-8 text-[#0f172a]">Requests and quotes</h1>
             <p className="text-sm leading-5 text-gray-500">Ask up to five providers to quote a job, compare their prices side by side, then pick one.</p>
           </div>
-          <Button variant="primary" onClick={() => router.push("/request-board/new")} className="h-10 w-auto shrink-0 self-start rounded-[10px] px-4 sm:self-auto lg:rounded-[10px]">
-            Post a request
-          </Button>
         </div>
 
         <div role="tablist" aria-label="Requests" className="no-scrollbar flex gap-1 overflow-x-auto rounded-xl border border-gray-200 bg-gray-50 p-1">
@@ -84,6 +82,7 @@ export default function RequestBoardPage() {
 
         {active.isPending && <Skeleton className="h-24 w-full rounded-2xl" />}
         {active.isError && <p className="text-sm text-[#dc2626]">{errorMessage(active.error)}</p>}
+        {active.data && active.data.length > 0 && requests.length === 0 && <SearchEmpty noun="requests" />}
         {active.data?.length === 0 &&
           (tab === "mine" ? (
             <EmptyState icon="requests" title="No requests yet" body={empty ?? ""} primary={{ label: "Post a request", href: "/request-board/new" }} />
@@ -97,7 +96,7 @@ export default function RequestBoardPage() {
             />
           ))}
         <div className="flex flex-col gap-3">
-          {active.data?.map((request) => (
+          {requests.map((request) => (
             <RequestRow key={request.id} request={request} mine={tab === "mine"} />
           ))}
         </div>

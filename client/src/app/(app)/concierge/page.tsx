@@ -7,6 +7,7 @@ import { ActionPlan } from "@/components/shared/ActionPlan";
 import { AppShell } from "@/components/shared/AppShell";
 import { ConciergeFeeCard, ConciergeShortlist, ConciergeUpdates } from "@/components/shared/ConciergeExtras";
 import { ConciergeHero } from "@/components/shared/ConciergeHero";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { ConciergeRail } from "@/components/shared/ConciergeRail";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { PageContainer } from "@/components/shared/PageContainer";
@@ -62,7 +63,13 @@ function ConciergeContent() {
             <ConciergeUpdates request={request} />
           </section>
         ) : (
-          <p className="rounded-2xl border border-gray-200 bg-white p-5 text-sm leading-5 text-gray-500">You have no Concierge requests yet. Describe what you need above to start one.</p>
+          <EmptyState
+            icon="concierge"
+            title="No Concierge requests yet"
+            body="Tell Concierge what you need above, like building on your land, fixing something at home or finding a place to rent. It turns that into a step-by-step plan with real providers and prices."
+            primary={{ label: "Start a request", href: "/concierge/new" }}
+            secondary={{ label: "Open messages", href: "/messages" }}
+          />
         )}
 
         <p className="flex items-center gap-2.5 rounded-xl bg-gray-50 p-4 text-xs leading-[17px] text-[#475569]">

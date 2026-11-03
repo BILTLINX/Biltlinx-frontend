@@ -1,14 +1,14 @@
 "use client";
 
+import { SearchEmpty } from "@/components/shared/SearchEmpty";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/shared/AppShell";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { FilterDropdown } from "@/components/shared/FilterDropdown";
+import { filterText, FilterPanel, type FilterSection, type FilterValues } from "@/components/shared/FilterPanel";
 import { ListingCard } from "@/components/shared/ListingCard";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { PropertiesRail } from "@/components/shared/PropertiesRail";
-import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useProperties } from "@/hooks/useProperties";
 import { comingSoonHref } from "@/lib/coming-soon";
@@ -41,8 +41,6 @@ const SORT_OPTIONS: { label: string; value: NonNullable<PropertyQuery["sort"]> }
   { label: "Price: high to low", value: "price_desc" },
 ];
 
-const FIELD = "h-12 min-w-0 rounded-xl border border-gray-200 bg-white px-3 text-sm text-[#0f172a] focus:border-brand-900 focus:outline-none";
-
 function numberOrUndefined(value: string) {
   const parsed = Number(value);
   return value.trim() !== "" && Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
@@ -52,27 +50,26 @@ export default function PropertiesPage() {
   const router = useRouter();
   const [tab, setTab] = useState<TabKey>("buy");
   const search = useDebouncedSearch();
-  const [minPrice, setMinPrice] = useState("");
-  const [maxPrice, setMaxPrice] = useState("");
-  const [bedrooms, setBedrooms] = useState("");
-  const [sort, setSort] = useState<NonNullable<PropertyQuery["sort"]>>("newest");
+  const [filters, setFilters] = useState<FilterValues>({ minPrice: "", maxPrice: "", bedrooms: "", sort: "" });
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   function clearFilters() {
-    setMinPrice("");
-    setMaxPrice("");
-    setBedrooms("");
-    setSort("newest");
+    setFilters({ minPrice: "", maxPrice: "", bedrooms: "", sort: "" });
   }
 
+  const sections: FilterSection[] = [
+    { type: "options", label: "Sort by", key: "sort", display: "chips", options: SORT_OPTIONS },
+    { type: "range", label: "Price", minKey: "minPrice", maxKey: "maxPrice", prefix: "GHS" },
+    { type: "options", label: "Bedrooms", key: "bedrooms", display: "chips", options: BEDROOM_OPTIONS.filter((option) => option.value !== ""), hidden: tab !== "buy" && tab !== "rent" },
+  ];
   const active = TABS.find((item) => item.key === tab) ?? TABS[0];
   const { cards, total, isPending, isError, error, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } = useProperties({
     ...active.query,
     q: search || undefined,
-    minPrice: numberOrUndefined(minPrice),
-    maxPrice: numberOrUndefined(maxPrice),
-    minBedrooms: tab === "land" || tab === "commercial" ? undefined : numberOrUndefined(bedrooms),
-    sort,
+    minPrice: numberOrUndefined(filterText(filters, "minPrice")),
+    maxPrice: numberOrUndefined(filterText(filters, "maxPrice")),
+    minBedrooms: tab === "land" || tab === "commercial" ? undefined : numberOrUndefined(filterText(filters, "bedrooms")),
+    sort: (filterText(filters, "sort") || "newest") as NonNullable<PropertyQuery["sort"]>,
   });
 
   useEffect(() => {
@@ -96,15 +93,7 @@ export default function PropertiesPage() {
             <h1 className="text-2xl font-bold leading-8 text-[#0f172a]">Properties</h1>
             <p className="text-sm leading-5 text-gray-500">Homes, land and commercial space for sale or rent across Ghana.</p>
           </div>
-          <div className="flex shrink-0 flex-wrap gap-2">
-            <Button
-              variant="primary"
-              onClick={() => router.push("/manage/listings/new")}
-              className="h-10 w-auto rounded-[10px] px-4 lg:rounded-[10px]"
-            >
-              List a property
-            </Button>
-          </div>
+          <FilterPanel className="shrink-0 lg:max-w-[45%] lg:justify-end" sections={sections} values={filters} onChange={setFilters} />
         </div>
 
         <div role="tablist" aria-label="Property type" className="no-scrollbar flex gap-1 overflow-x-auto rounded-xl border border-gray-200 bg-gray-50 p-1">
@@ -126,31 +115,6 @@ export default function PropertiesPage() {
               </button>
             );
           })}
-        </div>
-
-        <div className="flex flex-col gap-3 lg:flex-row">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:flex">
-            <input
-              value={minPrice}
-              onChange={(event) => setMinPrice(event.target.value)}
-              inputMode="numeric"
-              placeholder="Min price"
-              aria-label="Minimum price"
-              className={cn(FIELD, "lg:w-[120px]")}
-            />
-            <input
-              value={maxPrice}
-              onChange={(event) => setMaxPrice(event.target.value)}
-              inputMode="numeric"
-              placeholder="Max price"
-              aria-label="Maximum price"
-              className={cn(FIELD, "lg:w-[120px]")}
-            />
-            {(tab === "buy" || tab === "rent") && (
-              <FilterDropdown label="Bedrooms" value={bedrooms} onChange={setBedrooms} options={BEDROOM_OPTIONS} className="lg:self-center" />
-            )}
-            <FilterDropdown label="Sort" value={sort} onChange={(value) => setSort(value as NonNullable<PropertyQuery["sort"]>)} options={SORT_OPTIONS} className="lg:self-center" />
-          </div>
         </div>
 
         <div className="flex items-center justify-between gap-3">
@@ -186,7 +150,8 @@ export default function PropertiesPage() {
           </div>
         )}
 
-        {!isPending && !isError && cards.length === 0 && (
+        {!isPending && !isError && cards.length === 0 && search && <SearchEmpty noun="properties" />}
+        {!isPending && !isError && cards.length === 0 && !search && (
           <EmptyState
             mood="sad"
             icon="home-sad"
