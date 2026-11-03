@@ -4,16 +4,15 @@ import { useDisplayName } from "@/hooks/useDisplayName";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { OnboardingDoneView, type DoneStep } from "@/components/shared/OnboardingDoneView";
-import { comingSoonHref } from "@/lib/coming-soon";
 
 import { loadArtisanDraft, type ArtisanDraft } from "@/lib/onboarding-draft";
 
 const DEFAULT_STRENGTH = 70;
 
-/** "10 km from Madina" becomes "within 10 km of Madina"; "Anywhere in Greater Accra" stays a place, not a distance. */
-function alertsReach(travel: string) {
+/** "10 km" becomes "within 10 km of Madina"; "Anywhere in Greater Accra" stays a place, not a distance. */
+function alertsReach(travel: string, place: string) {
   if (travel.startsWith("Anywhere")) return travel.charAt(0).toLowerCase() + travel.slice(1);
-  return `within ${travel.replace(" from ", " of ")}`;
+  return `within ${travel}${place ? ` of ${place}` : ""}`;
 }
 
 /** Onboarding · Artisan · Done (Figma node 1071:32295): the profile is live and what happens next. */
@@ -38,6 +37,9 @@ export default function ArtisanDonePage() {
     verification?.identity
       ? { id: "identity", title: "ID check", note: "We are checking your Ghana Card", icon: "/icons/onboarding-id-verified.svg", tone: "pending", pill: "In review" }
       : { id: "identity", title: "Verify your identity", note: "Needed before you can accept jobs", icon: "/icons/onboarding-id-verified.svg", tone: "todo", action: { label: "Verify now", onClick: toVerification } },
+    ...(workArea?.jobAlerts
+      ? [{ id: "alerts", title: "Job alerts", note: `WhatsApp alerts for jobs ${alertsReach(workArea.travel, place)}`, icon: "/icons/onboarding-flash.svg", tone: "done" as const, pill: "On" }]
+      : []),
     ...(licenceRequired
       ? [
           verification?.licence
@@ -53,9 +55,10 @@ export default function ArtisanDonePage() {
       subtitle={`Customers ${place ? `in and around ${place}` : "near you"} can now find you.${licenceRequired ? " Electrical job requests start as soon as your Energy Commission licence is checked." : ""}`}
       strength={strength}
       steps={steps}
-      primary={{ label: "Go to my profile", onClick: () => router.push("/manage/provider") }}
+      primary={{ label: "Go to my jobs", onClick: () => router.push("/manage/artisan/jobs") }}
       secondary={{ label: "View my profile", onClick: () => router.push("/manage/provider") }}
       note="Switch between Personal and Artisan from your name in the top bar."
+      notePlacement="above"
       onClose={() => router.push("/home")}
     />
   );

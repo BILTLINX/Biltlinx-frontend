@@ -1,5 +1,5 @@
 import { ApiError } from "@/lib/api";
-import { requestCapability } from "@/lib/account-api";
+import { requestCapability, updateProfile } from "@/lib/account-api";
 import { forgetFiles, recallFile } from "@/lib/onboarding-files";
 import type { ArtisanDraft, BusinessDraft, OrganizationDraft, ProfessionalDraft } from "@/lib/onboarding-draft";
 import { addPortfolioItem, publishMyProvider, saveMyProvider } from "@/lib/services-api";
@@ -139,16 +139,24 @@ export async function finishProfessional({ draft, displayName, headline, about, 
 export interface FinishArtisanInput {
   draft: ArtisanDraft;
   displayName: string;
+  headline: string;
+  about: string;
+  photo: File | null;
   portfolio: File[];
   services: string[];
 }
 
-export async function finishArtisan({ draft, displayName, portfolio, services }: FinishArtisanInput) {
+async function uploadProfilePhoto(file: File) {
+  const media = await uploadMedia(file, { allowVideo: false });
+  await updateProfile({ photoPath: media.path });
+}
+
+export async function finishArtisan({ draft, displayName, headline, about, photo, portfolio, services }: FinishArtisanInput) {
   const radius = draft.workArea?.travel.match(/(\d+)\s*km/);
   await saveMyProvider({
     displayName: displayName.trim(),
-    headline: null,
-    bio: null,
+    headline: headline.trim() || null,
+    bio: about.trim() || null,
     city: draft.basedIn.trim(),
     serviceAreas: [draft.basedIn.trim()].filter(Boolean),
     serviceRadiusKm: radius ? Number(radius[1]) : null,
@@ -165,6 +173,7 @@ export async function finishArtisan({ draft, displayName, portfolio, services }:
   });
   const problems = await tryAll([
     () => requestRole("Artisan"),
+    () => (photo ? uploadProfilePhoto(photo) : Promise.resolve()),
     () => addWork(portfolio, "Past work"),
     () =>
       submitEvidence("Identity", "Identity", [{ slot: "artisan:identity", classification: "IdDocument" }]),

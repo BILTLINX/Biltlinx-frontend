@@ -132,8 +132,12 @@ export interface ArtisanDraft {
   trade: string;
   experience: string;
   basedIn: string;
-  /** "team of 3", or empty when they work alone. */
+  /** "a team", or empty when they work alone. */
   team: string;
+  /** The region they take work in. */
+  worksIn?: string;
+  /** The services they chose in step 1. */
+  services?: string[];
   /** Profile strength reached so far, 0 to 100. */
   strength?: number;
   /** Filled in by the work area step. */
@@ -161,6 +165,8 @@ export function loadArtisanDraft(): ArtisanDraft | null {
       experience: parsed.experience,
       basedIn: parsed.basedIn ?? "",
       team: parsed.team ?? "",
+      worksIn: parsed.worksIn,
+      services: parsed.services,
       strength: parsed.strength,
       workArea: parsed.workArea,
       verification: parsed.verification,

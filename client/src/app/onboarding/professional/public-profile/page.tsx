@@ -10,39 +10,24 @@ import { OnboardingStepper } from "@/components/shared/OnboardingStepper";
 import { OnboardingTip } from "@/components/shared/OnboardingTip";
 import { OnboardingTopBar } from "@/components/shared/OnboardingTopBar";
 import { PortfolioUploader, type PortfolioImage } from "@/components/shared/PortfolioUploader";
+import { PublicProfileCard } from "@/components/shared/PublicProfileCard";
 import { ProfessionalPreview, professionalCompletion } from "@/components/shared/ProfessionalPreview";
-import { INTRO_MAX_LENGTH, professionalSteps, PROFILE_PHOTO_MAX_BYTES, PROFILE_PHOTO_TYPES } from "@/lib/dummy-onboarding";
+import { professionalSteps, PROFILE_PHOTO_MAX_BYTES, PROFILE_PHOTO_TYPES } from "@/lib/dummy-onboarding";
 import { loadProfessionalDraft, updateProfessionalDraft, type ProfessionalDraft } from "@/lib/onboarding-draft";
 import { notifyError } from "@/lib/errors";
 import { finishProfessional } from "@/lib/onboarding-submit";
 import { cn } from "@/lib/utils";
 
 const CARD = "flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-6";
-const INPUT = "rounded-[10px] border border-gray-200 bg-white px-3.5 py-[13px] text-sm leading-[1.45] text-[#0f172a] placeholder:text-[#94a3b8] focus:border-brand-900 focus:outline-none";
-const LOCKED = "flex items-center gap-2.5 rounded-[10px] border border-gray-200 bg-[#f2f2f2] px-3.5 py-[13px] text-sm leading-[1.45] text-[#86888a]";
 const INTRO_EXAMPLE = "Licensed architect with 8 years designing homes and small apartment blocks across Accra. I handle drawings, permits and site supervision.";
 const PORTFOLIO_MINIMUM = 3;
 const PORTFOLIO_MAX = 12;
-
-/** A detail given at signup: shown here for reference, and changed in account settings. */
-function LockedField({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-      <span className="text-[13px] font-medium leading-[1.45] text-[#334155]">{label}</span>
-      <span className={LOCKED}>
-        <span className="min-w-0 flex-1 truncate">{value}</span>
-        <NavIcon icon="/icons/onboarding-check-circle.svg" size={18} className="shrink-0 bg-[#16a34a]" />
-      </span>
-    </div>
-  );
-}
 
 /** Onboarding · Professional · 4 Public profile (Figma node 1070:31928): photo, headline, intro and portfolio. */
 export default function ProfessionalPublicProfilePage() {
   const accountName = useDisplayName();
   const account = useAccountPrefill();
   const router = useRouter();
-  const photoInput = useRef<HTMLInputElement | null>(null);
   const urls = useRef<string[]>([]);
   const [draft, setDraft] = useState<ProfessionalDraft | null>(null);
   const [location, setLocation] = usePrefilledState(account.location);
@@ -134,61 +119,21 @@ export default function ProfessionalPublicProfilePage() {
               <p className="text-[15px] text-gray-500">This is what clients see first. You can keep editing after you publish.</p>
             </div>
 
-            <section className={cn(CARD, "gap-5")}>
-              <div className="flex items-center gap-5">
-                <span className="flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-full border border-dashed border-gray-200 bg-gray-50">
-                  {photoUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element -- a local object URL, nothing for next/image to optimise
-                    <img src={photoUrl} alt="Your profile photo" className="size-full object-cover" />
-                  ) : (
-                    <NavIcon icon="/icons/onboarding-camera.svg" size={32} className="bg-brand-900" />
-                  )}
-                </span>
-                <div className="flex min-w-0 flex-1 flex-col items-start gap-2 leading-[1.45]">
-                  <p className="text-sm font-semibold text-[#0f172a]">Profile photo</p>
-                  <p className="text-[13px] text-gray-500">A clear photo of your face. JPG or PNG, up to 5 MB.</p>
-                  <input ref={photoInput} type="file" accept={PROFILE_PHOTO_TYPES.join(",")} aria-label="Upload profile photo" className="hidden" onChange={(event) => handlePhoto(event.target.files?.[0])} />
-                  <button type="button" onClick={() => photoInput.current?.click()} className="flex items-center gap-2 rounded-[10px] border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-[#0f172a] hover:bg-gray-50">
-                    <NavIcon icon="/icons/onboarding-upload.svg" size={18} className="bg-[#0f172a]" />
-                    {photoUrl ? "Change photo" : "Upload photo"}
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-col gap-4 sm:flex-row sm:gap-4">
-                  <LockedField label="Full Name" value={accountName} />
-                  <LockedField label="Email" value={account.email} />
-                </div>
-                <div className="flex flex-col gap-4 sm:flex-row sm:gap-4">
-                  <LockedField label="Phone Number" value={account.phone} />
-                  <label className="flex min-w-0 flex-1 flex-col gap-1.5">
-                    <span className="text-[13px] font-medium leading-[1.45] text-[#334155]">Location</span>
-                    <span className="flex items-center gap-2.5 rounded-[10px] border border-gray-200 bg-white px-3.5 py-[13px] text-sm leading-[1.45] text-[#0f172a] focus-within:border-brand-900">
-                      <NavIcon icon="/icons/location-01.svg" size={18} className="bg-gray-500" />
-                      <input value={location} maxLength={80} placeholder="East Legon, Accra" onChange={(event) => setLocation(event.target.value)} className="min-w-0 flex-1 bg-transparent placeholder:text-[#94a3b8] focus:outline-none" />
-                    </span>
-                  </label>
-                </div>
-              </div>
-
-              <label className="flex flex-col gap-1.5">
-                <span className="text-[13px] font-medium leading-[1.45] text-[#334155]">Headline</span>
-                <input value={headline} maxLength={80} placeholder="Architect · Residential and mixed-use buildings" onChange={(event) => setHeadline(event.target.value)} className={INPUT} />
-                <span className="text-xs leading-[1.45] text-gray-500">Shown under your name everywhere on Biltlinx</span>
-              </label>
-
-              <label className="flex flex-col gap-1.5">
-                <span className="flex items-center gap-1.5 leading-[1.45]">
-                  <span className="text-[13px] font-medium text-[#334155]">Short intro</span>
-                  <span className="text-xs text-[#94a3b8]">Optional</span>
-                </span>
-                <textarea value={about} maxLength={INTRO_MAX_LENGTH} rows={3} placeholder={INTRO_EXAMPLE} onChange={(event) => setAbout(event.target.value)} className={cn(INPUT, "h-[88px] resize-none")} />
-                <span className="text-xs leading-[1.45] text-gray-500">
-                  {about.length} / {INTRO_MAX_LENGTH} characters
-                </span>
-              </label>
-            </section>
+            <PublicProfileCard
+              photoUrl={photoUrl}
+              onPhoto={handlePhoto}
+              name={accountName}
+              email={account.email}
+              phone={account.phone}
+              location={location}
+              onLocation={setLocation}
+              headline={headline}
+              onHeadline={setHeadline}
+              headlinePlaceholder="Architect · Residential and mixed-use buildings"
+              about={about}
+              onAbout={setAbout}
+              aboutPlaceholder={INTRO_EXAMPLE}
+            />
 
             <section className={CARD}>
               <div className="flex items-center justify-between gap-3">

@@ -215,9 +215,17 @@ export const CREDENTIAL_FILE_MAX_BYTES = 10 * 1024 * 1024;
 export const ARTISAN_STEPS = [
   { id: "trade", title: "Your trade", note: "What you do and your team" },
   { id: "area", title: "Work area", note: "Where and when you work" },
-  { id: "verification", title: "Verification", note: "ID and trade licences" },
-  { id: "portfolio", title: "Portfolio and prices", note: "Photos and starting prices" },
+  { id: "verification", title: "Certificates", note: "ID and trade licences" },
+  { id: "profile", title: "Public profile", note: "Photo, intro and portfolio" },
 ];
+
+/** What each finished artisan step adds to the profile; together they make 100%. */
+export const ARTISAN_COMPLETION = { trade: 5, area: 50, verification: 20, profile: 25 };
+
+export const ARTISAN_WORK_MODES = [
+  { id: "independent", label: "I work independently", icon: "/icons/onboarding-user.svg" },
+  { id: "team", label: "I have a team", icon: "/icons/onboarding-building-01.svg", iconClass: "-scale-y-100" },
+] as const;
 
 export const TRADES = [
   "Electrician",
@@ -234,14 +242,20 @@ export const TRADES = [
   "Landscaper",
 ];
 
-export const TEAM_SIZES = ["2 people", "3 people", "4 people", "5 people", "6 to 10 people", "More than 10 people"];
-
 /** Mock: the person who just signed up as an artisan. */
 export const NEW_ARTISAN = { name: "Kofi Asante", basedIn: "Madina, Accra" };
 
 export const TRAVEL_DISTANCES = ["5 km", "10 km", "20 km", "Anywhere in Greater Accra"];
-export const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-export const WORKING_HOURS = ["6:00 am – 4:00 pm", "7:00 am – 6:00 pm", "8:00 am – 5:00 pm", "9:00 am – 6:00 pm", "Open all day"];
+
+/** The days a working-hours range can cover. */
+export const WORK_DAY_OPTIONS = ["Mon – Fri", "Mon – Sat", "Every day", "Saturday", "Sunday", "Weekends"];
+
+/** Half-hour steps from 6:00 am to 10:00 pm, for the start and end of a working-hours range. */
+export const CLOCK_OPTIONS = Array.from({ length: 33 }, (_, index) => {
+  const minutes = 6 * 60 + index * 30;
+  const hour = Math.floor(minutes / 60);
+  return `${hour % 12 || 12}:${String(minutes % 60).padStart(2, "0")} ${hour < 12 ? "am" : "pm"}`;
+});
 
 /** How a trade reads in "open ___ requests". */
 export const TRADE_REQUEST_WORD: Record<string, string> = { Electrician: "electrical", Plumber: "plumbing", Carpenter: "carpentry", Painter: "painting", Roofer: "roofing" };
@@ -253,11 +267,11 @@ export const MATCHING_ARTISAN_REQUESTS = 9;
 /** The wiring licence classes an electrician can hold. */
 export const LICENCE_CLASSES = ["Domestic", "Commercial", "Industrial"];
 
-/** Example services shown as placeholders in the starting prices; only electricians are designed, the rest share a generic set. */
-export const PRICE_EXAMPLES: Record<string, string[]> = {
-  Electrician: ["Socket or switch installation", "Full rewiring, 3-bedroom house", "Fault finding and repair"],
-  default: ["A job you do often", "A bigger job", "A repair or call-out"],
+/** What each trade typically offers; only electricians are designed, the rest share a generic list. */
+export const ARTISAN_SERVICES: Record<string, OfferedService[]> = {
+  Electrician: [{ label: "Wiring and rewiring" }, { label: "Socket and switch installation", short: "Sockets and switches" }, { label: "Fault finding and repair", short: "Fault finding" }, { label: "Lighting installation", short: "Lighting" }, { label: "Distribution boards" }],
 };
+export const GENERIC_ARTISAN_SERVICES: OfferedService[] = [{ label: "Installation" }, { label: "Repairs" }, { label: "Maintenance" }, { label: "Call-outs" }];
 
 export const BUSINESS_STEPS = [
   { id: "type", title: "Business type", note: "What kind of business" },
