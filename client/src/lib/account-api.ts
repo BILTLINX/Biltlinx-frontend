@@ -1,6 +1,7 @@
 import { apiRequest, apiRequestWithMeta, type QueryValue } from "@/lib/api";
 import type { CurrentUser } from "@/types/api/auth";
 import type { ActionNeededItem } from "@/types/api/common";
+import type { CreateOrganizationInput, OrganizationProfileDto, SlugAvailabilityDto } from "@/types/api/organisation";
 import type {
   AuditEntryDto,
   CapabilityDto,
@@ -108,9 +109,21 @@ export function deleteAccount(input: { currentPassword: string; code?: string })
   return apiRequest("/account/delete", { method: "POST", body: input });
 }
 
-export async function createOrganization(input: { name: string; email: string; phone: string; ownerEmail: string }) {
+export async function createOrganization(input: CreateOrganizationInput) {
   const response = await apiRequestWithMeta("/organizations", { method: "POST", body: input });
   return response.headers.get("Resource-ID");
+}
+
+export function checkOrganizationSlug(name: string) {
+  return apiRequest<SlugAvailabilityDto>("/organizations/slug", { query: { name } });
+}
+
+export function getOrganizationProfile(organizationId: string) {
+  return apiRequest<OrganizationProfileDto>("/organizations/profile", { headers: { "X-Organization-Id": organizationId } });
+}
+
+export function addOrganizationBranch(organizationId: string, name: string) {
+  return apiRequest("/organizations/branches", { method: "POST", body: { name }, headers: { "X-Organization-Id": organizationId } });
 }
 
 export function listInvitations() {

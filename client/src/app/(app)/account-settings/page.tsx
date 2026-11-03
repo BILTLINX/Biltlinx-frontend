@@ -159,7 +159,7 @@ function ProfileHero() {
       <div className="flex min-w-0 items-center gap-2">
         <span className="relative block size-[72px] shrink-0">
           <span className="relative block size-full overflow-hidden rounded-[23px] bg-[#eef2ff]">
-            <Image src={user?.profilePicUrl ?? PLACEHOLDER_AVATAR} alt={user?.username ?? "Your photo"} fill className="object-cover" sizes="72px" />
+            <Image src={user?.profilePicUrl ?? PLACEHOLDER_AVATAR} alt={user?.username ?? "Your photo"} fill className="object-cover" sizes="216px" quality={90} />
           </span>
           <button
             type="button"
@@ -327,7 +327,7 @@ function ProfileCompletionCard() {
     <div className="flex flex-col items-center gap-3 rounded-2xl border border-gray-200 bg-white p-5">
       <span className="flex size-[56px] items-center justify-center rounded-full p-[3px]" style={{ background: `conic-gradient(#1465e6 ${total}%, #e2e8f0 0)` }}>
         <span className="relative block size-full overflow-hidden rounded-full border-2 border-white bg-[#eef2ff]">
-          <Image src={user?.profilePicUrl ?? PLACEHOLDER_AVATAR} alt="" fill className="object-cover" sizes="56px" />
+          <Image src={user?.profilePicUrl ?? PLACEHOLDER_AVATAR} alt="" fill className="object-cover" sizes="168px" quality={90} />
         </span>
       </span>
       <div className="flex flex-col items-center gap-0.5 text-center">

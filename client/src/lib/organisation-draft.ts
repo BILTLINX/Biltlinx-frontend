@@ -5,11 +5,18 @@ export interface OrganisationDraft {
   name: string;
   slug?: string;
   kind?: string;
+  email?: string;
+  phone?: string;
+  headOffice?: string;
+  about?: string;
+  registration?: string;
   tin?: string;
   /** How many of the three verification documents were uploaded. */
   documents?: number;
   /** Branch names; empty when the organisation works from one location. */
   branches?: string[];
+  /** Set once the organisation exists, so a later visit starts a fresh draft. */
+  createdId?: string;
 }
 
 export function saveOrganisationDraft(draft: OrganisationDraft) {
@@ -30,13 +37,25 @@ export function loadOrganisationDraft(): OrganisationDraft | null {
       name: parsed.name,
       slug: parsed.slug,
       kind: parsed.kind,
+      email: parsed.email,
+      phone: parsed.phone,
+      headOffice: parsed.headOffice,
+      about: parsed.about,
+      registration: parsed.registration,
       tin: parsed.tin,
       documents: parsed.documents,
       branches: Array.isArray(parsed.branches) ? parsed.branches : undefined,
+      createdId: parsed.createdId,
     };
   } catch {
     return null;
   }
+}
+
+/** The draft still being filled in; one that already produced an organisation does not count. */
+export function loadOpenOrganisationDraft(): OrganisationDraft | null {
+  const draft = loadOrganisationDraft();
+  return draft && !draft.createdId ? draft : null;
 }
 
 /** Merges a later step's choices into what step 1 saved. Does nothing if step 1 was never completed. */

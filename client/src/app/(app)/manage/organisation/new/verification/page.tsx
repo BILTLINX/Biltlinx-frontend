@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/shared/AppShell";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
@@ -9,7 +9,9 @@ import { FIELD_BOX, FIELD_INPUT, FormField } from "@/components/shared/ModalForm
 import { NavIcon } from "@/components/shared/NavIcon";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { CREDENTIAL_FILE_MAX_BYTES, CREDENTIAL_FILE_TYPES } from "@/lib/dummy-onboarding";
-import { updateOrganisationDraft } from "@/lib/organisation-draft";
+import { recallFile, rememberFile } from "@/lib/onboarding-files";
+import { loadOpenOrganisationDraft, updateOrganisationDraft } from "@/lib/organisation-draft";
+import { ORGANISATION_DOCUMENT_SLOTS } from "@/lib/organisation-flow";
 import { cn } from "@/lib/utils";
 
 const CARD = "flex flex-col gap-[18px] rounded-2xl border border-gray-200 bg-white p-5 sm:p-6";
@@ -19,11 +21,13 @@ interface DocumentRowProps {
   hint: string;
   /** The file's name once one is chosen. */
   fileName: string | null;
+  /** Where the chosen file is kept until the organisation is created. */
+  slot: string;
   onFile: (name: string) => void;
 }
 
 /** One document slot: dashed with an Upload button while empty, solid with an "Uploaded" pill once a file is chosen. */
-function DocumentRow({ title, hint, fileName, onFile }: DocumentRowProps) {
+function DocumentRow({ title, hint, fileName, slot, onFile }: DocumentRowProps) {
   const input = useRef<HTMLInputElement | null>(null);
   const [error, setError] = useState("");
 
@@ -38,6 +42,7 @@ function DocumentRow({ title, hint, fileName, onFile }: DocumentRowProps) {
       return;
     }
     setError("");
+    rememberFile(slot, file);
     onFile(file.name);
   }
 
@@ -76,8 +81,20 @@ export default function CreateOrganisationVerificationPage() {
   const [form3, setForm3] = useState<string | null>(null);
   const [licence, setLicence] = useState<string | null>(null);
 
+  // Earlier choices live in the tab session and the files in memory, so both are read after mount.
+  useEffect(() => {
+    const draft = loadOpenOrganisationDraft();
+    if (draft) {
+      setRegistration(draft.registration ?? "");
+      setTin(draft.tin ?? "");
+    }
+    setCertificate(recallFile(ORGANISATION_DOCUMENT_SLOTS.certificate)?.name ?? null);
+    setForm3(recallFile(ORGANISATION_DOCUMENT_SLOTS.form3)?.name ?? null);
+    setLicence(recallFile(ORGANISATION_DOCUMENT_SLOTS.licence)?.name ?? null);
+  }, []);
+
   function next() {
-    updateOrganisationDraft({ tin: tin.trim(), documents: [certificate, form3, licence].filter(Boolean).length });
+    updateOrganisationDraft({ registration: registration.trim(), tin: tin.trim(), documents: [certificate, form3, licence].filter(Boolean).length });
     router.push("/manage/organisation/new/structure");
   }
 
@@ -111,9 +128,9 @@ export default function CreateOrganisationVerificationPage() {
                 </FormField>
               </div>
 
-              <DocumentRow title="Certificate of incorporation" hint="PDF, JPG or PNG, up to 10 MB" fileName={certificate} onFile={setCertificate} />
-              <DocumentRow title="Business registration (Form 3)" hint="PDF, JPG or PNG, up to 10 MB" fileName={form3} onFile={setForm3} />
-              <DocumentRow title="Agent licence (if you're an agency)" hint={'Required for the "Licensed agent" badge'} fileName={licence} onFile={setLicence} />
+              <DocumentRow title="Certificate of incorporation" hint="PDF, JPG or PNG, up to 10 MB" fileName={certificate} slot={ORGANISATION_DOCUMENT_SLOTS.certificate} onFile={setCertificate} />
+              <DocumentRow title="Business registration (Form 3)" hint="PDF, JPG or PNG, up to 10 MB" fileName={form3} slot={ORGANISATION_DOCUMENT_SLOTS.form3} onFile={setForm3} />
+              <DocumentRow title="Agent licence (if you're an agency)" hint={'Required for the "Licensed agent" badge'} fileName={licence} slot={ORGANISATION_DOCUMENT_SLOTS.licence} onFile={setLicence} />
 
               <p className="flex items-center gap-2.5 rounded-xl bg-[#eff5ff] p-3.5 text-[13px] font-medium leading-[19px] text-brand-900">
                 <NavIcon icon="/icons/clock-01.svg" size={18} className="shrink-0 bg-brand-900" />

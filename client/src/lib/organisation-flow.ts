@@ -1,4 +1,3 @@
-/** Mock constants for the in-app Create organisation flow (plan pricing and option lists are placeholders until the API provides them). */
 export const CREATE_ORGANISATION_HREF = "/manage/organisation/new";
 
 export const CREATE_ORGANISATION_STEPS = [
@@ -10,13 +9,25 @@ export const CREATE_ORGANISATION_STEPS = [
 
 export const ORGANISATION_KINDS = ["Real estate agency", "Property manager", "Developer", "Contractor", "Professional firm", "Supplier", "Hotel / Stay"];
 
-export const ORGANISATION_PLAN = {
-  name: "Biltlinx Business",
-  badge: "Required for organisations",
-  features: "Operate & Scale · 5 team seats included · roles & permissions · branches · shared pipeline · audit logs",
-  monthly: "GHS 599",
-  annual: "GHS 5,990",
-  trialDays: 14,
+export const ORGANISATION_KIND_CODES: Record<string, string> = {
+  "Real estate agency": "RealEstateAgency",
+  "Property manager": "PropertyManager",
+  Developer: "Developer",
+  Contractor: "Contractor",
+  "Professional firm": "ProfessionalFirm",
+  Supplier: "Supplier",
+  "Hotel / Stay": "HotelStay",
 };
 
-export const ORGANISATION_PAY_METHODS = ["Mobile Money", "Card", "Bank transfer"];
+export const ORGANISATION_ROLES = ["Agent", "Developer", "PropertyManager", "StayOperator"];
+
+export const ORGANISATION_DOCUMENT_SLOTS = {
+  logo: "organisation:logo",
+  certificate: "organisation:certificate",
+  form3: "organisation:form3",
+  licence: "organisation:licence",
+} as const;
+
+export function formatPlanPrice(currency: string, amount: number) {
+  return `${currency} ${amount.toLocaleString("en-GH", { maximumFractionDigits: 2 })}`;
+}

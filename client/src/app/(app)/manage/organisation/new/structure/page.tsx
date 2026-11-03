@@ -9,7 +9,7 @@ import { FIELD_BOX, FIELD_INPUT } from "@/components/shared/ModalFormParts";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { OnboardingRadioDot } from "@/components/shared/OnboardingRadioDot";
 import { PageContainer } from "@/components/shared/PageContainer";
-import { loadOrganisationDraft, updateOrganisationDraft } from "@/lib/organisation-draft";
+import { loadOpenOrganisationDraft, updateOrganisationDraft } from "@/lib/organisation-draft";
 import { cn } from "@/lib/utils";
 
 const CARD = "flex flex-col gap-[18px] rounded-2xl border border-gray-200 bg-white p-5 sm:p-6";
@@ -33,8 +33,12 @@ export default function CreateOrganisationStructurePage() {
 
   // Step 1's name lives in the tab session, so it is read after mount.
   useEffect(() => {
-    const draft = loadOrganisationDraft();
+    const draft = loadOpenOrganisationDraft();
     if (draft?.name) setOrgName(draft.name);
+    if (draft?.branches) {
+      setBranches(draft.branches);
+      setLayout(draft.branches.length > 0 ? "branches" : "single");
+    }
   }, []);
 
   function addBranch() {

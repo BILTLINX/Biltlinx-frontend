@@ -1,7 +1,9 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { showSuccessToast } from "@/components/shared/AppToast";
 import { AppShell } from "@/components/shared/AppShell";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { CreateOrganisationStepper } from "@/components/shared/CreateOrganisationStepper";
@@ -9,14 +11,17 @@ import { ChoiceChip, FormField } from "@/components/shared/ModalFormParts";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { OptionSelectField } from "@/components/shared/ViewingSlotPickers";
-import { ORGANISATION_KINDS, ORGANISATION_PAY_METHODS, ORGANISATION_PLAN } from "@/lib/organisation-flow";
-import { loadOrganisationDraft, type OrganisationDraft } from "@/lib/organisation-draft";
+import { useOrganization } from "@/context/OrganizationContext";
+import { useSession } from "@/context/SessionContext";
+import { getBillingPlans } from "@/lib/billing-api";
+import { notifyError } from "@/lib/errors";
+import { createOrganisation } from "@/lib/organisation-create";
+import { ORGANISATION_KINDS, formatPlanPrice } from "@/lib/organisation-flow";
+import { loadOpenOrganisationDraft, updateOrganisationDraft, type OrganisationDraft } from "@/lib/organisation-draft";
 import { cn } from "@/lib/utils";
 
 const CARD = "flex flex-col gap-[18px] rounded-2xl border border-gray-200 bg-white p-5 sm:p-6";
 const DOCUMENT_COUNT = 3;
-/** Mock: the signed-in person, as shown in the top bar. */
-const OWNER_NAME = "Madeline Price";
 
 type Billing = "monthly" | "annual";
 
@@ -29,36 +34,73 @@ export default function CreateOrganisationPlanPage() {
   const router = useRouter();
   const [draft, setDraft] = useState<OrganisationDraft | null>(null);
   const [billing, setBilling] = useState<Billing>("monthly");
-  const [payWith, setPayWith] = useState(ORGANISATION_PAY_METHODS[0]);
+  const [payWith, setPayWith] = useState("");
   const [authorised, setAuthorised] = useState(false);
   const [trialEnds, setTrialEnds] = useState("");
+  const [creating, setCreating] = useState(false);
+  const { user, refresh } = useSession();
+  const { switchOrganization } = useOrganization();
+  const plans = useQuery({ queryKey: ["billing", "plans"], queryFn: getBillingPlans, staleTime: 5 * 60_000 });
+  const plan = plans.data?.[0];
+  const payMethods = plan?.payMethods ?? [];
+  const selectedPayWith = payWith || payMethods[0] || "";
 
-  // Earlier steps' choices live in the tab session, and "today" differs per visitor, so both are read after mount.
+  // Earlier steps' choices live in the tab session, so they are read after mount.
   useEffect(() => {
-    setDraft(loadOrganisationDraft());
-    const end = new Date();
-    end.setDate(end.getDate() + ORGANISATION_PLAN.trialDays);
-    setTrialEnds(formatDate(end));
+    const open = loadOpenOrganisationDraft();
+    if (open) setDraft(open);
   }, []);
+
+  // "Today" differs per visitor, so the trial end is worked out after mount too.
+  useEffect(() => {
+    if (!plan) return;
+    const end = new Date();
+    end.setDate(end.getDate() + plan.trialDays);
+    setTrialEnds(formatDate(end));
+  }, [plan]);
 
   const name = draft?.name || "Your organisation";
   const kind = draft?.kind ?? ORGANISATION_KINDS[0];
   const documents = draft?.documents ?? 0;
   const branches = draft?.branches ?? [];
   const invoiceTo = [name, draft?.tin && `TIN ${draft.tin}`].filter(Boolean).join(" · ");
-  const price = billing === "monthly" ? ORGANISATION_PLAN.monthly : ORGANISATION_PLAN.annual;
+  const monthlyPrice = plan ? formatPlanPrice(plan.currency, plan.monthly) : "";
+  const annualPrice = plan ? formatPlanPrice(plan.currency, plan.annual) : "";
+  const price = billing === "monthly" ? monthlyPrice : annualPrice;
+  const freeMonths = plan && plan.monthly > 0 ? Math.round((plan.monthly * 12 - plan.annual) / plan.monthly) : 0;
 
   const reviewRows = [
     { label: "Organisation", value: `${name} · ${kind}` },
     { label: "Page", value: draft?.slug ? `biltlinx.com/${draft.slug}` : "Not set" },
     { label: "Verification", value: documents > 0 ? `${documents} of ${DOCUMENT_COUNT} documents · in review` : "Not yet verified" },
     { label: "Branches", value: branches.length > 0 ? branches.join(", ") : "Head office only" },
-    { label: "Owner", value: `${OWNER_NAME} (you)` },
-    { label: "Your Pro plan", value: "Moves into Business · no double charge" },
+    { label: "Owner", value: `${user?.username ?? ""} (you)` },
+    { label: "Your plan", value: plan ? `${plan.name} · ${plan.trialDays}-day free trial` : "Loading…" },
   ];
 
-  function handleCreate() {
-    router.push("/manage/organisation/new/done");
+  async function handleCreate() {
+    if (!draft || !draft.email || !plan || creating) {
+      if (!draft || !draft.email) router.push("/manage/organisation/new");
+      return;
+    }
+    setCreating(true);
+    try {
+      const { id, problems } = await createOrganisation({
+        draft,
+        planCode: plan.code,
+        interval: billing === "monthly" ? "Monthly" : "Annual",
+        payWith: selectedPayWith,
+        activate: switchOrganization,
+      });
+      updateOrganisationDraft({ createdId: id });
+      await refresh();
+      showSuccessToast(`${draft.name} was created`);
+      for (const problem of problems) notifyError(new Error(problem));
+      router.push("/manage/organisation/new/done");
+    } catch (error) {
+      notifyError(error, "The organisation could not be created. Please try again.");
+      setCreating(false);
+    }
   }
 
   return (
@@ -79,10 +121,10 @@ export default function CreateOrganisationPlanPage() {
               <div className="flex flex-col gap-4 rounded-2xl border-2 border-brand-900 bg-[#f5f9ff] p-[18px] sm:flex-row sm:items-center sm:gap-4">
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-lg font-bold leading-[26px] text-[#0f172a]">{ORGANISATION_PLAN.name}</p>
-                    <span className="rounded-full bg-[#eff5ff] px-2.5 py-[3px] text-[11px] font-medium leading-4 text-brand-900">{ORGANISATION_PLAN.badge}</span>
+                    <p className="text-lg font-bold leading-[26px] text-[#0f172a]">{plan?.name ?? (plans.isError ? "Plan unavailable" : "Loading plan…")}</p>
+                    {plan && <span className="rounded-full bg-[#eff5ff] px-2.5 py-[3px] text-[11px] font-medium leading-4 text-brand-900">{plan.badge}</span>}
                   </div>
-                  <p className="text-[13px] leading-[19px] text-[#334155]">{ORGANISATION_PLAN.features}</p>
+                  <p className="text-[13px] leading-[19px] text-[#334155]">{plan?.features ?? (plans.isError ? "Reload the page to try again." : "")}</p>
                 </div>
                 <div className="flex shrink-0 flex-col sm:items-end">
                   <p className="text-2xl font-bold leading-8 text-[#0f172a]">{price}</p>
@@ -92,13 +134,13 @@ export default function CreateOrganisationPlanPage() {
 
               <FormField label="Billing" className="gap-2">
                 <div role="radiogroup" aria-label="Billing" className="flex flex-wrap gap-2">
-                  <ChoiceChip role="radio" label={`Monthly · ${ORGANISATION_PLAN.monthly}`} selected={billing === "monthly"} onClick={() => setBilling("monthly")} />
-                  <ChoiceChip role="radio" label={`Annual · ${ORGANISATION_PLAN.annual} (2 months free)`} selected={billing === "annual"} onClick={() => setBilling("annual")} />
+                  <ChoiceChip role="radio" label={`Monthly · ${monthlyPrice}`} selected={billing === "monthly"} onClick={() => setBilling("monthly")} />
+                  <ChoiceChip role="radio" label={`Annual · ${annualPrice}${freeMonths > 0 ? ` (${freeMonths} months free)` : ""}`} selected={billing === "annual"} onClick={() => setBilling("annual")} />
                 </div>
               </FormField>
 
               <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 rounded-xl bg-[#dcfce7] p-3.5 text-[13px] leading-[19px]">
-                <span className="font-bold text-[#16a34a]">{ORGANISATION_PLAN.trialDays}-day free trial</span>
+                <span className="font-bold text-[#16a34a]">{plan?.trialDays ?? ""}-day free trial</span>
                 <span className="font-medium text-[#166534]">You won&rsquo;t be charged until {trialEnds || "the trial ends"}. Cancel any time before then.</span>
               </p>
 
@@ -116,7 +158,7 @@ export default function CreateOrganisationPlanPage() {
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <FormField label="Pay with">
-                  <OptionSelectField value={payWith} options={ORGANISATION_PAY_METHODS} onChange={setPayWith} />
+                  <OptionSelectField value={selectedPayWith} options={payMethods} onChange={setPayWith} />
                 </FormField>
                 <FormField label="Invoice to">
                   <OptionSelectField value={invoiceTo} options={[invoiceTo]} onChange={() => undefined} />
@@ -137,8 +179,8 @@ export default function CreateOrganisationPlanPage() {
                 <button type="button" onClick={() => router.push("/manage/organisation/new/structure")} className="h-11 rounded-[10px] border border-gray-200 bg-white px-4 text-sm font-medium text-[#0f172a] hover:bg-gray-50">
                   Back
                 </button>
-                <button type="button" onClick={handleCreate} disabled={!authorised} className="h-11 rounded-[10px] bg-brand-900 px-4 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50">
-                  Create organisation
+                <button type="button" onClick={() => void handleCreate()} disabled={!authorised || !plan || creating} className="h-11 rounded-[10px] bg-brand-900 px-4 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50">
+                  {creating ? "Creating…" : "Create organisation"}
                 </button>
               </div>
             </div>

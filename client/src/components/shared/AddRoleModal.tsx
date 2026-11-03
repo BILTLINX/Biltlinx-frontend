@@ -6,13 +6,12 @@ import { CenteredDialog } from "@/components/shared/CenteredDialog";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { OnboardingRadioDot } from "@/components/shared/OnboardingRadioDot";
 import { CREATE_ORGANISATION_HREF } from "@/lib/organisation-flow";
-import { ACCOUNT_TYPES, NEW_ACCOUNT_NAME, type AccountTypeId } from "@/lib/dummy-onboarding";
+import { useDisplayName } from "@/hooks/useDisplayName";
+import { ACCOUNT_TYPES, type AccountTypeId } from "@/lib/dummy-onboarding";
 import { cn } from "@/lib/utils";
 
 /** The roles that can be added on top of the personal account. */
 const ADDABLE_ROLES = ACCOUNT_TYPES.filter((type) => type.id !== "personal");
-/** Mock: the signed-in person's full name, as shown in the top bar. */
-const CURRENT_ROLE_NAME = "Madeline Price";
 
 interface AddRoleModalProps {
   open: boolean;
@@ -22,6 +21,7 @@ interface AddRoleModalProps {
 /** Add a role (Figma node 1075:33474): pick another account type to set up next to the personal one. */
 export function AddRoleModal({ open, onClose }: AddRoleModalProps) {
   const router = useRouter();
+  const username = useDisplayName();
   const [selectedId, setSelectedId] = useState<AccountTypeId>("business");
   const selected = ADDABLE_ROLES.find((type) => type.id === selectedId) ?? ADDABLE_ROLES[0];
 
@@ -49,7 +49,7 @@ export function AddRoleModal({ open, onClose }: AddRoleModalProps) {
           <NavIcon icon="/icons/onboarding-user.svg" size={18} className="bg-brand-900" />
         </span>
         <span className="flex min-w-0 flex-1 flex-col leading-[1.45]">
-          <span className="truncate text-sm font-semibold text-[#0f172a]">Personal · {CURRENT_ROLE_NAME}</span>
+          <span className="truncate text-sm font-semibold text-[#0f172a]">Personal{username ? ` · ${username}` : ""}</span>
           <span className="text-xs text-gray-500">Your current role</span>
         </span>
         <span className="rounded-full bg-[#dcfce7] px-2.5 py-1 text-xs font-semibold leading-[1.45] text-[#16a34a]">Active</span>

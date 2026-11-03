@@ -186,7 +186,7 @@ export function TopNav() {
             >
               <span className="block shrink-0 rounded-full bg-gradient-to-r from-[#ff8008] to-[#ffc837] p-px">
                 <span className="relative block size-12 overflow-hidden rounded-full">
-                  <Image src={badge.avatar} alt={badge.name} fill className="object-cover" sizes="48px" />
+                  <Image src={badge.avatar} alt={badge.name} fill className="object-cover" sizes="144px" quality={90} />
                 </span>
               </span>
               <div className="hidden flex-col items-start md:flex">
