@@ -13,6 +13,11 @@ export function useStartConversation() {
   });
 }
 
+export function useHasUnreadMessages() {
+  const conversations = useConversations(false);
+  return (conversations.data?.items ?? []).some((conversation) => conversation.unread > 0);
+}
+
 /** The signed-in person's conversations, from the inbox or the archive. */
 export function useConversations(archived: boolean) {
   return useQuery({

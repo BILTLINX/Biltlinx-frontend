@@ -11,6 +11,8 @@ import { MobileQuickPostModal, type QuickComposerMode } from "@/components/share
 import { NavIcon } from "@/components/shared/NavIcon";
 import { VisibilityRow } from "@/components/shared/VisibilityRow";
 import { Tooltip } from "@/components/shared/Tooltip";
+import { useHasActionNeeded } from "@/hooks/useActionNeeded";
+import { useHasUnreadMessages } from "@/hooks/useMessaging";
 import { usePostModals } from "@/hooks/usePostModals";
 import { useAccountBadge } from "@/hooks/useDisplayName";
 import { useSearch } from "@/context/SearchContext";
@@ -21,6 +23,8 @@ export function TopNav() {
   const router = useRouter();
   const { signOut } = useSession();
   const badge = useAccountBadge();
+  const hasUnreadMessages = useHasUnreadMessages();
+  const hasActionNeeded = useHasActionNeeded();
   const [menuOpen, setMenuOpen] = useState(false);
   const [addRoleOpen, setAddRoleOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -154,7 +158,7 @@ export function TopNav() {
               <span className="relative block size-[19px] shrink-0">
                 <Image src="/icons/message-programming.svg" alt="" fill sizes="19px" />
               </span>
-              <span className="absolute right-[7px] top-[8px] size-1.5 rounded-full border border-[#f5f0f9] bg-red-500" />
+              {hasUnreadMessages && <span className="absolute right-[7px] top-[8px] size-1.5 rounded-full border border-[#f5f0f9] bg-red-500" />}
             </button>
           </Tooltip>
 
@@ -168,7 +172,7 @@ export function TopNav() {
               <span className="relative block size-[19px] shrink-0">
                 <Image src="/icons/notification.svg" alt="" fill sizes="19px" />
               </span>
-              <span className="absolute right-[7px] top-[8px] size-1.5 rounded-full border border-[#f5f0f9] bg-red-500" />
+              {hasActionNeeded && <span className="absolute right-[7px] top-[8px] size-1.5 rounded-full border border-[#f5f0f9] bg-red-500" />}
             </button>
           </Tooltip>
 

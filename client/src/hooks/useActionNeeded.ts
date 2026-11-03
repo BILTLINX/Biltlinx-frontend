@@ -13,6 +13,11 @@ export function useActionNeeded() {
   });
 }
 
+export function useHasActionNeeded() {
+  const actions = useActionNeeded();
+  return (actions.data?.length ?? 0) > 0;
+}
+
 export function useInvalidateActionNeeded() {
   const queryClient = useQueryClient();
   return useCallback(() => queryClient.invalidateQueries({ queryKey: ACTION_NEEDED_KEY }), [queryClient]);

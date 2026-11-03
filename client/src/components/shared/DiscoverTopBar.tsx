@@ -4,6 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Tooltip } from "@/components/shared/Tooltip";
+import { useHasActionNeeded } from "@/hooks/useActionNeeded";
+import { useHasUnreadMessages } from "@/hooks/useMessaging";
 import { comingSoonHref } from "@/lib/coming-soon";
 import { DISCOVER_TABS, type DiscoverTab } from "@/lib/discover-tabs";
 import { cn } from "@/lib/utils";
@@ -26,6 +28,8 @@ interface DiscoverTopBarProps {
  * as `TopNav` while owning search, category filters, and the account
  * affordances Figma specifies for this screen. */
 export function DiscoverTopBar({ query, onQueryChange, activeTab, onTabChange, below }: DiscoverTopBarProps) {
+  const hasUnreadMessages = useHasUnreadMessages();
+  const hasActionNeeded = useHasActionNeeded();
   return (
     // Hidden entirely below `xl:` — mobile Discover has no navbar/story-rail
     // chrome at all (the video takes the full screen), with its own minimal
@@ -87,27 +91,27 @@ export function DiscoverTopBar({ query, onQueryChange, activeTab, onTabChange, b
         <div className="flex shrink-0 items-center gap-1 py-1 sm:gap-2">
           <Tooltip label="Messages" side="bottom" className="hidden sm:inline-flex">
             <Link
-              href={comingSoonHref("Messages")}
+              href="/messages"
               aria-label="Messages"
               className="relative flex size-[38px] items-center justify-center rounded-full hover:bg-gray-50"
             >
               <span className="relative block size-[19px] shrink-0">
                 <Image src="/icons/message-programming.svg" alt="" fill sizes="19px" />
               </span>
-              <span className="absolute right-[7px] top-[8px] size-1.5 rounded-full border border-[#f5f0f9] bg-red-500" />
+              {hasUnreadMessages && <span className="absolute right-[7px] top-[8px] size-1.5 rounded-full border border-[#f5f0f9] bg-red-500" />}
             </Link>
           </Tooltip>
 
           <Tooltip label="Notifications" side="bottom" className="hidden sm:inline-flex">
             <Link
-              href={comingSoonHref("Notifications")}
+              href="/notifications"
               aria-label="Notifications"
               className="relative flex size-[38px] items-center justify-center rounded-full hover:bg-gray-50"
             >
               <span className="relative block size-[19px] shrink-0">
                 <Image src="/icons/notification.svg" alt="" fill sizes="19px" />
               </span>
-              <span className="absolute right-[7px] top-[8px] size-1.5 rounded-full border border-[#f5f0f9] bg-red-500" />
+              {hasActionNeeded && <span className="absolute right-[7px] top-[8px] size-1.5 rounded-full border border-[#f5f0f9] bg-red-500" />}
             </Link>
           </Tooltip>
 
