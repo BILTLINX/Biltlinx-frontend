@@ -27,7 +27,7 @@ export default function BusinessDonePage() {
       : { id: "verification", title: "Business verification", note: "Add your registration certificate and Ghana Card to get the badge", icon: "/icons/onboarding-user-shield.svg", tone: "todo", action: { label: "Verify now", onClick: () => router.push("/verification") } },
     isStay
       ? { id: "first", title: "Set up your first property", note: "Add rooms and rates once you are approved", icon: "/icons/onboarding-image-add.svg", tone: "todo", action: { label: "Open stay tools", onClick: () => router.push("/manage/stay") } }
-      : { id: "first", title: "Add your first listing", note: "Start a draft now and publish when you are approved", icon: "/icons/onboarding-image-add.svg", tone: "todo", action: { label: "New listing", onClick: () => router.push("/manage/listings/new") } },
+      : { id: "first", title: "Add your first listing", note: "Start a draft now and publish when you are approved", icon: "/icons/onboarding-image-add.svg", tone: "todo", action: { label: "New listing", onClick: () => router.push("/manage/listings?create=property") } },
     { id: "staff", title: "Work as a team", note: "Once approved, create a business account to add staff", icon: "/icons/onboarding-user-group.svg", tone: "todo", action: { label: "Roles and teams", onClick: () => router.push("/account-settings?tab=teams") } },
   ];
 

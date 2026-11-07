@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useDeferredValue, useMemo, useState } from "react";
+import { useSearch } from "@/context/SearchContext";
 import { FEED_KEY, useFeed } from "@/hooks/useFeed";
 import { DISCOVER_TABS, type DiscoverTab } from "@/lib/discover-tabs";
 import { notifyError } from "@/lib/errors";
@@ -38,7 +39,7 @@ function toReel(post: PostCardData): DiscoverReel | null {
  * video, filtered server-side, with tab and search driving the query. */
 export function useDiscoverReels() {
   const queryClient = useQueryClient();
-  const [query, setQuery] = useState("");
+  const { query, setQuery } = useSearch();
   const [activeTab, setActiveTab] = useState<DiscoverTab>(DISCOVER_TABS[0]);
   const search = useDeferredValue(query.trim());
 

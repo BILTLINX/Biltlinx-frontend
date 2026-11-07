@@ -9,6 +9,7 @@ import { shareContent } from "@/lib/share";
 import { cn } from "@/lib/utils";
 import { StoryRing } from "@/components/shared/StoryRing";
 import { PostStoryModal } from "@/components/shared/PostStoryModal";
+import { useAccountBadge } from "@/hooks/useDisplayName";
 import { useMyStories, useStoryGroups, useStoryViewer } from "@/hooks/useMyStories";
 import { useScrollRail } from "@/hooks/useScrollRail";
 import type { MyStory } from "@/types/story";
@@ -21,6 +22,7 @@ import type { MyStory } from "@/types/story";
  * posting, same as real stories. */
 export function StoriesRow() {
   const stories = useMyStories();
+  const { avatar } = useAccountBadge();
   const { others, isPending } = useStoryGroups();
   const groupViewer = useStoryViewer();
   const { ref: railRef, canScroll, atEnd, scroll: scrollRail } = useScrollRail<HTMLDivElement>();
@@ -52,12 +54,18 @@ export function StoriesRow() {
       <div ref={railRef} className="no-scrollbar flex w-full min-w-0 touch-pan-x items-start gap-5 overflow-x-auto pb-2">
         <StoryItem
           label="Your story"
-          avatar={latestStory?.url ?? "/images/stories/your-story.jpg"}
+          avatar={latestStory?.url ?? avatar}
           addBadge
           hasStory={activeStories.length > 0}
           onClick={stories.openYourStory}
         />
         {isPending && [0, 1, 2, 3].map((n) => <span key={n} className="size-14 shrink-0 animate-pulse rounded-full bg-gray-200" />)}
+        {!isPending && others.length === 0 && (
+          <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 self-stretch py-1 leading-[1.45]">
+            <p className="text-[13px] font-semibold text-[#0f172a]">No stories from other people yet</p>
+            <p className="text-xs text-gray-500">Stories from people and companies you follow show up here for 24 hours. Add yours to get started.</p>
+          </div>
+        )}
         {others.map((group) => (
           <StoryItem
             key={group.author.id}

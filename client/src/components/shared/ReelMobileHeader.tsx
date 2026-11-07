@@ -17,7 +17,7 @@ interface ReelMobileHeaderProps {
 
 /** Transparent overlay header floating over a mobile reel — post (+), the
  * "Reels ⌄" tab filter dropdown, and "more". Mobile has no navbar, so these
- * are the controls DiscoverTopBar provides on desktop.
+ * are the controls DiscoverTabs and the top bar provide on desktop.
  *
  * `sticky`, not `fixed`: each reel's wrapper is exactly one viewport tall and
  * is what the scroll-snap stack aligns to, so a sticky child pins to the top

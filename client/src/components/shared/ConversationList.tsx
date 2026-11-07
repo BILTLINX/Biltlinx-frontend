@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useMemo, useState } from "react";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { NavIcon } from "@/components/shared/NavIcon";
 import { HorizontalScroller } from "@/components/ui/HorizontalScroller";
 import { useConversations } from "@/hooks/useMessaging";
 import { errorMessage } from "@/lib/errors";
@@ -39,7 +40,9 @@ export function ConversationList({ activeId, onSelect, className }: Conversation
   const archived = filter === "Archived";
   const conversations = useConversations(archived);
 
-  const term = useSearchTerm();
+  const [local, setLocal] = useState("");
+  const topBarTerm = useSearchTerm();
+  const term = `${topBarTerm} ${local.trim().toLowerCase()}`.trim();
   const visible = useMemo(() => {
     return (conversations.data?.items ?? []).filter((conversation) => {
       const context = conversation.contextType ?? "Direct";
@@ -54,6 +57,16 @@ export function ConversationList({ activeId, onSelect, className }: Conversation
     <aside className={cn("flex min-h-0 flex-col border-gray-200 bg-white lg:border-r", className)}>
       <div className="flex shrink-0 flex-col gap-3 p-4">
         <h1 className="text-xl font-bold leading-[29px] text-[#0f172a]">Messages</h1>
+        <label className="flex h-11 items-center gap-2.5 rounded-xl border border-gray-200 bg-white px-4 focus-within:border-brand-900">
+          <NavIcon icon="/icons/search-02.svg" size={18} className="bg-[#94a3b8]" />
+          <input
+            value={local}
+            onChange={(event) => setLocal(event.target.value)}
+            placeholder="Search messages"
+            aria-label="Search messages"
+            className="min-w-0 flex-1 bg-transparent text-sm text-[#0f172a] placeholder:text-[#94a3b8] focus:outline-none"
+          />
+        </label>
         <HorizontalScroller role="tablist" aria-label="Message filter" className="gap-1.5">
           {FILTERS.map((item) => (
             <button
@@ -95,10 +108,7 @@ export function ConversationList({ activeId, onSelect, className }: Conversation
                     <span className="truncate text-sm font-semibold leading-5 text-[#0f172a]">{conversation.other.name}</span>
                     <span className="shrink-0 text-[11px] leading-4 text-gray-500">{formatRelative(conversation.lastMessageAt)}</span>
                   </span>
-                  <span className="flex items-center gap-1.5 truncate text-[11px] font-medium leading-4 text-brand-900">
-                    <span className="shrink-0 rounded bg-[#eff5ff] px-1.5 py-px text-[10px] font-bold uppercase text-brand-900">{conversation.contextType}</span>
-                    <span className="truncate">{conversation.contextTitle}</span>
-                  </span>
+                  <span className="truncate text-[11px] font-medium leading-4 text-brand-900">{conversation.contextTitle ?? conversation.contextType}</span>
                   <span className="flex items-center gap-2">
                     <span className={cn("min-w-0 flex-1 truncate text-xs leading-[17px]", unread ? "font-medium text-[#0f172a]" : "text-gray-500")}>{conversationPreview(conversation)}</span>
                     {unread && <span className="shrink-0 rounded-full bg-brand-900 px-1.5 text-[10px] font-bold leading-4 text-white">{conversation.unread}</span>}

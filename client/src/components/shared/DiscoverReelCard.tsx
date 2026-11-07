@@ -38,7 +38,7 @@ interface DiscoverReelCardProps {
   /** Opens the "Post a Reel" composer (see discover/page.tsx). */
   onOpenPostComposer?: () => void;
   /** Drive the mobile in-video "Reels ⌄" filter dropdown (tabs live behind a
-   * dropdown on mobile instead of DiscoverTopBar's row, hidden below `xl:`). */
+   * dropdown on mobile instead of DiscoverTabs' row, hidden below `xl:`). */
   activeTab?: DiscoverTab;
   onTabChange?: (tab: DiscoverTab) => void;
   /** Feed-wide "Auto-scroll" setting — lives in discover/page.tsx, not
@@ -164,7 +164,7 @@ export function DiscoverReelCard({
 
   if (isMobile) {
     // Full-screen, TikTok/Reels-style takeover — no app chrome above it
-    // (DiscoverTopBar and the story rail are hidden below `xl:`), so the
+    // (the top bar and the story rail are hidden below `xl:`), so the
     // controls that would live in a navbar float over the video instead.
     // `100vh`, not `100dvh`: AppShell's outer shell is `h-screen` (100vh), and
     // matching that unit exactly is what makes the reel fill the viewport with

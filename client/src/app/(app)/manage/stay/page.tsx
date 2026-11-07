@@ -49,7 +49,7 @@ function Stays() {
     return (
       <p className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500">
         You have not added a stay yet.{" "}
-        <Link href="/manage/stay/new" className="font-medium text-brand-900">
+        <Link href="/manage/listings?create=stay" className="font-medium text-brand-900">
           Add your first one
         </Link>
       </p>
@@ -181,7 +181,7 @@ export default function ManageStayPage() {
             <Link href="/verification" className="h-10 rounded-[10px] border border-gray-200 px-4 text-sm font-medium leading-10 text-[#0f172a] hover:bg-gray-50">
               Get verified
             </Link>
-            <Link href="/manage/stay/new" className="h-10 rounded-[10px] bg-brand-900 px-4 text-sm font-medium leading-10 text-white">
+            <Link href="/manage/listings?create=stay" className="h-10 rounded-[10px] bg-brand-900 px-4 text-sm font-medium leading-10 text-white">
               + Add a stay
             </Link>
           </div>

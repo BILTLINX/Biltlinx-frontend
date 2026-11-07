@@ -3,16 +3,15 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { Fragment, useEffect, useRef, useState, type FormEvent } from "react";
 import { showSuccessToast } from "@/components/shared/AppToast";
 import { CenteredDialog } from "@/components/shared/CenteredDialog";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { useMessagingSocket } from "@/context/MessagingContext";
-import { useSession } from "@/context/SessionContext";
 import { CONVERSATIONS_KEY } from "@/hooks/useMessaging";
 import { useThread, type ThreadMessage } from "@/hooks/useThread";
 import { notifyError } from "@/lib/errors";
-import { formatDateTime, formatMoney } from "@/lib/format";
+import { formatDate, formatDateTime, formatMoney, parseApiDate } from "@/lib/format";
 import { archiveConversation, blockAccount, reportMessage } from "@/lib/messaging-api";
 import { uploadMedia, type UploadedMedia } from "@/lib/upload";
 import type { ConversationDto } from "@/types/api/schema";
@@ -56,6 +55,21 @@ function describeCard(message: ThreadMessage): CardInfo {
   }
 }
 
+const CONTEXT_ROUTES: Record<string, { path: string; action: string }> = {
+  Property: { path: "/properties", action: "View listing" },
+  Stay: { path: "/stay", action: "View stay" },
+  Service: { path: "/services", action: "View service" },
+};
+
+/** "Today", "Yesterday" or a short date, for the pill that opens each day of messages. */
+function dayLabel(value: string) {
+  const date = parseApiDate(value);
+  const days = Math.round((new Date().setHours(0, 0, 0, 0) - new Date(date).setHours(0, 0, 0, 0)) / 86_400_000);
+  if (days === 0) return "Today";
+  if (days === 1) return "Yesterday";
+  return formatDate(value);
+}
+
 function Ticks({ status }: { status: string | null }) {
   const label = status === "Read" ? "Read" : status === "Delivered" ? "Delivered" : status === "Sent" ? "Sent" : status === "Failed" ? "Not sent" : "Sending";
   return <span className={cn("text-[10px]", status === "Read" ? "text-[#bfdbfe]" : "text-[#dbeafe]/80")}>{label}</span>;
@@ -69,7 +83,6 @@ interface MessageThreadProps {
 
 /** The open conversation (Figma node 1046:23096): header, context, live messages, cards and the composer. */
 export function MessageThread({ conversation, onBack, className }: MessageThreadProps) {
-  const { user } = useSession();
   const socket = useMessagingSocket();
   const queryClient = useQueryClient();
   const thread = useThread(conversation.id);
@@ -149,6 +162,8 @@ export function MessageThread({ conversation, onBack, className }: MessageThread
     setEditing(null);
   }
 
+  const contextLink = conversation.contextId && conversation.contextType ? CONTEXT_ROUTES[conversation.contextType] : undefined;
+
   return (
     <section className={cn("flex min-h-0 min-w-0 flex-col bg-gray-50", className)}>
       <header className="relative flex shrink-0 items-center gap-3 border-b border-gray-200 bg-white px-4 py-3 sm:px-5">
@@ -183,9 +198,22 @@ export function MessageThread({ conversation, onBack, className }: MessageThread
         )}
       </header>
 
-      <div className="shrink-0 border-b border-gray-200 bg-white px-4 py-2 text-xs text-gray-500">
-        Never share card numbers, PINs or one-time codes in chat.
-      </div>
+      {conversation.contextTitle && (
+        <div className="flex shrink-0 items-center gap-3 border-b border-gray-200 bg-white p-3">
+          <span className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-[#eff5ff]">
+            <NavIcon icon="/icons/building-03.svg" size={20} className="bg-brand-900" />
+          </span>
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <p className="truncate text-[13px] font-semibold leading-[19px] text-[#0f172a]">{conversation.contextTitle}</p>
+            <p className="truncate text-xs leading-[17px] text-gray-500">Never share card numbers, PINs or one-time codes in chat.</p>
+          </div>
+          {contextLink && (
+            <Link href={`${contextLink.path}/${conversation.contextId}`} className="flex h-8 shrink-0 items-center rounded-[10px] bg-[#eff5ff] px-4 text-sm font-medium text-brand-900 hover:bg-[#dbeafe]">
+              {contextLink.action}
+            </Link>
+          )}
+        </div>
+      )}
 
       <div className="no-scrollbar flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4 sm:p-5">
         {thread.loading && <p className="self-center text-sm text-gray-500">Loading…</p>}
@@ -194,37 +222,46 @@ export function MessageThread({ conversation, onBack, className }: MessageThread
             Could not load messages. Try again
           </button>
         )}
-        {thread.messages.map((message) => {
-          const mine = message.senderAccountId === user?.id;
+        {thread.messages.map((message, index) => {
+          // Compared against the other person, since the session's user id is not necessarily the account id that messages carry.
+          const mine = message.senderAccountId !== conversation.other.accountId;
+          const day = dayLabel(message.createdAt);
+          const startsDay = index === 0 || day !== dayLabel(thread.messages[index - 1].createdAt);
+          const dayPill = startsDay ? <span key={`day-${message.id}`} className="self-start rounded-full bg-[#f1f5f9] px-2.5 py-1 text-[11px] font-medium leading-4 text-[#334155]">{day}</span> : null;
           const isCard = message.card?.refType != null;
           const canEdit = mine && !isCard && !message.deleted && !message.pending && message.attachments?.length === 0 && now - new Date(message.createdAt.endsWith("Z") ? message.createdAt : `${message.createdAt}Z`).getTime() < EDIT_WINDOW_MS;
 
           if (isCard) {
             const info = describeCard(message);
             const body = (
-              <div className="flex max-w-[85%] flex-col gap-1 self-center rounded-xl border border-gray-200 bg-white p-3.5 sm:max-w-[70%]">
-                <p className="text-[13px] font-semibold text-[#0f172a]">{info.title}</p>
-                {info.lines.map((line) => (
-                  <p key={line} className="text-xs text-gray-500">
-                    {line}
-                  </p>
-                ))}
-                <p className="text-[10px] text-[#94a3b8]">{formatDateTime(message.createdAt)}</p>
+              <div className="flex w-full items-center gap-3 rounded-xl border border-gray-200 bg-white p-3">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#eff5ff]">
+                  <NavIcon icon="/icons/calendar-03.svg" size={20} className="bg-brand-900" />
+                </span>
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <p className="text-[13px] font-semibold leading-[19px] text-[#0f172a]">{info.title}</p>
+                  {info.lines.map((line) => (
+                    <p key={line} className="text-xs leading-[17px] text-gray-500">
+                      {line}
+                    </p>
+                  ))}
+                  <p className="text-[10px] text-[#94a3b8]">{formatDateTime(message.createdAt)}</p>
+                </div>
+                {info.href && <span className="shrink-0 rounded-[10px] bg-brand-900 px-4 py-2 text-sm font-medium text-white">View</span>}
               </div>
             );
-            return info.href ? (
-              <Link key={message.id} href={info.href} className="flex justify-center">
-                {body}
-              </Link>
-            ) : (
-              <div key={message.id} className="flex justify-center">
-                {body}
-              </div>
+            return (
+              <Fragment key={message.id}>
+                {dayPill}
+                {info.href ? <Link href={info.href}>{body}</Link> : body}
+              </Fragment>
             );
           }
 
           return (
-            <div key={message.id} className={cn("group flex items-end gap-1.5", mine && "justify-end")}>
+            <Fragment key={message.id}>
+            {dayPill}
+            <div className={cn("group flex items-end gap-1.5", mine && "justify-end")}>
               {mine && !message.deleted && !message.pending && (
                 <span className="hidden gap-1.5 text-[11px] text-gray-400 group-hover:flex">
                   {canEdit && (
@@ -272,6 +309,7 @@ export function MessageThread({ conversation, onBack, className }: MessageThread
                 </button>
               )}
             </div>
+            </Fragment>
           );
         })}
         <div ref={endRef} />

@@ -7,10 +7,12 @@ import { DiscoverCommentSheet } from "@/components/shared/DiscoverCommentSheet";
 import { DiscoverReelCard } from "@/components/shared/DiscoverReelCard";
 import { DiscoverReelCardSkeleton } from "@/components/shared/DiscoverReelCardSkeleton";
 import { DiscoverStoryRail } from "@/components/shared/DiscoverStoryRail";
-import { DiscoverTopBar } from "@/components/shared/DiscoverTopBar";
+import { DiscoverTabs } from "@/components/shared/DiscoverTabs";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { FadeIn } from "@/components/motion/FadeIn";
 import { PostStoryModal, VIDEO_ONLY_ACCEPT } from "@/components/shared/PostStoryModal";
 import { MyStoryViewer } from "@/components/shared/StoriesRow";
+import { TopNav } from "@/components/shared/TopNav";
 import { Tooltip } from "@/components/shared/Tooltip";
 import { useDiscoverReels } from "@/hooks/useDiscoverReels";
 import { useMyStories } from "@/hooks/useMyStories";
@@ -83,17 +85,17 @@ export default function DiscoverPage() {
           </div>
         ) : undefined
       }
+      // The shared top bar from `xl:` up, with the category tabs where Create usually is. Mobile has no navbar at all
+      // (the video takes the full screen), and its tabs live in DiscoverReelCard's own dropdown.
       topNav={
-        // DiscoverTopBar hides itself entirely below `xl:` — mobile has no
-        // navbar/story-rail chrome at all, so there's nothing to pass as
-        // `below` here any more (see DiscoverReelCard's mobile overlay for
-        // the equivalent back/filter/more controls).
-        <DiscoverTopBar query={query} onQueryChange={setQuery} activeTab={activeTab} onTabChange={setActiveTab} />
+        <div className="hidden shrink-0 xl:block">
+          <TopNav hideCreate center={<DiscoverTabs activeTab={activeTab} onTabChange={setActiveTab} />} />
+        </div>
       }
     >
       {/* No gap, no extra padding — each reel's own wrapper below claims
           exactly one viewport's worth of height (`calc(100vh-67px)`, the
-          Discover topbar's fixed height), so the scroll-snap stack moves
+          top bar's fixed height), so the scroll-snap stack moves
           one full reel per swipe/scroll on every breakpoint instead of
           leaving the next reel's edge visible. */}
       <div className="flex w-full flex-col gap-0">
@@ -124,12 +126,17 @@ export default function DiscoverPage() {
             </FadeIn>
           ))
         ) : (
-          <div className="flex w-full flex-col items-center gap-[15px] rounded-[15px] border border-gray-200 bg-white p-[15px] py-9 text-center">
-            <p className="text-[13px] text-gray-500">{isError ? "We could not load reels right now." : "No reels yet. Post a video to get started."}</p>
-            {isError && (
-              <button type="button" onClick={() => void refetch()} className="text-[13px] font-medium text-brand-900">
-                Try again
-              </button>
+          <div className="flex w-full justify-center px-4 py-8">
+            {isError ? (
+              <EmptyState icon="search-sad" title="We could not load reels" body="Check your connection and try again." primary={{ label: "Try again", onClick: () => void refetch() }} />
+            ) : query.trim() ? (
+              <EmptyState icon="search-sad" title={`No reels match “${query.trim()}”`} body="Check the spelling or try a different word." primary={{ label: "Clear search", onClick: () => setQuery("") }} />
+            ) : activeTab === "Following" ? (
+              <EmptyState icon="follow" title="No reels from people you follow" body="Follow creators and their videos will show up here." primary={{ label: "Show For You", onClick: () => setActiveTab("For You") }} secondary={{ label: "Find people to follow", href: "/professionals" }} />
+            ) : activeTab === "Watch Later" ? (
+              <EmptyState icon="bookmark" title="Nothing saved to watch later" body="Save a reel and it will wait for you here." primary={{ label: "Show For You", onClick: () => setActiveTab("For You") }} />
+            ) : (
+              <EmptyState icon="trends" title="No reels yet" body="Post a short video to start things off." primary={{ label: "Post a reel", onClick: () => setComposerOpen(true) }} />
             )}
           </div>
         )}

@@ -2,8 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { showSuccessToast } from "@/components/shared/AppToast";
 import { AddRoleModal } from "@/components/shared/AddRoleModal";
 import { CreateMenu } from "@/components/shared/CreateMenu";
@@ -16,10 +16,16 @@ import { useHasUnreadMessages } from "@/hooks/useMessaging";
 import { usePostModals } from "@/hooks/usePostModals";
 import { useAccountBadge } from "@/hooks/useDisplayName";
 import { useSearch } from "@/context/SearchContext";
-import { searchPlaceholder } from "@/lib/search-placeholders";
 import { useSession } from "@/context/SessionContext";
 
-export function TopNav() {
+interface TopNavProps {
+  /** Replaces the Create button, for screens whose own controls make it redundant (Discover). */
+  hideCreate?: boolean;
+  /** Sits between the search field and the account controls, e.g. Discover's category tabs. */
+  center?: ReactNode;
+}
+
+export function TopNav({ hideCreate = false, center }: TopNavProps = {}) {
   const router = useRouter();
   const { signOut } = useSession();
   const badge = useAccountBadge();
@@ -32,7 +38,7 @@ export function TopNav() {
   const createMenuRef = useRef<HTMLDivElement | null>(null);
   const { openPostModal, modals } = usePostModals();
   const { query, setQuery } = useSearch();
-  const placeholder = searchPlaceholder(usePathname());
+  const placeholder = "Search through this page";
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [mobileQuickOpen, setMobileQuickOpen] = useState(false);
   const [mobileQuickMode, setMobileQuickMode] = useState<QuickComposerMode>("post");
@@ -110,6 +116,8 @@ export function TopNav() {
           </label>
         </div>
 
+        {center}
+
         <div className="flex shrink-0 items-center gap-1 py-1 sm:gap-2 sm:px-2">
           <Tooltip label="Search" side="bottom" className="sm:hidden">
             <button
@@ -124,7 +132,7 @@ export function TopNav() {
             </button>
           </Tooltip>
 
-          <div ref={createMenuRef} className="relative">
+          {!hideCreate && <div ref={createMenuRef} className="relative">
             <button
               type="button"
               aria-label="Create"
@@ -146,7 +154,7 @@ export function TopNav() {
                 />
               </div>
             )}
-          </div>
+          </div>}
 
           <Tooltip label="Messages" side="bottom" className="hidden sm:inline-flex">
             <button

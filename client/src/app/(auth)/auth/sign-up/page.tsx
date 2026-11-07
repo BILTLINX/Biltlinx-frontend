@@ -3,11 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { showErrorToast, showSuccessToast } from "@/components/shared/AppToast";
+import { showErrorToast } from "@/components/shared/AppToast";
 import { AuthScreenLayout } from "@/components/shared/AuthScreenLayout";
 import { GoogleAuthButton } from "@/components/shared/GoogleAuthButton";
 import { HangTightCard } from "@/components/shared/HangTightCard";
-import { SocialAuthButton } from "@/components/shared/SocialAuthButton";
 import { TermsAgreement } from "@/components/shared/TermsAgreement";
 import { Button } from "@/components/ui/Button";
 import { Divider } from "@/components/ui/Divider";
@@ -20,10 +19,6 @@ import { validateFullName, validateIdentifier, validatePassword } from "@/lib/va
 
 const TERMS_ERROR = "You must confirm your age and agree to the terms to continue";
 
-const PROVIDERS = [
-  { id: "apple", label: "Sign Up with Apple", iconSrc: "/brand/apple-icon.svg", invertOnDark: true },
-] as const;
-
 const MOBILE_FIELDS = ["fullName", "email", "phone", "password", "terms"] as const;
 type MobileField = (typeof MOBILE_FIELDS)[number];
 
@@ -32,24 +27,10 @@ const STEP_ONE_FOOTER =
   "You start as a Seeker. Add landlord, Professional, Artisan, Developer or Business capabilities anytime from your profile.";
 const STEP_TWO_TAGLINE = { highlight: "Join", rest: "the Built Environment" };
 
-function handleStubAuth(provider: string) {
-  showSuccessToast(`${provider} sign-up is coming soon`);
-}
-
 function SocialButtons() {
   return (
     <div className="flex flex-col gap-3">
       <GoogleAuthButton label="Sign Up with Google" />
-      {PROVIDERS.map((provider) => (
-        <SocialAuthButton
-          key={provider.id}
-          label={provider.label}
-          iconSrc={provider.iconSrc}
-          iconAlt={provider.id}
-          invertOnDark={provider.invertOnDark}
-          onClick={() => handleStubAuth(provider.label)}
-        />
-      ))}
     </div>
   );
 }

@@ -16,7 +16,7 @@ export function PropertiesRail() {
 
   return (
     <div className="flex w-full flex-col gap-4">
-      <RailCta title="Own a property?" body="List it for sale or rent. Buyers and tenants see a verified listing with its price." label="List a property" href="/manage/listings/new" />
+      <RailCta title="Own a property?" body="List it for sale or rent. Buyers and tenants see a verified listing with its price." label="List a property" href="/manage/listings?create=property" />
 
       <section className={`${CARD} gap-3`}>
         <h2 className="text-base font-bold leading-[23px] text-[#0f172a]">Map view</h2>

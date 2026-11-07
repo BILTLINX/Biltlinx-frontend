@@ -1,8 +1,10 @@
 "use client";
 
 import Image from "next/image";
+import { NavIcon } from "@/components/shared/NavIcon";
 import { Tooltip } from "@/components/shared/Tooltip";
 import { MyStoryViewer } from "@/components/shared/StoriesRow";
+import { useAccountBadge } from "@/hooks/useDisplayName";
 import { useStoryGroups, useStoryViewer } from "@/hooks/useMyStories";
 import { StoryRing } from "@/components/shared/StoryRing";
 import type { MyStory } from "@/types/story";
@@ -24,7 +26,8 @@ interface DiscoverStoryRailProps {
  * either as a narrow full-height aside or a horizontal bar. */
 export function DiscoverStoryRail({ activeStories, onYourStoryClick, layout = "vertical" }: DiscoverStoryRailProps) {
   const latestStory = activeStories[activeStories.length - 1];
-  const { others } = useStoryGroups();
+  const { avatar } = useAccountBadge();
+  const { others, isPending } = useStoryGroups();
   const groupViewer = useStoryViewer();
   const yourStoryLabel = activeStories.length > 0 ? "View your story" : "Add to your story";
 
@@ -37,7 +40,7 @@ export function DiscoverStoryRail({ activeStories, onYourStoryClick, layout = "v
         className="relative flex size-[48px] shrink-0 items-center justify-center"
       >
         <StoryRing active={activeStories.length > 0} className="size-[48px]">
-          <Image src={latestStory?.url ?? "/images/stories/your-story.jpg"} alt="" fill sizes="42px" className="object-cover" />
+          <Image src={latestStory?.url ?? avatar} alt="" fill sizes="42px" className="object-cover" />
         </StoryRing>
         <span className="absolute bottom-[-2px] right-0 flex size-5 items-center justify-center rounded-full border-2 border-white bg-brand-900 text-[11px] font-bold leading-none text-white">
           +
@@ -45,6 +48,9 @@ export function DiscoverStoryRail({ activeStories, onYourStoryClick, layout = "v
       </button>
     </Tooltip>
   );
+
+  const nobodyElse = !isPending && others.length === 0;
+  const nobodyElseLabel = "No stories from other people yet";
 
   const channelAvatars = (sizeClass: string) =>
     others.slice(0, 8).map((group) => (
@@ -86,6 +92,12 @@ export function DiscoverStoryRail({ activeStories, onYourStoryClick, layout = "v
       <div className="no-scrollbar flex w-full items-center gap-[16px] overflow-x-auto border-b border-gray-200 bg-white px-[15px] py-[12px]">
         {yourStoryButton}
         {channelAvatars("size-[48px]")}
+        {nobodyElse && (
+          <p className="shrink-0 text-xs leading-[1.45] text-gray-500">
+            <span className="block font-semibold text-[#0f172a]">{nobodyElseLabel}</span>
+            Stories from people you follow show up here for 24 hours.
+          </p>
+        )}
         {viewer}
       </div>
     );
@@ -95,6 +107,13 @@ export function DiscoverStoryRail({ activeStories, onYourStoryClick, layout = "v
     <div className="flex h-full w-[59px] shrink-0 flex-col items-center justify-between border-l border-gray-200 bg-white py-[24px]">
       <div className="flex flex-col items-center gap-[16px]">
         {channelAvatars("size-[32px]")}
+        {nobodyElse && (
+          <Tooltip label={`${nobodyElseLabel}. Stories from people you follow show up here for 24 hours.`} side="bottom" align="end">
+            <span tabIndex={0} aria-label={nobodyElseLabel} className="flex size-[32px] shrink-0 items-center justify-center rounded-full border border-dashed border-gray-300 bg-gray-50">
+              <NavIcon icon="/icons/user-group.svg" size={14} className="bg-gray-400" />
+            </span>
+          </Tooltip>
+        )}
         {yourStoryButton}
       </div>
       {viewer}

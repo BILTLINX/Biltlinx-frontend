@@ -29,3 +29,9 @@ export const INSPECTION_TONE: Record<string, string> = {
   Declined: "bg-[#fee2e2] text-[#dc2626]",
   Cancelled: "bg-[#f1f5f9] text-[#334155]",
 };
+
+export const SERVICE_MODE_LABEL: Record<string, string> = {
+  FixedPrice: "Fixed price",
+  QuoteRequired: "Quote required",
+  InspectionFirst: "Inspection first",
+};

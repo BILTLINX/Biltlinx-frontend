@@ -75,9 +75,16 @@ export function getEvidenceUrl(verificationId: string, evidenceId: string) {
 const ACCEPT = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
 const MAX_BYTES = 10 * 1024 * 1024;
 
+/** The reason a file cannot be sent as evidence, or null when it can. */
+export function evidenceFileError(file: File): string | null {
+  if (!ACCEPT.includes(file.type)) return "Use a JPEG, PNG, WebP or PDF file.";
+  if (file.size > MAX_BYTES) return "Files must be 10 MB or smaller.";
+  return null;
+}
+
 export async function uploadEvidence(file: File, classification: string): Promise<EvidenceRequest> {
-  if (!ACCEPT.includes(file.type)) throw new ApiError("Use a JPEG, PNG, WebP or PDF file.", 400);
-  if (file.size > MAX_BYTES) throw new ApiError("Files must be 10 MB or smaller.", 400);
+  const problem = evidenceFileError(file);
+  if (problem) throw new ApiError(problem, 400);
   const ticket = await apiRequest<VerificationUploadTicketDto>("/verification/uploads", {
     method: "POST",
     body: { contentType: file.type, sizeBytes: file.size },
@@ -85,4 +92,22 @@ export async function uploadEvidence(file: File, classification: string): Promis
   const response = await fetch(ticket.uploadUrl as string, { method: "PUT", headers: { "Content-Type": file.type }, body: file });
   if (!response.ok) throw new ApiError("The upload failed. Please try again.", response.status);
   return { path: ticket.path, contentType: file.type, name: file.name, classification };
+}
+
+export interface PendingDocument {
+  id: string;
+  file: File;
+  classification: string;
+}
+
+/** Sends the proof a lister attached to a listing (ownership, operator licence, certificate) for review, once the listing exists. */
+export async function submitListingDocuments(input: { type: VerificationType; subjectId?: string; title: string; documents: PendingDocument[] }) {
+  const evidence = await Promise.all(input.documents.map((document) => uploadEvidence(document.file, document.classification)));
+  return submitVerification({ type: input.type, subjectId: input.subjectId, title: input.title, declarationAccepted: true, evidence });
+}
+
+/** The evidence kinds a verification type accepts, for the document picker. */
+export function classificationOptions(type: VerificationType, only?: readonly string[]) {
+  const config = VERIFICATION_TYPES.find((item) => item.type === type);
+  return (config?.classifications ?? []).filter((value) => !only || only.includes(value)).map((value) => ({ value, label: CLASSIFICATION_LABEL[value] ?? value }));
 }

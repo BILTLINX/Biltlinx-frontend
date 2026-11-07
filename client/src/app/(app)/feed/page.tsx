@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/shared/AppShell";
 import { showSuccessToast } from "@/components/shared/AppToast";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { FeedRightRail } from "@/components/shared/FeedRightRail";
 import { MobileQuickPostModal, type QuickComposerMode } from "@/components/shared/MobileQuickPostModal";
 import { NewPostsPill } from "@/components/shared/NewPostsPill";
@@ -115,13 +116,7 @@ function FeedContent() {
             </button>
           </div>
         )}
-        {!isPending && !isError && posts.length === 0 && (
-          <div className="flex w-full flex-col items-center gap-[15px] rounded-[15px] border border-gray-200 bg-white p-[15px] py-9 text-center">
-            <p className="text-[13px] text-gray-500">
-              {tab.query.scope === "following" ? "Follow people to see their posts here." : "No posts here yet. Check back soon."}
-            </p>
-          </div>
-        )}
+        {!isPending && !isError && posts.length === 0 && <FeedEmpty tab={tab} hashtag={hashtag} />}
         {posts.map((post) => (
           <PostCard key={post.id} post={post} />
         ))}
@@ -129,6 +124,35 @@ function FeedContent() {
         {hasNextPage && <div ref={sentinelRef} aria-hidden="true" className="h-px w-full" />}
       </div>
     </AppShell>
+  );
+}
+
+/** Where an empty kind tab sends people: the directory that fills it. */
+const KIND_BROWSE: Record<string, { noun: string; label: string; href: string }> = {
+  Property: { noun: "property", label: "Browse properties", href: "/properties" },
+  Stay: { noun: "stay", label: "Browse stays", href: "/stay" },
+  Service: { noun: "service", label: "Browse services", href: "/services" },
+};
+
+/** What the feed says when the chosen tab or hashtag has no posts, with the next step for that case. */
+function FeedEmpty({ tab, hashtag }: { tab: FeedTab; hashtag?: string }) {
+  const { openPostModal, modals } = usePostModals();
+  const createPost = { label: "Create a post", onClick: () => openPostModal("media") };
+  const browse = tab.query.kind ? KIND_BROWSE[tab.query.kind] : undefined;
+
+  return (
+    <>
+      {hashtag ? (
+        <EmptyState icon="search-sad" title={`No posts tagged #${hashtag}`} body="Nobody has used this tag yet. Try another one, or start the conversation yourself." primary={{ label: "Clear tag", href: "/feed" }} secondary={createPost} />
+      ) : tab.query.scope === "following" ? (
+        <EmptyState icon="follow" title="Nothing from people you follow yet" body="Follow agents, builders and artisans and their posts will show up here." primary={{ label: "Find people to follow", href: "/professionals" }} secondary={{ label: "See all posts", href: "/feed" }} />
+      ) : browse ? (
+        <EmptyState icon="feed" title={`No ${browse.noun} posts yet`} body={`When someone shares a ${browse.noun}, it will appear here.`} primary={createPost} secondary={{ label: browse.label, href: browse.href }} />
+      ) : (
+        <EmptyState icon="feed" title="Your feed is quiet" body="Be the first to post, or follow people to fill it with updates from the built environment." primary={createPost} secondary={{ label: "Explore Discover", href: "/discover" }} />
+      )}
+      {modals}
+    </>
   );
 }
 

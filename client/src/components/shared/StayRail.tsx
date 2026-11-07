@@ -30,7 +30,7 @@ export function StayRail() {
         <p className="text-xs leading-[17px] text-gray-500">
           List your apartment or hotel rooms, manage your calendar and get paid through Biltlinx.
         </p>
-        <Button variant="primary" onClick={() => router.push("/manage/stay/new")} className={ROUNDED_BUTTON}>
+        <Button variant="primary" onClick={() => router.push("/manage/listings?create=stay")} className={ROUNDED_BUTTON}>
           List your stay
         </Button>
       </section>

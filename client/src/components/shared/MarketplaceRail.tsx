@@ -18,7 +18,7 @@ export function MarketplaceRail() {
       <section className={CARD}>
         <h2 className="text-base font-bold leading-[23px] text-[#0f172a]">Sell, rent or hire on Biltlinx</h2>
         <p className="text-[13px] leading-[19px] text-gray-500">List a property, a service, materials or equipment. Buyers see the price first, so set a real asking price.</p>
-        <Button variant="primary" onClick={() => router.push("/manage/listings/new")} className="h-10 rounded-[10px] lg:rounded-[10px]">
+        <Button variant="primary" onClick={() => router.push("/manage/listings?create=property")} className="h-10 rounded-[10px] lg:rounded-[10px]">
           Create a listing
         </Button>
       </section>

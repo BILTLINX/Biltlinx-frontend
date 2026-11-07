@@ -81,7 +81,7 @@ export default function ManagePropertiesPage() {
             <Button variant="outline" onClick={comingSoon("Import from Properties")} className="h-10 w-auto whitespace-nowrap rounded-[10px] px-4 lg:rounded-[10px]">
               Import from Properties
             </Button>
-            <Button variant="primary" onClick={() => router.push("/manage/listings/new")} className="h-10 w-auto whitespace-nowrap rounded-[10px] px-4 lg:rounded-[10px]">
+            <Button variant="primary" onClick={() => router.push("/manage/listings?create=property")} className="h-10 w-auto whitespace-nowrap rounded-[10px] px-4 lg:rounded-[10px]">
               + Add property
             </Button>
           </div>

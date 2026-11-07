@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { showSuccessToast } from "@/components/shared/AppToast";
 import { AppShell } from "@/components/shared/AppShell";
+import { CreateListingModal } from "@/components/shared/CreateListingModal";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { LocationCombobox } from "@/components/shared/LocationCombobox";
 import { PageContainer } from "@/components/shared/PageContainer";
@@ -16,14 +17,13 @@ import { errorMessage, notifyError } from "@/lib/errors";
 import { formatDate } from "@/lib/format";
 import {
   addPortfolioItem,
-  createOffering,
   offeringAction,
   publishMyProvider,
   removePortfolioItem,
   saveMyProvider,
   unpublishMyProvider,
-  updateOffering,
 } from "@/lib/services-api";
+import { LISTING_STATUS_LABEL, LISTING_STATUS_TONE, publishedListingStatus } from "@/lib/listing-status";
 import { SERVICE_BOOKING_TONE } from "@/lib/services-labels";
 import { uploadMedia } from "@/lib/upload";
 import type { OfferingDto, ProviderDto } from "@/types/api/schema";
@@ -32,13 +32,7 @@ import { cn } from "@/lib/utils";
 const CARD = "flex flex-col gap-3.5 rounded-2xl border border-gray-200 bg-white p-5 sm:p-6";
 const TITLE = "text-base font-bold text-[#0f172a]";
 const FIELD = "h-10 min-w-0 rounded-[10px] border border-gray-200 bg-white px-3 text-[13px] text-[#0f172a] focus:border-brand-900 focus:outline-none";
-const MODES = [
-  { value: "FixedPrice", label: "Fixed price (customers book a date)" },
-  { value: "QuoteRequired", label: "Quote required" },
-  { value: "InspectionFirst", label: "Inspection first" },
-] as const;
 const PRICING = ["Hourly", "Daily", "PerJob", "QuoteOnly"] as const;
-const UNITS = ["PerJob", "PerHour", "PerDay", "PerSqm", "PerUnit"] as const;
 
 const list = (value: string) => value.split(",").map((item) => item.trim()).filter(Boolean);
 const num = (value: string) => (value.trim() === "" ? null : Number(value.replace(/,/g, "")));
@@ -286,103 +280,53 @@ function PortfolioSection({ provider }: { provider: ProviderDto }) {
 function OfferingsSection() {
   const queryClient = useQueryClient();
   const offerings = useMyOfferings();
-  const taxonomy = useTaxonomy();
   const [editing, setEditing] = useState<OfferingDto | "new" | null>(null);
-  const [form, setForm] = useState({ title: "", description: "", category: "", mode: "QuoteRequired", price: "", unit: "PerJob", perDay: "", terms: "" });
   const refresh = () => void queryClient.invalidateQueries({ queryKey: SERVICES_KEY });
-  const categories = [...(taxonomy.data?.professions ?? []), ...(taxonomy.data?.trades ?? [])];
-
-  function open(target: OfferingDto | "new") {
-    setEditing(target);
-    if (target === "new") setForm({ title: "", description: "", category: "", mode: "QuoteRequired", price: "", unit: "PerJob", perDay: "", terms: "" });
-    else setForm({ title: target.title ?? "", description: target.description ?? "", category: target.category ?? "", mode: target.mode ?? "QuoteRequired", price: target.price?.toString() ?? "", unit: target.priceUnit ?? "PerJob", perDay: target.maxBookingsPerDay?.toString() ?? "", terms: target.terms ?? "" });
-  }
-
-  const save = useMutation({
-    mutationFn: async () => {
-      const body = {
-        title: form.title.trim(),
-        description: form.description.trim() || null,
-        category: form.category,
-        mode: form.mode,
-        price: num(form.price),
-        currency: "GHS",
-        priceUnit: form.price.trim() ? form.unit : null,
-        maxBookingsPerDay: form.mode === "FixedPrice" ? num(form.perDay) : null,
-        terms: form.terms.trim() || null,
-      };
-      if (editing === "new") await createOffering(body);
-      else if (editing) await updateOffering(editing.id, body);
-    },
-    onSuccess: () => {
-      refresh();
-      setEditing(null);
-      showSuccessToast("Saved as a draft. Publish it when you are ready.");
-    },
-    onError: (error) => notifyError(error, "The service could not be saved."),
-  });
   const act = useMutation({ mutationFn: ({ id, action }: { id: string; action: "publish" | "pause" | "archive" }) => offeringAction(id, action), onSuccess: refresh, onError: (error) => notifyError(error) });
 
   return (
     <section className={CARD}>
       <div className="flex items-center gap-3">
         <h2 className={cn(TITLE, "flex-1")}>Your services</h2>
-        <button type="button" onClick={() => open("new")} className="h-9 rounded-[10px] bg-brand-900 px-4 text-[13px] font-medium text-white">
+        <button type="button" onClick={() => setEditing("new")} className="h-9 rounded-[10px] bg-brand-900 px-4 text-[13px] font-medium text-white">
           + Add a service
         </button>
       </div>
       {offerings.isPending && <Skeleton className="h-16 w-full" />}
-      {offerings.data?.map((offering) => (
-        <div key={offering.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-gray-200 p-3.5">
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-[#0f172a]">{offering.title}</p>
-            <p className="text-xs text-gray-500">
-              {offering.category} · {offering.priceLabel ?? "No price"} · {offering.status}
-            </p>
-          </div>
-          <div className="flex gap-3 text-[13px] font-medium">
-            <button type="button" onClick={() => open(offering)} className="text-brand-900">
-              Edit
-            </button>
-            {offering.status === "Published" ? (
-              <button type="button" onClick={() => act.mutate({ id: offering.id, action: "pause" })} className="text-[#b45309]">
-                Pause
+      {offerings.data?.map((offering) => {
+        const status = publishedListingStatus(offering.status);
+        return (
+          <div key={offering.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-gray-200 p-3.5">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-[#0f172a]">{offering.title}</p>
+              <p className="text-xs text-gray-500">
+                {offering.category} · {offering.priceLabel ?? "No price"}
+              </p>
+            </div>
+            <span className={cn("rounded-full px-2.5 py-[3px] text-[11px] font-medium leading-4", LISTING_STATUS_TONE[status])}>{LISTING_STATUS_LABEL[status]}</span>
+            <div className="flex gap-3 text-[13px] font-medium">
+              <button type="button" onClick={() => setEditing(offering)} className="text-brand-900">
+                Edit
               </button>
-            ) : (
-              <button type="button" onClick={() => act.mutate({ id: offering.id, action: "publish" })} className="text-[#16a34a]">
-                Publish
+              {offering.status === "Published" ? (
+                <button type="button" onClick={() => act.mutate({ id: offering.id, action: "pause" })} className="text-[#b45309]">
+                  Pause
+                </button>
+              ) : (
+                <button type="button" onClick={() => act.mutate({ id: offering.id, action: "publish" })} className="text-[#16a34a]">
+                  Publish
+                </button>
+              )}
+              <button type="button" onClick={() => act.mutate({ id: offering.id, action: "archive" })} className="text-[#dc2626]">
+                Archive
               </button>
-            )}
-            <button type="button" onClick={() => act.mutate({ id: offering.id, action: "archive" })} className="text-[#dc2626]">
-              Archive
-            </button>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
       {offerings.data?.length === 0 && <p className="text-[13px] text-gray-500">No services yet.</p>}
 
-      {editing && (
-        <div className="flex flex-col gap-2.5 rounded-xl bg-[#f8fafc] p-4">
-          <input className={FIELD} placeholder="Service title" value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} />
-          <textarea className="rounded-[10px] border border-gray-200 px-3 py-2 text-[13px] focus:border-brand-900 focus:outline-none" rows={3} placeholder="What is included" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} />
-          <div className="grid gap-2.5 sm:grid-cols-2">
-            <SelectField value={form.category} onChange={(value) => setForm({ ...form, category: value })} aria-label="Category" placeholder="Category" options={categories.map((item) => ({ value: item, label: item }))} />
-            <SelectField value={form.mode} onChange={(value) => setForm({ ...form, mode: value })} aria-label="How it sells" options={MODES} />
-            <input className={FIELD} placeholder="Price in GHS (optional)" inputMode="decimal" value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} />
-            <SelectField value={form.unit} onChange={(value) => setForm({ ...form, unit: value })} aria-label="Price unit" options={UNITS.map((unit) => ({ value: unit, label: unit }))} />
-            {form.mode === "FixedPrice" && <input className={FIELD} placeholder="Max bookings per day" inputMode="numeric" value={form.perDay} onChange={(event) => setForm({ ...form, perDay: event.target.value })} />}
-          </div>
-          <textarea className="rounded-[10px] border border-gray-200 px-3 py-2 text-[13px] focus:border-brand-900 focus:outline-none" rows={2} placeholder="Terms (optional)" value={form.terms} onChange={(event) => setForm({ ...form, terms: event.target.value })} />
-          <div className="flex gap-2">
-            <button type="button" disabled={!form.title.trim() || !form.category || save.isPending} onClick={() => save.mutate()} className="h-10 rounded-[10px] bg-brand-900 px-4 text-sm font-medium text-white disabled:opacity-50">
-              {save.isPending ? "Saving…" : "Save service"}
-            </button>
-            <button type="button" onClick={() => setEditing(null)} className="h-10 rounded-[10px] border border-gray-200 px-4 text-sm font-medium">
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
+      {editing && <CreateListingModal initial={{ kind: "service", offering: editing === "new" ? undefined : editing }} onClose={() => setEditing(null)} />}
     </section>
   );
 }
