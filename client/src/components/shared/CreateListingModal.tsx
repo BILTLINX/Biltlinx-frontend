@@ -7,6 +7,7 @@ import { NavIcon } from "@/components/shared/NavIcon";
 import { PropertyListingForm } from "@/components/shared/PropertyListingForm";
 import { ServiceListingForm } from "@/components/shared/ServiceListingForm";
 import { StayListingForm } from "@/components/shared/StayListingForm";
+import { cn } from "@/lib/utils";
 import type { ListingKind } from "@/lib/listing-status";
 import type { OfferingDto } from "@/types/api/schema";
 
@@ -16,8 +17,8 @@ export type ListingTarget =
   | { kind: "stay"; stayId?: string }
   | { kind: "service"; offering?: OfferingDto };
 
-const CHOICES: { kind: ListingKind; title: string; note: string; icon: string }[] = [
-  { kind: "property", title: "Property", note: "For sale or to rent. Reviewed by our team before it goes live.", icon: "/icons/house-03.svg" },
+const CHOICES: { kind: ListingKind; title: string; note: string; icon: string; flip?: boolean }[] = [
+  { kind: "property", title: "Property", note: "For sale or to rent. Reviewed by our team before it goes live.", icon: "/icons/house-03.svg", flip: true },
   { kind: "stay", title: "Stay", note: "A hotel, guest house, hostel or short-let that guests book by the night.", icon: "/icons/bed-single-01.svg" },
   { kind: "service", title: "Service", note: "A job or trade you offer, with a price or a quote.", icon: "/icons/wrench-01.svg" },
 ];
@@ -45,7 +46,7 @@ export function CreateListingModal({ initial = null, onClose }: CreateListingMod
                 className="flex items-center gap-3.5 rounded-2xl border border-gray-200 p-4 text-left hover:border-brand-900 hover:bg-[#f8fbff]"
               >
                 <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[#eff5ff]">
-                  <NavIcon icon={choice.icon} size={22} className="bg-brand-900" />
+                  <NavIcon icon={choice.icon} size={22} className={cn("bg-brand-900", choice.flip && "-scale-y-100")} />
                 </span>
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <span className="text-[15px] font-bold leading-[22px] text-[#0f172a]">{choice.title}</span>

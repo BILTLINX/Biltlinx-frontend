@@ -174,7 +174,7 @@ function ManageListings() {
 
   const byStatus = summary.data?.byStatus ?? {};
   const kpis = [
-    { id: "total", label: "Listings", value: (summary.data?.total ?? 0) + (stays.data?.length ?? 0) + (offerings.data?.length ?? 0), pending: summary.isPending, icon: "/icons/house-03.svg" },
+    { id: "total", label: "Listings", value: (summary.data?.total ?? 0) + (stays.data?.length ?? 0) + (offerings.data?.length ?? 0), pending: summary.isPending, icon: "/icons/house-03.svg", flip: true },
     { id: "review", label: "Pending approval", value: byStatus.PendingReview ?? 0, pending: summary.isPending, icon: "/icons/timer-01.svg" },
     { id: "viewings", label: "Viewing requests waiting", value: summary.data?.viewingRequestsWaiting ?? 0, pending: summary.isPending, icon: "/icons/calendar-03.svg" },
     { id: "stale", label: "Need confirming", value: (summary.data?.stale ?? 0) + (summary.data?.hiddenByReports ?? 0), pending: summary.isPending, icon: "/icons/message-01.svg" },
@@ -240,7 +240,7 @@ function ManageListings() {
           {kpis.map((kpi) => (
             <div key={kpi.id} className="flex min-w-0 flex-col gap-1.5 rounded-2xl border border-gray-200 bg-white p-4">
               <p className="flex items-center gap-2 text-[13px] font-medium leading-[19px] text-gray-500">
-                <NavIcon icon={kpi.icon} size={16} className="shrink-0 bg-gray-500" />
+                <NavIcon icon={kpi.icon} size={16} className={cn("shrink-0 bg-gray-500", kpi.flip && "-scale-y-100")} />
                 {kpi.label}
               </p>
               {kpi.pending ? <Skeleton className="h-7 w-12" /> : <p className="text-[22px] font-bold leading-[30px] text-[#0f172a]">{kpi.value}</p>}
