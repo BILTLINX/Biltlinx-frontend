@@ -12,13 +12,14 @@ import { useAnimatedSheet } from "@/hooks/useAnimatedSheet";
 import { FEED_KEY } from "@/hooks/useFeed";
 import { PROPERTIES_KEY, useMyProperties } from "@/hooks/useProperties";
 import { notifyError } from "@/lib/errors";
+import { ASSUME_APPROVED, propertyListingStatus } from "@/lib/listing-status";
 import { MODAL_FRAME } from "@/lib/modal-styles";
 import { postListing } from "@/lib/properties-api";
 import { FALLBACK_PROPERTY_IMAGE, propertyKind, propertyLocation, propertyPrice, propertyPriceUnit } from "@/lib/property-mapper";
 import { cn } from "@/lib/utils";
 import type { PropertyDto } from "@/types/api/schema";
 
-const APPROVED_QUERY = { status: "Approved", availability: "Active" } as const;
+const APPROVED_QUERY = { status: ASSUME_APPROVED ? undefined : "Approved", availability: "Active" } as const;
 
 interface PostPropertyModalProps {
   open: boolean;
@@ -43,7 +44,7 @@ export function PostPropertyModal({ open, onClose, initialId = "" }: PostPropert
   const [note, setNote] = useState("");
   const [pickedId, setPickedId] = useState(initialId);
   const mine = useMyProperties(APPROVED_QUERY, open);
-  const listings = useMemo(() => mine.items.filter((item) => !item.postedAt), [mine.items]);
+  const listings = useMemo(() => mine.items.filter((item) => !item.postedAt && propertyListingStatus(item.status) === "Approved"), [mine.items]);
   const listingId = listings.some((item) => item.id === pickedId) ? pickedId : (listings[0]?.id ?? "");
   const listing = listings.find((item) => item.id === listingId) ?? null;
   const loading = mine.isPending;
