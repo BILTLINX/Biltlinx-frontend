@@ -24,7 +24,7 @@ import { STAY_KEY } from "@/hooks/useStay";
 import { errorMessage, notifyError } from "@/lib/errors";
 import { formatDate } from "@/lib/format";
 import { propertyRow, serviceRow, stayRow, type ListingRow } from "@/lib/listing-rows";
-import { LISTING_KIND_LABEL, LISTING_STATUS_LABEL, LISTING_STATUS_TONE, type ListingKind, type ListingStatus } from "@/lib/listing-status";
+import { ASSUME_APPROVED, LISTING_KIND_LABEL, LISTING_STATUS_LABEL, LISTING_STATUS_TONE, propertyListingStatus, type ListingKind, type ListingStatus } from "@/lib/listing-status";
 import { confirmAvailability, deleteDraft, getPortfolioSummary, listDrafts, type ListingAction } from "@/lib/properties-api";
 import { offeringAction } from "@/lib/services-api";
 import { listOperatorProperties, pauseOperatorProperty, publishOperatorProperty } from "@/lib/stay-api";
@@ -35,14 +35,15 @@ import { useDebouncedSearch } from "@/context/SearchContext";
 type Filter = Exclude<ListingStatus, "Draft"> | "all" | "drafts";
 type KindFilter = ListingKind | "all";
 
-const FILTERS: { key: Filter; label: string }[] = [
+const ALL_FILTERS: { key: Filter; label: string }[] = [
   { key: "all", label: "All" },
   { key: "Approved", label: LISTING_STATUS_LABEL.Approved },
-  { key: "Pending", label: LISTING_STATUS_LABEL.Pending },
   { key: "Rejected", label: LISTING_STATUS_LABEL.Rejected },
   { key: "Paused", label: LISTING_STATUS_LABEL.Paused },
   { key: "drafts", label: "Drafts" },
 ];
+
+const FILTERS = ALL_FILTERS.filter((item) => !(ASSUME_APPROVED && item.key === "Pending"));
 
 const KIND_FILTERS: { key: KindFilter; label: string }[] = [
   { key: "all", label: "All types" },
@@ -61,7 +62,7 @@ type RowAction = Exclude<ListingAction, "delete">;
 function rowActions(property: PropertyDto): { label: string; action: RowAction }[] {
   const actions: { label: string; action: RowAction }[] = [];
   if (property.status === "Paused") actions.push({ label: "Resume", action: "resume" });
-  else if (property.status === "Approved") actions.push({ label: "Pause", action: "pause" });
+  else if (propertyListingStatus(property.status) === "Approved") actions.push({ label: "Pause", action: "pause" });
   if (property.availability === "Available") actions.push({ label: property.listingType === "Rent" ? "Mark as rented" : "Mark as sold", action: "close" });
   actions.push({ label: "Archive", action: "archive" });
   return actions;
@@ -130,7 +131,7 @@ function ManageListings() {
   const showServices = kindFilter === "all" || kindFilter === "service";
 
   const summary = useQuery({ queryKey: ["properties", "summary"], queryFn: getPortfolioSummary });
-  const properties = useMyProperties({ q: search || undefined, status: PROPERTY_STATUS[filter] }, showProperties && filter !== "drafts");
+  const properties = useMyProperties({ q: search || undefined, status: ASSUME_APPROVED && (filter === "Approved" || filter === "Pending") ? undefined : PROPERTY_STATUS[filter] }, showProperties && filter !== "drafts");
   const stays = useQuery({ queryKey: [...STAY_KEY, "operator"], queryFn: listOperatorProperties });
   const offerings = useMyOfferings();
   const drafts = useQuery({ queryKey: ["drafts"], queryFn: listDrafts, enabled: showProperties && (filter === "drafts" || filter === "all") });
@@ -175,7 +176,7 @@ function ManageListings() {
   const byStatus = summary.data?.byStatus ?? {};
   const kpis = [
     { id: "total", label: "Listings", value: (summary.data?.total ?? 0) + (stays.data?.length ?? 0) + (offerings.data?.length ?? 0), pending: summary.isPending, icon: "/icons/house-03.svg", flip: true },
-    { id: "review", label: "Pending approval", value: byStatus.PendingReview ?? 0, pending: summary.isPending, icon: "/icons/timer-01.svg" },
+    { id: "review", label: "Pending approval", value: ASSUME_APPROVED ? 0 : byStatus.PendingReview ?? 0, pending: summary.isPending, icon: "/icons/timer-01.svg" },
     { id: "viewings", label: "Viewing requests waiting", value: summary.data?.viewingRequestsWaiting ?? 0, pending: summary.isPending, icon: "/icons/calendar-03.svg" },
     { id: "stale", label: "Need confirming", value: (summary.data?.stale ?? 0) + (summary.data?.hiddenByReports ?? 0), pending: summary.isPending, icon: "/icons/message-01.svg" },
   ];
@@ -184,7 +185,7 @@ function ManageListings() {
   const matchesSearch = (row: ListingRow) => !needle || `${row.title} ${row.meta}`.toLowerCase().includes(needle);
   const propertyById = new Map(properties.items.map((property) => [property.id, property]));
   const rows: ListingRow[] = [
-    ...(showProperties && filter !== "drafts" ? properties.items.map(propertyRow) : []),
+    ...(showProperties && filter !== "drafts" ? properties.items.map(propertyRow).filter((row) => matchesStatus(row, filter)) : []),
     ...(showStays ? (stays.data ?? []).map(stayRow).filter((row) => matchesStatus(row, filter) && matchesSearch(row)) : []),
     ...(showServices ? (offerings.data ?? []).filter((offering) => offering.status !== "Archived").map(serviceRow).filter((row) => matchesStatus(row, filter) && matchesSearch(row)) : []),
   ];
@@ -197,7 +198,7 @@ function ManageListings() {
       const property = propertyById.get(row.id);
       if (!property) return [];
       return [
-        ...(property.status === "Approved" ? [{ label: "Post to feed", run: () => setPostFor(property) }] : []),
+        ...(propertyListingStatus(property.status) === "Approved" ? [{ label: "Post to feed", run: () => setPostFor(property) }] : []),
         { label: "Documents", run: () => setDocumentsFor(property) },
         ...rowActions(property).map((item) => ({ label: item.label, run: () => setAction({ property, action: item.action }) })),
       ];

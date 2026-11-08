@@ -21,10 +21,13 @@ export type ListingKind = "property" | "stay" | "service";
 
 export const LISTING_KIND_LABEL: Record<ListingKind, string> = { property: "Property", stay: "Stay", service: "Service" };
 
+/** There is no admin side yet, so nothing can approve a listing: until there is, a property waiting for review is treated as approved so it can be posted. Set to false once review exists. */
+export const ASSUME_APPROVED = true;
+
 /** Properties go through review. */
 export function propertyListingStatus(status: string | null | undefined): ListingStatus {
   if (status === "Approved") return "Approved";
-  if (status === "PendingReview") return "Pending";
+  if (status === "PendingReview") return ASSUME_APPROVED ? "Approved" : "Pending";
   if (status === "Rejected") return "Rejected";
   return "Paused";
 }
