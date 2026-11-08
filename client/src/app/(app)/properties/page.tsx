@@ -14,17 +14,17 @@ import { useProperties } from "@/hooks/useProperties";
 import { comingSoonHref } from "@/lib/coming-soon";
 import { errorMessage } from "@/lib/errors";
 import type { PropertyQuery } from "@/lib/properties-api";
-import { cn } from "@/lib/utils";
 import { useDebouncedSearch } from "@/context/SearchContext";
 
-const TABS = [
+const CATEGORIES = [
   { key: "buy", label: "Buy", noun: "homes for sale", query: { listingType: "Sale" } },
   { key: "rent", label: "Rent", noun: "homes for rent", query: { listingType: "Rent" } },
   { key: "land", label: "Land", noun: "plots", query: { propertyType: "Land" } },
   { key: "commercial", label: "Commercial", noun: "commercial properties", query: { propertyType: "Commercial" } },
 ] as const satisfies readonly { key: string; label: string; noun: string; query: Partial<PropertyQuery> }[];
 
-type TabKey = (typeof TABS)[number]["key"];
+const CATEGORY_OPTIONS = CATEGORIES.map((item) => ({ label: item.label, value: item.key }));
+const EMPTY_FILTERS: FilterValues = { category: "", minPrice: "", maxPrice: "", bedrooms: "", sort: "" };
 
 const BEDROOM_OPTIONS = [
   { label: "Any", value: "" },
@@ -48,27 +48,28 @@ function numberOrUndefined(value: string) {
 
 export default function PropertiesPage() {
   const router = useRouter();
-  const [tab, setTab] = useState<TabKey>("buy");
   const search = useDebouncedSearch();
-  const [filters, setFilters] = useState<FilterValues>({ minPrice: "", maxPrice: "", bedrooms: "", sort: "" });
+  const [filters, setFilters] = useState<FilterValues>(EMPTY_FILTERS);
+  const category = filterText(filters, "category");
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   function clearFilters() {
-    setFilters({ minPrice: "", maxPrice: "", bedrooms: "", sort: "" });
+    setFilters(EMPTY_FILTERS);
   }
 
   const sections: FilterSection[] = [
+    { type: "options", label: "Looking to", key: "category", display: "chips", options: CATEGORY_OPTIONS },
     { type: "options", label: "Sort by", key: "sort", display: "chips", options: SORT_OPTIONS },
     { type: "range", label: "Price", minKey: "minPrice", maxKey: "maxPrice", prefix: "GHS" },
-    { type: "options", label: "Bedrooms", key: "bedrooms", display: "chips", options: BEDROOM_OPTIONS.filter((option) => option.value !== ""), hidden: tab !== "buy" && tab !== "rent" },
+    { type: "options", label: "Bedrooms", key: "bedrooms", display: "chips", options: BEDROOM_OPTIONS.filter((option) => option.value !== ""), hidden: category === "land" || category === "commercial" },
   ];
-  const active = TABS.find((item) => item.key === tab) ?? TABS[0];
+  const active = CATEGORIES.find((item) => item.key === category);
   const { cards, total, isPending, isError, error, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } = useProperties({
-    ...active.query,
+    ...active?.query,
     q: search || undefined,
     minPrice: numberOrUndefined(filterText(filters, "minPrice")),
     maxPrice: numberOrUndefined(filterText(filters, "maxPrice")),
-    minBedrooms: tab === "land" || tab === "commercial" ? undefined : numberOrUndefined(filterText(filters, "bedrooms")),
+    minBedrooms: category === "land" || category === "commercial" ? undefined : numberOrUndefined(filterText(filters, "bedrooms")),
     sort: (filterText(filters, "sort") || "newest") as NonNullable<PropertyQuery["sort"]>,
   });
 
@@ -96,30 +97,10 @@ export default function PropertiesPage() {
           <FilterPanel className="shrink-0 lg:max-w-[45%] lg:justify-end" sections={sections} values={filters} onChange={setFilters} />
         </div>
 
-        <div role="tablist" aria-label="Property type" className="no-scrollbar flex gap-1 overflow-x-auto rounded-xl border border-gray-200 bg-gray-50 p-1">
-          {TABS.map((item) => {
-            const isActive = item.key === tab;
-            return (
-              <button
-                key={item.key}
-                type="button"
-                role="tab"
-                aria-selected={isActive}
-                onClick={() => setTab(item.key)}
-                className={cn(
-                  "min-w-fit flex-1 whitespace-nowrap rounded-lg px-4 py-2 text-sm leading-5",
-                  isActive ? "bg-white font-semibold text-brand-900" : "font-medium text-gray-500 hover:text-[#0f172a]",
-                )}
-              >
-                {item.label}
-              </button>
-            );
-          })}
-        </div>
 
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm font-medium leading-5 text-[#0f172a]">
-            {isPending ? "Searching…" : `${total.toLocaleString("en-GH")} ${active.noun}`}
+            {isPending ? "Searching…" : `${total.toLocaleString("en-GH")} ${active?.noun ?? "properties"}`}
           </p>
           <div className="flex shrink-0 gap-1 rounded-[10px] border border-gray-200 p-1">
             <span className="rounded-lg bg-brand-900 px-3.5 py-1.5 text-[13px] font-medium leading-[19px] text-white">List</span>
