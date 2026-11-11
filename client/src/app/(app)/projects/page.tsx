@@ -1,17 +1,20 @@
 "use client";
 
-import { SearchEmpty } from "@/components/shared/SearchEmpty";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/shared/AppShell";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { filterList, FilterPanel, type FilterSection } from "@/components/shared/FilterPanel";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { ProjectCard } from "@/components/shared/ProjectCard";
 import { ProjectsRail } from "@/components/shared/ProjectsRail";
-import { filterList, FilterPanel, type FilterSection } from "@/components/shared/FilterPanel";
-import { EmptyState } from "@/components/shared/EmptyState";
-import { comingSoonHref } from "@/lib/coming-soon";
-import { PROJECT_FILTERS, PROJECTS } from "@/lib/dummy-projects";
-import { useSearchTerm } from "@/context/SearchContext";
+import { SearchEmpty } from "@/components/shared/SearchEmpty";
+import { Button } from "@/components/ui/Button";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { useDebouncedSearch } from "@/context/SearchContext";
+import { useProjectsList } from "@/hooks/useProjects";
+import { errorMessage } from "@/lib/errors";
+import { FOLLOWING_FILTER, PROJECT_STAGES } from "@/lib/project-mapper";
 
 const STATUS_SECTIONS: FilterSection[] = [
   {
@@ -20,28 +23,22 @@ const STATUS_SECTIONS: FilterSection[] = [
     key: "status",
     display: "chips",
     multiple: true,
-    options: PROJECT_FILTERS.filter((item) => item !== "All").map((item) => ({ value: item, label: item })),
+    options: [...PROJECT_STAGES.map((stage) => ({ value: stage.value, label: stage.label })), { value: FOLLOWING_FILTER, label: FOLLOWING_FILTER }],
   },
 ];
 
 export default function ProjectsPage() {
   const router = useRouter();
   const [statuses, setStatuses] = useState<string[]>([]);
-  const [followed, setFollowed] = useState<string[]>([]);
-  const comingSoon = (feature: string) => () => router.push(comingSoonHref(feature));
+  const term = useDebouncedSearch();
 
-  const term = useSearchTerm();
-  const projects = useMemo(() => {
-    return PROJECTS.filter(
-      (project) =>
-        (statuses.length === 0 || statuses.some((status) => (status === "Following" ? followed.includes(project.id) : project.stage === status))) &&
-        (!term || `${project.name} ${project.developer} ${project.area}`.toLowerCase().includes(term)),
-    );
-  }, [statuses, term, followed]);
-
-  function toggleFollow(id: string) {
-    setFollowed((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
-  }
+  const followed = statuses.includes(FOLLOWING_FILTER);
+  const stages = useMemo(() => statuses.filter((status) => status !== FOLLOWING_FILTER), [statuses]);
+  const list = useProjectsList({ q: term || undefined, stage: stages.length === 1 ? stages[0] : undefined, followed: followed || undefined });
+  const projects = useMemo(
+    () => (stages.length > 1 ? list.projects.filter((project) => stages.includes(project.stageKey)) : list.projects),
+    [list.projects, stages],
+  );
 
   return (
     <AppShell activeKey="property" activeChildKey="projects" contentFullWidth rightRail={<ProjectsRail />}>
@@ -61,29 +58,34 @@ export default function ProjectsPage() {
           />
         </div>
 
-        {projects.length > 0 ? (
+        {list.isPending ? (
+          <div className="flex flex-col gap-6">
+            <Skeleton className="h-[210px] w-full rounded-2xl" />
+            <Skeleton className="h-[210px] w-full rounded-2xl" />
+          </div>
+        ) : list.isError ? (
+          <p className="text-sm text-[#dc2626]">{errorMessage(list.error)}</p>
+        ) : projects.length > 0 ? (
           <div className="flex flex-col gap-6">
             {projects.map((project) => (
-              <ProjectCard
-                key={project.id}
-                project={project}
-                following={followed.includes(project.id)}
-                onToggleFollow={() => toggleFollow(project.id)}
-              />
+              <ProjectCard key={project.id} project={project} />
             ))}
+            {list.hasNextPage && (
+              <Button variant="outline" onClick={() => void list.fetchNextPage()} disabled={list.isFetchingNextPage} className="mx-auto w-auto px-6">
+                {list.isFetchingNextPage ? "Loading…" : "Show more projects"}
+              </Button>
+            )}
           </div>
+        ) : term ? (
+          <SearchEmpty noun="projects" />
         ) : (
-          term ? (
-            <SearchEmpty noun="projects" />
-          ) : (
-            <EmptyState
-              icon="projects"
-              title="No projects here yet"
-              body="No developer has listed a project at this stage. Follow developers to hear first when they break ground."
-              primary={{ label: "Show all projects", onClick: () => setStatuses([]) }}
-              secondary={{ label: "Start a project", onClick: comingSoon("Start a project") }}
-            />
-          )
+          <EmptyState
+            icon="projects"
+            title={followed ? "You are not following any project yet" : "No projects here yet"}
+            body="No developer has listed a project at this stage. Follow developers to hear first when they break ground."
+            primary={{ label: "Show all projects", onClick: () => setStatuses([]) }}
+            secondary={{ label: "Start a project", onClick: () => router.push("/manage/projects") }}
+          />
         )}
 
         <div className="xl:hidden">

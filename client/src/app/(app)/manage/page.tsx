@@ -26,6 +26,7 @@ const MODULES = [
   { id: "listings", title: "Listings", note: "Properties you have listed, their review status and how fresh they are", href: "/manage/listings", icon: "/icons/tag-01.svg", capability: null },
   { id: "enquiries", title: "Enquiries and leads", note: "Your pipeline, viewing requests and follow-ups", href: "/manage/enquiries", icon: "/icons/message-01.svg", capability: null },
   { id: "stay", title: "Stay (host)", note: "Rooms, rates, availability and reservations", href: "/manage/stay", icon: "/icons/guest-house-sm.svg", capability: "StayOperator" },
+  { id: "projects", title: "Projects", note: "Developments you are building: units, milestones, site updates and reservations", href: "/manage/projects", icon: "/icons/folder-01.svg", capability: "Developer" },
   { id: "provider", title: "Services", note: "Your provider profile, portfolio, services, bookings and quotes", href: "/manage/provider", icon: "/icons/wrench-01.svg", capability: null },
   { id: "payments", title: "Payments", note: "Invoices and receipts for what you have paid", href: "/payments", icon: "/icons/wallet-01.svg", capability: null },
   { id: "verification", title: "Verification", note: "Identity, business and credential checks", href: "/verification", icon: "/icons/checkmark-badge-01.svg", capability: null },

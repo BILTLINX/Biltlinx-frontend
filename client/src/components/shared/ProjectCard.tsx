@@ -4,10 +4,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import type { Project, ProjectStage } from "@/lib/dummy-projects";
+import { useProjectFollow } from "@/hooks/useProjects";
+import type { ProjectView } from "@/lib/project-mapper";
 import { cn } from "@/lib/utils";
 
-const STAGE_PILL: Record<ProjectStage, string> = {
+const STAGE_PILL: Record<string, string> = {
   "Selling now": "bg-[#dcfce7] text-[#16a34a]",
   "Under construction": "bg-[#eff5ff] text-brand-900",
   Planning: "bg-[#fef3c7] text-[#b45309]",
@@ -15,14 +16,13 @@ const STAGE_PILL: Record<ProjectStage, string> = {
 };
 
 interface ProjectCardProps {
-  project: Project;
-  following: boolean;
-  onToggleFollow: () => void;
+  project: ProjectView;
 }
 
 /** One development (Figma node 1042:21581): photo, stage, developer and area, construction progress, price and follow / view actions. */
-export function ProjectCard({ project, following, onToggleFollow }: ProjectCardProps) {
+export function ProjectCard({ project }: ProjectCardProps) {
   const router = useRouter();
+  const { following, toggle } = useProjectFollow(project.id, project.following);
 
   return (
     <article className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-4 sm:flex-row sm:gap-5">
@@ -46,7 +46,7 @@ export function ProjectCard({ project, following, onToggleFollow }: ProjectCardP
           <span
             className={cn(
               "shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium leading-4",
-              STAGE_PILL[project.stage],
+              STAGE_PILL[project.stage] ?? STAGE_PILL.Planning,
             )}
           >
             {project.stage}
@@ -81,7 +81,7 @@ export function ProjectCard({ project, following, onToggleFollow }: ProjectCardP
           <div className="flex gap-2">
             <Button
               variant="outline"
-              onClick={onToggleFollow}
+              onClick={toggle}
               aria-pressed={following}
               className="h-10 w-auto whitespace-nowrap rounded-[10px] px-4 lg:rounded-[10px]"
             >

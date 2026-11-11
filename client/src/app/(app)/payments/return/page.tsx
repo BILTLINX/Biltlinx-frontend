@@ -9,6 +9,7 @@ import { PageContainer } from "@/components/shared/PageContainer";
 import { Spinner } from "@/components/shared/Spinner";
 import { errorMessage } from "@/lib/errors";
 import { formatMoney } from "@/lib/format";
+import { useReservation } from "@/hooks/useProjects";
 import { getBooking, verifyPayment } from "@/lib/stay-api";
 
 const POLL_MS = 2000;
@@ -62,6 +63,15 @@ function PaymentReturn() {
     }
   }, [status, queryClient]);
 
+  const isProject = payment.data?.purpose === "ProjectDeposit";
+  const reservation = useReservation(isProject ? payment.data?.subjectId : undefined, {
+    pollWhile: (current) => current === "PendingPayment" && Date.now() - startedAt < POLL_LIMIT_MS,
+  });
+  const reservationStatus = reservation.data?.status;
+  useEffect(() => {
+    if (reservationStatus === "Reserved") void queryClient.invalidateQueries({ queryKey: ["projects"] });
+  }, [reservationStatus, queryClient]);
+
   const concierge = payment.data?.purpose === "ConciergeFee";
   useEffect(() => {
     if (concierge) void queryClient.invalidateQueries({ queryKey: ["concierge"] });
@@ -88,6 +98,29 @@ function PaymentReturn() {
       <Result tone="ok" title="Concierge fee received" body={`${formatMoney(payment.data.amount, payment.data.currency ?? "GHS")} paid. Your Concierge plan continues from here.`}>
         <Link href={`/concierge?id=${payment.data.subjectId}`} className="text-sm font-medium text-brand-900">
           Back to my plan
+        </Link>
+      </Result>
+    );
+  } else if (isProject && reservationStatus === "Reserved") {
+    content = (
+      <Result tone="ok" title="Unit reserved" body={`${reservation.data?.unitName} at ${reservation.data?.projectName} · ${formatMoney(payment.data.amount, payment.data.currency ?? "GHS")} deposit paid. The developer will be in touch about the next steps.`}>
+        <Link href={`/projects/${reservation.data?.projectId}`} className="text-sm font-medium text-brand-900">
+          Back to the project
+        </Link>
+      </Result>
+    );
+  } else if (isProject && (reservation.isPending || reservationStatus === "PendingPayment")) {
+    content = (
+      <div className="flex flex-col items-center gap-4 py-16">
+        <Spinner />
+        <p className="text-sm text-gray-500">Payment received. Confirming your reservation…</p>
+      </div>
+    );
+  } else if (isProject) {
+    content = (
+      <Result tone="wait" title="Payment received" body="We are finalising your reservation. If the unit is no longer available your deposit is refunded automatically.">
+        <Link href={reservation.data ? `/projects/${reservation.data.projectId}` : "/projects"} className="text-sm font-medium text-brand-900">
+          Back to projects
         </Link>
       </Result>
     );
