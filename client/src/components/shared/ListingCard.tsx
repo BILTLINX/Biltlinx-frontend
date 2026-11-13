@@ -84,7 +84,8 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
         </p>
         {listing.detail && (
           <p className="flex items-center gap-1.5 text-xs leading-[17px] text-gray-500">
-            <NavIcon icon={DETAIL_ICONS[listing.detail.icon]} size={12} className="bg-gray-500" />
+            {/* The bed vector is drawn upside down; the design flips it too. */}
+            <NavIcon icon={DETAIL_ICONS[listing.detail.icon]} size={12} className={cn("bg-gray-500", listing.detail.icon === "bed" && "-scale-y-100")} />
             <span className="min-w-0">{listing.detail.text}</span>
           </p>
         )}
@@ -101,13 +102,14 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
             {badge.label}
           </span>
         ))}
-        <div className="mt-auto flex w-full gap-2 pt-1">
+        {/* With two buttons the main one fills the row and the second fits its label; they stack when the card is too narrow for both. */}
+        <div className={cn("mt-auto grid w-full gap-2 pt-1", listing.secondaryCta && "@[256px]:grid-cols-[1fr_auto]")}>
           <Button
             variant="primary"
             onClick={() => (listing.ctaHref ? router.push(listing.ctaHref) : listing.cta === VIEWING_CTA ? setViewingOpen(true) : router.push(comingSoonHref(listing.cta)))}
             className={cn(
-              "h-10 min-w-0 flex-1 whitespace-nowrap rounded-[10px] px-4 lg:rounded-[10px]",
-              listing.secondaryCta && "px-2 text-[13px]",
+              "h-10 min-w-0 whitespace-nowrap rounded-[10px] px-4 lg:rounded-[10px]",
+              listing.secondaryCta && "px-1.5",
             )}
           >
             {listing.cta}
@@ -117,7 +119,7 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
               variant="outline"
               disabled={startMessage.isPending}
               onClick={() => messageOwner()}
-              className="h-10 min-w-0 flex-1 whitespace-nowrap rounded-[10px] px-2 text-[13px] lg:rounded-[10px]"
+              className="h-10 min-w-0 whitespace-nowrap rounded-[10px] px-4 text-[#0f172a] lg:rounded-[10px]"
             >
               {listing.secondaryCta}
             </Button>
