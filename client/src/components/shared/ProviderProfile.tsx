@@ -155,7 +155,7 @@ export function ProviderProfile({ id, kind }: { id: string; kind: "professional"
                 {offerings.items.length > 0 && (
                   <section className="flex flex-col gap-3">
                     <h2 className="text-base font-bold text-[#0f172a]">Services</h2>
-                    <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="flex flex-col gap-3">
                       {offerings.items.map((offering) => (
                         <OfferingCard key={offering.id} offering={offering} />
                       ))}

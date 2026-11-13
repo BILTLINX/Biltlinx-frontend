@@ -93,9 +93,9 @@ export default function ServicesPage() {
         <p className="text-sm font-medium text-[#0f172a]">{isPending ? "Searching…" : `${total} ${total === 1 ? "service" : "services"}`}</p>
 
         {isPending && (
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(min(280px,100%),1fr))] gap-4">
+          <div className="flex flex-col gap-4">
             {[0, 1, 2].map((n) => (
-              <Skeleton key={n} className="h-[300px] rounded-2xl" />
+              <Skeleton key={n} className="h-[130px] rounded-2xl" />
             ))}
           </div>
         )}
@@ -119,7 +119,7 @@ export default function ServicesPage() {
           />
         )}
         {items.length > 0 && (
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(min(280px,100%),1fr))] gap-4">
+          <div className="flex flex-col gap-4">
             {items.map((offering) => (
               <OfferingCard key={offering.id} offering={offering} />
             ))}
