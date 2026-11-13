@@ -2,11 +2,39 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { formatRelative } from "@/lib/format";
-import type { SavedItem } from "@/lib/saved-items";
+import { useRef, useState } from "react";
+import { PostOptionsMenu, type PostOptionsGroup } from "@/components/shared/PostOptionsMenu";
+import type { SavedCollection, SavedItem } from "@/lib/saved-items";
 
-/** One saved item: thumbnail that opens it, what it is, its price, when it was saved, and a way to remove it. */
-export function SavedItemRow({ item, onRemove }: { item: SavedItem; onRemove: () => void }) {
+interface SavedItemRowProps {
+  item: SavedItem;
+  collections: SavedCollection[];
+  /** Called without a collection to take the item out of the one it is in. */
+  onMove: (collection?: SavedCollection) => void;
+  onNewCollection: () => void;
+  onRemove: () => void;
+}
+
+/** One saved item (Figma node 1046:22570): thumbnail that opens it, what it is, its price, and a "Move to…" menu that files it under a collection or removes it. */
+export function SavedItemRow({ item, collections, onMove, onNewCollection, onRemove }: SavedItemRowProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const trigger = useRef<HTMLButtonElement | null>(null);
+  const current = collections.find((collection) => collection.id === item.collectionId);
+  const line = item.price ?? item.subtitle;
+
+  const groups: PostOptionsGroup[] = [
+    [
+      ...collections
+        .filter((collection) => collection.id !== current?.id)
+        .map((collection) => ({ key: collection.id, icon: "/icons/folder-01.svg", iconSize: 16, label: collection.name, onSelect: () => onMove(collection) })),
+      { key: "new", icon: "/icons/add-alt.svg", iconSize: 16, label: "New collection…", onSelect: onNewCollection },
+    ],
+    [
+      ...(current ? [{ key: "out", icon: "/icons/poll-close-outline.svg", iconSize: 15, label: `Remove from “${current.name}”`, onSelect: () => onMove() }] : []),
+      { key: "remove", icon: "/icons/poll-trash-delete.svg", iconSize: 15, label: "Remove from saved", destructive: true, onSelect: onRemove },
+    ],
+  ];
+
   return (
     <article className="flex items-center gap-3.5 rounded-2xl border border-gray-200 bg-white p-3 hover:border-gray-300">
       <Link href={item.href} aria-label={`Open ${item.title}`} className="relative block size-[72px] shrink-0 overflow-hidden rounded-[10px] bg-[#eef2ff]">
@@ -17,14 +45,19 @@ export function SavedItemRow({ item, onRemove }: { item: SavedItem; onRemove: ()
         <Link href={item.href} className="line-clamp-2 text-sm font-semibold leading-5 text-[#0f172a] hover:text-brand-900 hover:underline">
           {item.title}
         </Link>
-        <p className="line-clamp-1 text-xs leading-[17px] text-gray-500">{[item.subtitle, item.price].filter(Boolean).join(" · ")}</p>
+        {line && <p className="line-clamp-1 text-[13px] font-medium leading-[19px] text-[#334155]">{line}</p>}
       </div>
-      <div className="flex shrink-0 flex-col items-end gap-1.5">
-        <span className="text-xs leading-[17px] text-gray-500">Saved {formatRelative(item.savedAt)}</span>
-        <button type="button" onClick={onRemove} className="h-8 rounded-lg border border-gray-200 bg-white px-3 text-[13px] font-medium text-[#334155] hover:bg-gray-50">
-          Remove
-        </button>
-      </div>
+      <button
+        ref={trigger}
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={menuOpen}
+        onClick={() => setMenuOpen((open) => !open)}
+        className="h-9 shrink-0 whitespace-nowrap rounded-[10px] border border-gray-200 bg-white px-4 text-sm font-medium text-[#0f172a] hover:bg-gray-50"
+      >
+        Move to…
+      </button>
+      <PostOptionsMenu open={menuOpen} onClose={() => setMenuOpen(false)} anchorRef={trigger} groups={groups} />
     </article>
   );
 }

@@ -2,7 +2,7 @@ import type { DiscoverReel } from "@/types/reel";
 import type { ListingCardData } from "@/types/listing";
 import type { PostCardData } from "@/types/post";
 
-export const SAVED_FILTERS = ["All", "Properties", "Stays", "Marketplace", "Services", "Professionals", "Artisans", "Posts", "Reels"] as const;
+export const SAVED_FILTERS = ["All", "Properties", "Stays", "Marketplace", "Professionals", "Artisans", "Services", "Posts", "Reels"] as const;
 
 export type SavedFilter = (typeof SAVED_FILTERS)[number];
 export type SavedType = Exclude<SavedFilter, "All">;
@@ -20,9 +20,17 @@ export interface SavedItem {
   image: string;
   href: string;
   savedAt: string;
+  /** The collection it was moved to, if any. */
+  collectionId?: string;
 }
 
-export type SavedDraft = Omit<SavedItem, "savedAt">;
+export type SavedDraft = Omit<SavedItem, "savedAt" | "collectionId">;
+
+/** A private, named group of saved items. */
+export interface SavedCollection {
+  id: string;
+  name: string;
+}
 
 const LISTING_ROUTES: [prefix: string, type: SavedType][] = [
   ["/properties/", "Properties"],
