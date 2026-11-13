@@ -1,5 +1,5 @@
-import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { PAGE_SIZE, usePagedSearch } from "@/hooks/usePagedSearch";
 import { notifyError } from "@/lib/errors";
 import {
   bookService,
@@ -31,8 +31,6 @@ import { ApiError } from "@/lib/api";
 
 export const SERVICES_KEY = ["services"] as const;
 
-const PAGE_SIZE = 12;
-
 export function useTaxonomy() {
   return useQuery({ queryKey: [...SERVICES_KEY, "taxonomy"], queryFn: getTaxonomy, staleTime: Infinity });
 }
@@ -46,16 +44,8 @@ export function useTradeSuggestions(problem: string) {
   });
 }
 
-export function useProviders(query: Omit<ProviderQuery, "page" | "results">) {
-  const result = useInfiniteQuery({
-    queryKey: [...SERVICES_KEY, "providers", query],
-    queryFn: ({ pageParam, signal }) => searchProviders({ ...query, page: pageParam, results: PAGE_SIZE }, signal),
-    initialPageParam: 1,
-    getNextPageParam: (last) => (last.currentPage < last.totalPages ? last.currentPage + 1 : undefined),
-    placeholderData: keepPreviousData,
-  });
-  const items = useMemo(() => result.data?.pages.flatMap((page) => page.items ?? []) ?? [], [result.data]);
-  return { ...result, items, total: result.data?.pages[0]?.totalResults ?? 0 };
+export function useProviders(query: Omit<ProviderQuery, "page" | "results">, page = 1) {
+  return usePagedSearch([...SERVICES_KEY, "providers", query], (n, signal) => searchProviders({ ...query, page: n, results: PAGE_SIZE }, signal), page);
 }
 
 export function useProvider(id: string) {
@@ -77,16 +67,8 @@ export function useMyProvider(enabled = true) {
   });
 }
 
-export function useOfferings(query: Omit<OfferingQuery, "page" | "results">) {
-  const result = useInfiniteQuery({
-    queryKey: [...SERVICES_KEY, "offerings", query],
-    queryFn: ({ pageParam, signal }) => searchOfferings({ ...query, page: pageParam, results: PAGE_SIZE }, signal),
-    initialPageParam: 1,
-    getNextPageParam: (last) => (last.currentPage < last.totalPages ? last.currentPage + 1 : undefined),
-    placeholderData: keepPreviousData,
-  });
-  const items = useMemo(() => result.data?.pages.flatMap((page) => page.items ?? []) ?? [], [result.data]);
-  return { ...result, items, total: result.data?.pages[0]?.totalResults ?? 0 };
+export function useOfferings(query: Omit<OfferingQuery, "page" | "results">, page = 1) {
+  return usePagedSearch([...SERVICES_KEY, "offerings", query], (n, signal) => searchOfferings({ ...query, page: n, results: PAGE_SIZE }, signal), page);
 }
 
 export function useOffering(id: string) {

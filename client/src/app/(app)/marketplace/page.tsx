@@ -1,16 +1,17 @@
 "use client";
 
 import { SearchEmpty } from "@/components/shared/SearchEmpty";
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { keepPreviousData } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
 import { AppShell } from "@/components/shared/AppShell";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { filterList, filterText, FilterPanel, type FilterSection, type FilterValues } from "@/components/shared/FilterPanel";
 import { ListingCard } from "@/components/shared/ListingCard";
 import { MarketplaceRail } from "@/components/shared/MarketplaceRail";
 import { PageContainer } from "@/components/shared/PageContainer";
+import { Pagination } from "@/components/ui/Pagination";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { PAGE_SIZE, usePage, usePagedSearch } from "@/hooks/usePagedSearch";
 import { comingSoonHref } from "@/lib/coming-soon";
 import { errorMessage } from "@/lib/errors";
 import { getFacets, KIND_LABEL, offerToCard, searchMarketplace } from "@/lib/marketplace-api";
@@ -39,7 +40,6 @@ export default function MarketplacePage() {
   const maxPrice = filterText(filters, "maxPrice");
   const unit = filterText(filters, "unit");
   const sort = filterText(filters, "sort");
-  const sentinel = useRef<HTMLDivElement | null>(null);
 
   function clearFilters() {
     setFilters(NO_FILTERS);
@@ -78,23 +78,10 @@ export default function MarketplacePage() {
     maxPrice: !needsUnit && maxPrice.trim() && Number.isFinite(max) ? max : undefined,
   };
 
-  const result = useInfiniteQuery({
-    queryKey: ["marketplace", "offers", query],
-    queryFn: ({ pageParam, signal }) => searchMarketplace({ ...query, page: pageParam, results: 12 }, signal),
-    initialPageParam: 1,
-    getNextPageParam: (last) => (last.currentPage < last.totalPages ? last.currentPage + 1 : undefined),
-    placeholderData: keepPreviousData,
-  });
-  const cards = useMemo(() => (result.data?.pages.flatMap((page) => page.items ?? []) ?? []).map(offerToCard), [result.data]);
-  const total = result.data?.pages[0]?.totalResults ?? 0;
-
-  useEffect(() => {
-    const node = sentinel.current;
-    if (!node || !result.hasNextPage) return;
-    const observer = new IntersectionObserver((entries) => entries.some((entry) => entry.isIntersecting) && !result.isFetchingNextPage && void result.fetchNextPage(), { rootMargin: "400px" });
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [result, cards.length]);
+  const [page, setPage] = usePage(query);
+  const result = usePagedSearch(["marketplace", "offers", query], (n, signal) => searchMarketplace({ ...query, page: n, results: PAGE_SIZE }, signal), page);
+  const { total, totalPages } = result;
+  const cards = useMemo(() => result.items.map(offerToCard), [result.items]);
 
   return (
     <AppShell activeKey="feed" activeChildKey="marketplace" contentFullWidth rightRail={<MarketplaceRail />}>
@@ -153,7 +140,7 @@ export default function MarketplacePage() {
             ))}
           </div>
         )}
-        {result.hasNextPage && <div ref={sentinel} aria-hidden="true" className="h-px" />}
+        <Pagination page={page} totalPages={totalPages} onChange={setPage} />
 
         <div className="xl:hidden">
           <MarketplaceRail />

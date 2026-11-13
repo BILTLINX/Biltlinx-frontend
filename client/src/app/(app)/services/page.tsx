@@ -1,14 +1,16 @@
 "use client";
 
 import { SearchEmpty } from "@/components/shared/SearchEmpty";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { AppShell } from "@/components/shared/AppShell";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { filterList, filterText, FilterPanel, type FilterSection, type FilterValues } from "@/components/shared/FilterPanel";
 import { OfferingCard } from "@/components/shared/OfferingCard";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { ServicesRail } from "@/components/shared/ServicesRail";
+import { Pagination } from "@/components/ui/Pagination";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { usePage } from "@/hooks/usePagedSearch";
 import { useOfferings, useTaxonomy, useTradeSuggestions } from "@/hooks/useServices";
 import { errorMessage } from "@/lib/errors";
 import { cn } from "@/lib/utils";
@@ -33,28 +35,21 @@ export default function ServicesPage() {
     setProblem("");
   }
   const suggestions = useTradeSuggestions(problem);
-  const sentinel = useRef<HTMLDivElement | null>(null);
 
   const category = filterList(filters, "category").join(",");
   const city = filterText(filters, "city");
   const maxPrice = filterText(filters, "maxPrice");
   const sort = filterText(filters, "sort");
   const max = Number(maxPrice);
-  const { items, total, isPending, isError, error, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } = useOfferings({
+  const query = {
     q: search || undefined,
     category: category || undefined,
     city: city.trim() || undefined,
     maxPrice: maxPrice.trim() && Number.isFinite(max) ? max : undefined,
     sort: (sort || undefined) as "priceAsc" | "priceDesc" | undefined,
-  });
-
-  useEffect(() => {
-    const node = sentinel.current;
-    if (!node || !hasNextPage) return;
-    const observer = new IntersectionObserver((entries) => entries.some((entry) => entry.isIntersecting) && !isFetchingNextPage && void fetchNextPage(), { rootMargin: "400px" });
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage, items.length]);
+  };
+  const [page, setPage] = usePage(query);
+  const { items, total, totalPages, isPending, isError, error, refetch } = useOfferings(query, page);
 
   const categories = [...(taxonomy.data?.professions ?? []), ...(taxonomy.data?.trades ?? [])];
   const sections: FilterSection[] = [
@@ -130,7 +125,7 @@ export default function ServicesPage() {
             ))}
           </div>
         )}
-        {hasNextPage && <div ref={sentinel} aria-hidden="true" className="h-px" />}
+        <Pagination page={page} totalPages={totalPages} onChange={setPage} />
 
         <div className="xl:hidden">
           <ServicesRail />

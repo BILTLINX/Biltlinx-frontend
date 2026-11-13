@@ -10,7 +10,9 @@ import { filterList, filterText, FilterPanel, type FilterSection } from "@/compo
 import { ListingCard } from "@/components/shared/ListingCard";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { StayRail } from "@/components/shared/StayRail";
+import { Pagination } from "@/components/ui/Pagination";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { usePage } from "@/hooks/usePagedSearch";
 import { useStaySearch } from "@/hooks/useStay";
 import { errorMessage } from "@/lib/errors";
 import { STAY_AMENITIES, STAY_TYPES, type StaySearchQuery } from "@/lib/stay-api";
@@ -79,7 +81,8 @@ function StayContent() {
   ];
 
   const searchQuery = useMemo(() => ({ ...query, destination: search || query.destination }), [query, search]);
-  const { cards, total, isPending, isError, error, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } = useStaySearch(searchQuery);
+  const [page, setPage] = usePage(searchQuery);
+  const { cards, total, totalPages, isPending, isError, error, refetch } = useStaySearch(searchQuery, page);
   const nights = nightsBetween(query.checkIn, query.checkOut);
 
   return (
@@ -156,11 +159,7 @@ function StayContent() {
             ))}
           </div>
         )}
-        {hasNextPage && (
-          <button type="button" disabled={isFetchingNextPage} onClick={() => void fetchNextPage()} className="self-center text-[13px] font-medium text-brand-900">
-            {isFetchingNextPage ? "Loading…" : "Show more stays"}
-          </button>
-        )}
+        <Pagination page={page} totalPages={totalPages} onChange={setPage} />
 
         <div className="xl:hidden">
           <StayRail />

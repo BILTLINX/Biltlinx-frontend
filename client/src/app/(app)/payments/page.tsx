@@ -1,12 +1,13 @@
 "use client";
 
-import { useInfiniteQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { AppShell } from "@/components/shared/AppShell";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { PageContainer } from "@/components/shared/PageContainer";
+import { Pagination } from "@/components/ui/Pagination";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { usePage, usePagedSearch } from "@/hooks/usePagedSearch";
 import { errorMessage } from "@/lib/errors";
 import { formatDate, formatMoney } from "@/lib/format";
 import { listPayments, PAYMENT_STATUS_LABEL, PAYMENT_STATUS_TONE } from "@/lib/payments-api";
@@ -22,13 +23,9 @@ const FILTERS = [
 
 export default function PaymentsPage() {
   const [status, setStatus] = useState<string | undefined>(undefined);
-  const payments = useInfiniteQuery({
-    queryKey: ["payments", status],
-    queryFn: ({ pageParam }) => listPayments({ page: pageParam, results: 15, status }),
-    initialPageParam: 1,
-    getNextPageParam: (last) => (last.currentPage < last.totalPages ? last.currentPage + 1 : undefined),
-  });
-  const items = useMemo(() => payments.data?.pages.flatMap((page) => page.items ?? []) ?? [], [payments.data]);
+  const [page, setPage] = usePage(status);
+  const payments = usePagedSearch(["payments", status], (n) => listPayments({ page: n, results: 15, status }), page);
+  const { items } = payments;
 
   return (
     <AppShell contentFullWidth>
@@ -73,11 +70,7 @@ export default function PaymentsPage() {
             </Link>
           ))}
         </div>
-        {payments.hasNextPage && (
-          <button type="button" disabled={payments.isFetchingNextPage} onClick={() => void payments.fetchNextPage()} className="self-center text-[13px] font-medium text-brand-900">
-            {payments.isFetchingNextPage ? "Loading…" : "Load more"}
-          </button>
-        )}
+        <Pagination page={page} totalPages={payments.totalPages} onChange={setPage} />
       </PageContainer>
     </AppShell>
   );

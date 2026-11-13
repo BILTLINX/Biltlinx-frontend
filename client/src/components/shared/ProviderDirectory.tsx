@@ -1,13 +1,15 @@
 "use client";
 
 import { SearchEmpty } from "@/components/shared/SearchEmpty";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { AppShell } from "@/components/shared/AppShell";
 import { EmptyState, type EmptyIcon } from "@/components/shared/EmptyState";
 import { filterList, filterText, FilterPanel, type FilterSection, type FilterValues } from "@/components/shared/FilterPanel";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { ProviderCard } from "@/components/shared/ProviderCard";
+import { Pagination } from "@/components/ui/Pagination";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { usePage } from "@/hooks/usePagedSearch";
 import { useProviders, useTaxonomy } from "@/hooks/useServices";
 import { errorMessage } from "@/lib/errors";
 import { useDebouncedSearch } from "@/context/SearchContext";
@@ -44,7 +46,6 @@ export function ProviderDirectory({ kind, title, subtitle, activeChildKey, right
   const taxonomy = useTaxonomy();
   const search = useDebouncedSearch();
   const [filters, setFilters] = useState<FilterValues>({ category: [], city: "", verified: "", urgent: "" });
-  const sentinel = useRef<HTMLDivElement | null>(null);
 
   function clearFilters() {
     setFilters({ category: [], city: "", verified: "", urgent: "" });
@@ -54,22 +55,16 @@ export function ProviderDirectory({ kind, title, subtitle, activeChildKey, right
   const category = filterList(filters, "category").join(",");
   const verifiedOnly = filterText(filters, "verified") === "true";
   const urgent = filterText(filters, "urgent") === "true";
-  const { items, total, isPending, isError, error, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } = useProviders({
+  const query = {
     kind,
     q: search || undefined,
     city: city.trim() || undefined,
     category: category || undefined,
     credentialVerified: verifiedOnly || undefined,
     urgent: urgent || undefined,
-  });
-
-  useEffect(() => {
-    const node = sentinel.current;
-    if (!node || !hasNextPage) return;
-    const observer = new IntersectionObserver((entries) => entries.some((entry) => entry.isIntersecting) && !isFetchingNextPage && void fetchNextPage(), { rootMargin: "400px" });
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage, items.length]);
+  };
+  const [page, setPage] = usePage(query);
+  const { items, total, totalPages, isPending, isError, error, refetch } = useProviders(query, page);
 
   const categories = (kind === "professional" ? taxonomy.data?.professions : taxonomy.data?.trades) ?? [];
   const sections: FilterSection[] = [
@@ -125,7 +120,7 @@ export function ProviderDirectory({ kind, title, subtitle, activeChildKey, right
             ))}
           </div>
         )}
-        {hasNextPage && <div ref={sentinel} aria-hidden="true" className="h-px" />}
+        <Pagination page={page} totalPages={totalPages} onChange={setPage} />
       </PageContainer>
     </AppShell>
   );

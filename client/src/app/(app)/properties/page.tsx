@@ -2,14 +2,16 @@
 
 import { SearchEmpty } from "@/components/shared/SearchEmpty";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { AppShell } from "@/components/shared/AppShell";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { filterText, FilterPanel, type FilterSection, type FilterValues } from "@/components/shared/FilterPanel";
 import { ListingCard } from "@/components/shared/ListingCard";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { PropertiesRail } from "@/components/shared/PropertiesRail";
+import { Pagination } from "@/components/ui/Pagination";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { usePage } from "@/hooks/usePagedSearch";
 import { useProperties } from "@/hooks/useProperties";
 import { comingSoonHref } from "@/lib/coming-soon";
 import { errorMessage } from "@/lib/errors";
@@ -51,7 +53,6 @@ export default function PropertiesPage() {
   const search = useDebouncedSearch();
   const [filters, setFilters] = useState<FilterValues>(EMPTY_FILTERS);
   const category = filterText(filters, "category");
-  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   function clearFilters() {
     setFilters(EMPTY_FILTERS);
@@ -64,27 +65,16 @@ export default function PropertiesPage() {
     { type: "options", label: "Bedrooms", key: "bedrooms", display: "chips", options: BEDROOM_OPTIONS.filter((option) => option.value !== ""), hidden: category === "land" || category === "commercial" },
   ];
   const active = CATEGORIES.find((item) => item.key === category);
-  const { cards, total, isPending, isError, error, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } = useProperties({
+  const query = {
     ...active?.query,
     q: search || undefined,
     minPrice: numberOrUndefined(filterText(filters, "minPrice")),
     maxPrice: numberOrUndefined(filterText(filters, "maxPrice")),
     minBedrooms: category === "land" || category === "commercial" ? undefined : numberOrUndefined(filterText(filters, "bedrooms")),
     sort: (filterText(filters, "sort") || "newest") as NonNullable<PropertyQuery["sort"]>,
-  });
-
-  useEffect(() => {
-    const node = sentinelRef.current;
-    if (!node || !hasNextPage) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting) && !isFetchingNextPage) void fetchNextPage();
-      },
-      { rootMargin: "400px" },
-    );
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage, cards.length]);
+  };
+  const [page, setPage] = usePage(query);
+  const { cards, total, totalPages, isPending, isError, error, refetch } = useProperties(query, page);
 
   return (
     <AppShell activeKey="property" activeChildKey="properties" contentFullWidth rightRail={<PropertiesRail />}>
@@ -150,8 +140,7 @@ export default function PropertiesPage() {
             ))}
           </div>
         )}
-        {isFetchingNextPage && <Skeleton className="h-[360px] rounded-2xl" />}
-        {hasNextPage && <div ref={sentinelRef} aria-hidden="true" className="h-px w-full" />}
+        <Pagination page={page} totalPages={totalPages} onChange={setPage} />
 
         <div className="xl:hidden">
           <PropertiesRail />
