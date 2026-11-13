@@ -19,6 +19,8 @@ import { useMediaLoadState } from "@/hooks/useMediaLoadState";
 import { useFollowAccount } from "@/hooks/useFollowAccount";
 import { useIsClamped } from "@/hooks/useIsClamped";
 import { useLikers } from "@/hooks/useLikers";
+import { useSaved } from "@/hooks/useSaved";
+import { savedPost } from "@/lib/saved-items";
 import { usePostLike, usePostPoll } from "@/hooks/usePostState";
 import { Tooltip } from "@/components/shared/Tooltip";
 import { comingSoonHref } from "@/lib/coming-soon";
@@ -44,7 +46,7 @@ export function PostCard({ post }: PostCardProps) {
   const [showComments, setShowComments] = useState(false);
   const [textExpanded, setTextExpanded] = useState(false);
   const { ref: textRef, clamped: textClamped } = useIsClamped<HTMLParagraphElement>(textExpanded, post.text);
-  const [saved, setSaved] = useState(false);
+  const { saved, toggle: toggleSaved } = useSaved(savedPost(post));
   const like = usePostLike(post);
   const mediaItems = getMediaItems(post);
 
@@ -93,7 +95,7 @@ export function PostCard({ post }: PostCardProps) {
 
       <div className="h-px w-full bg-gray-200" />
 
-      <PostStatsBar post={post} like={like} saved={saved} onToggleSave={() => setSaved((v) => !v)} showComments={showComments} onToggleComments={() => setShowComments((v) => !v)} />
+      <PostStatsBar post={post} like={like} saved={saved} onToggleSave={toggleSaved} showComments={showComments} onToggleComments={() => setShowComments((v) => !v)} />
 
       <CommentsModal
         open={showComments}

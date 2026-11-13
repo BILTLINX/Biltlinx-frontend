@@ -2,11 +2,12 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { getMediaItems, MediaCarousel, PostFollowButton, PostStatsBar } from "@/components/shared/PostCard";
 import { Button } from "@/components/ui/Button";
 import { PostOptionsControl } from "@/components/shared/PostOptionsControl";
 import { usePostLike } from "@/hooks/usePostState";
+import { useSaved } from "@/hooks/useSaved";
+import { savedPost } from "@/lib/saved-items";
 import { useFollowAccount } from "@/hooks/useFollowAccount";
 import { comingSoonHref } from "@/lib/coming-soon";
 import { renderWithHashtags } from "@/lib/hashtags";
@@ -21,7 +22,7 @@ interface PostDetailCardProps {
 export function PostDetailCard({ post, commentsCount }: PostDetailCardProps) {
   const router = useRouter();
   const { following, toggle: toggleFollow } = useFollowAccount(post.authorId, post.authorFollowed);
-  const [saved, setSaved] = useState(false);
+  const { saved, toggle: toggleSaved } = useSaved(savedPost(post));
   const like = usePostLike(post);
   const mediaItems = getMediaItems(post);
   const [primary, secondary] = post.actions ?? [];
@@ -100,7 +101,7 @@ export function PostDetailCard({ post, commentsCount }: PostDetailCardProps) {
           post={{ ...post, comments: commentsCount }}
           like={like}
           saved={saved}
-          onToggleSave={() => setSaved((v) => !v)}
+          onToggleSave={toggleSaved}
           showComments={false}
           onToggleComments={() => document.getElementById("post-comments")?.scrollIntoView({ behavior: "smooth" })}
         />

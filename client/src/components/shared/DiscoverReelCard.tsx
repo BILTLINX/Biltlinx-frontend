@@ -21,9 +21,11 @@ import { useLikeBurst } from "@/hooks/useLikeBurst";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { useReelFeedback } from "@/hooks/useReelFeedback";
+import { useSaved } from "@/hooks/useSaved";
 import { useReelVideo } from "@/hooks/useReelVideo";
 import type { DiscoverTab } from "@/lib/discover-tabs";
 import { notifyError } from "@/lib/errors";
+import { savedReel } from "@/lib/saved-items";
 import { likePost, unlikePost } from "@/lib/social-api";
 import { shareContent } from "@/lib/share";
 import { cn } from "@/lib/utils";
@@ -95,7 +97,7 @@ export function DiscoverReelCard({
   const { feedback, choose: chooseFeedback } = useReelFeedback();
 
   const { following, toggle: toggleFollow } = useFollowAccount(reel.authorId, reel.following);
-  const [saved, setSaved] = useState(false);
+  const { saved, toggle: toggleSaved } = useSaved(savedReel(reel));
   const [expanded, setExpanded] = useState(false);
   const [shareCount, setShareCount] = useState(reel.shares);
   const [mobileOptionsOpen, setMobileOptionsOpen] = useState(false);
@@ -143,7 +145,7 @@ export function DiscoverReelCard({
     repostCount: reel.reposts,
     saved,
     saveCount,
-    onToggleSave: () => setSaved((value) => !value),
+    onToggleSave: toggleSaved,
   };
 
   const playerControls = (

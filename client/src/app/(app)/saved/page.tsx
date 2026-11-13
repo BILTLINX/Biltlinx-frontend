@@ -1,91 +1,81 @@
 "use client";
 
-import { useSearchTerm } from "@/context/SearchContext";
-import { SearchEmpty } from "@/components/shared/SearchEmpty";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/shared/AppShell";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { SavedItemRow } from "@/components/shared/SavedItemRow";
 import { SavedRail } from "@/components/shared/SavedRail";
-import { FilterDropdown } from "@/components/shared/FilterDropdown";
-import { Button } from "@/components/ui/Button";
-import { comingSoonHref } from "@/lib/coming-soon";
-import { SAVED_COLLECTIONS, SAVED_FILTERS, SAVED_ITEMS, type SavedFilter } from "@/lib/dummy-saved";
+import { SearchEmpty } from "@/components/shared/SearchEmpty";
+import { useSearchTerm } from "@/context/SearchContext";
+import { useSavedItems } from "@/hooks/useSaved";
+import { SAVED_FILTERS, type SavedFilter } from "@/lib/saved-items";
 import { cn } from "@/lib/utils";
 
 export default function SavedPage() {
-  const router = useRouter();
+  const { items, remove } = useSavedItems();
   const [filter, setFilter] = useState<SavedFilter>("All");
-  const comingSoon = (feature: string) => () => router.push(comingSoonHref(feature));
-
   const term = useSearchTerm();
-  const items = useMemo(
-    () => SAVED_ITEMS.filter((item) => (filter === "All" || item.filter === filter) && (!term || `${item.title} ${item.kind}`.toLowerCase().includes(term))),
-    [filter, term],
+
+  // Only the types you have saved something of get a tab, so there are no dead ends.
+  const tabs = useMemo(
+    () => SAVED_FILTERS.map((key) => ({ key, count: key === "All" ? items.length : items.filter((item) => item.type === key).length })).filter((tab) => tab.key === "All" || tab.count > 0),
+    [items],
   );
-  const collections = useMemo(() => SAVED_COLLECTIONS.filter((collection) => !term || `${collection.name} ${collection.summary}`.toLowerCase().includes(term)), [term]);
+  const active = tabs.some((tab) => tab.key === filter) ? filter : "All";
+  const shown = useMemo(
+    () => items.filter((item) => (active === "All" || item.type === active) && (!term || `${item.title} ${item.kind} ${item.subtitle ?? ""}`.toLowerCase().includes(term))),
+    [items, active, term],
+  );
 
   return (
     <AppShell activeKey="you" activeChildKey="saved" contentFullWidth rightRail={<SavedRail />}>
       <PageContainer>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
-          <div className="flex min-w-0 flex-1 flex-col gap-1">
-            <h1 className="text-2xl font-bold leading-8 text-[#0f172a]">Saved</h1>
-            <p className="text-sm leading-5 text-gray-500">
-              Everything you saved, in one private place. Only you can see it.
-            </p>
-          </div>
-          <Button
-            variant="primary"
-            onClick={comingSoon("New collection")}
-            className="h-10 w-auto shrink-0 self-start rounded-[10px] px-4 sm:self-auto lg:rounded-[10px]"
-          >
-            New collection
-          </Button>
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-bold leading-8 text-[#0f172a]">Saved</h1>
+          <p className="text-sm leading-5 text-gray-500">Everything you saved, in one private place. Only you can see it.</p>
         </div>
 
-        <FilterDropdown label="Type" value={filter} onChange={(value) => setFilter(value as typeof filter)} options={SAVED_FILTERS.map((item) => ({ value: item, label: item }))} />
-
-        <section className="flex flex-col gap-3">
-          <h2 className="text-base font-bold leading-[23px] text-[#0f172a]">Collections</h2>
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(min(170px,100%),1fr))] gap-3">
-            {collections.map((collection) => (
-              <button
-                key={collection.id}
-                type="button"
-                onClick={comingSoon("Collection")}
-                className="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white text-left hover:bg-gray-50"
-              >
-                <span className="relative block h-[120px] w-full">
-                  <Image src={collection.image} alt="" fill className="object-cover" sizes="(min-width: 640px) 200px, 50vw" />
-                </span>
-                <span className="flex flex-col gap-0.5 p-3">
-                  <span className="truncate text-sm font-semibold leading-5 text-[#0f172a]">{collection.name}</span>
-                  <span className="text-xs leading-[17px] text-gray-500">{collection.summary}</span>
-                </span>
-              </button>
-            ))}
-          </div>
-        </section>
-
-        <section className="flex flex-col gap-3">
-          <h2 className="text-base font-bold leading-[23px] text-[#0f172a]">Recently saved</h2>
-          {items.length > 0 ? (
-            <div className="flex flex-col gap-6">
-              {items.map((item) => (
-                <SavedItemRow key={item.id} item={item} />
+        {items.length === 0 ? (
+          <EmptyState
+            icon="bookmark"
+            title="Nothing saved yet"
+            body="Tap the bookmark on a listing, post or reel and it will be kept here, ready when you want it."
+            primary={{ label: "Browse properties", href: "/properties" }}
+            secondary={{ label: "Explore the marketplace", href: "/marketplace" }}
+          />
+        ) : (
+          <>
+            <div role="tablist" aria-label="Type" className="no-scrollbar flex gap-2 overflow-x-auto">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={tab.key === active}
+                  onClick={() => setFilter(tab.key)}
+                  className={cn(
+                    "flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-[13px] font-medium leading-[19px]",
+                    tab.key === active ? "border-[#0f172a] bg-[#0f172a] text-white" : "border-gray-200 bg-white text-[#334155] hover:bg-gray-50",
+                  )}
+                >
+                  {tab.key}
+                  <span className={cn("text-xs", tab.key === active ? "text-white/70" : "text-gray-400")}>{tab.count}</span>
+                </button>
               ))}
             </div>
-          ) : term ? (
-            <SearchEmpty noun="saved items" />
-          ) : (
-            <p className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500">
-              Nothing saved here yet.
-            </p>
-          )}
-        </section>
+
+            {shown.length > 0 ? (
+              <div className="flex flex-col gap-3">
+                {shown.map((item) => (
+                  <SavedItemRow key={item.key} item={item} onRemove={() => remove(item)} />
+                ))}
+              </div>
+            ) : (
+              <SearchEmpty noun="saved items" />
+            )}
+          </>
+        )}
 
         <div className="xl:hidden">
           <SavedRail />

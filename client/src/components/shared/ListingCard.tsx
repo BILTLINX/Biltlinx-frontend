@@ -4,12 +4,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { showSuccessToast } from "@/components/shared/AppToast";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { RequestViewingModal } from "@/components/shared/RequestViewingModal";
 import { Button } from "@/components/ui/Button";
 import { useStartConversation } from "@/hooks/useMessaging";
+import { useSaved } from "@/hooks/useSaved";
 import { comingSoonHref } from "@/lib/coming-soon";
+import { savedListing } from "@/lib/saved-items";
 import { cn } from "@/lib/utils";
 import type { ListingCardData } from "@/types/listing";
 
@@ -22,7 +23,7 @@ const DETAIL_ICONS = { bed: "/icons/bed-sm.svg", plot: "/icons/map-pinpoint-01.s
 export function ListingCard({ listing }: { listing: ListingCardData }) {
   const router = useRouter();
   const [viewingOpen, setViewingOpen] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const { canSave, saved, toggle: toggleSaved } = useSaved(savedListing(listing));
   const startMessage = useStartConversation();
 
   function messageOwner() {
@@ -50,18 +51,17 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
         <span className="absolute left-3 top-3 flex items-center rounded-full bg-white px-2.5 py-1 text-xs font-medium leading-4 text-[#0f172a]">
           {listing.kind}
         </span>
-        <button
-          type="button"
-          aria-pressed={saved}
-          aria-label={saved ? `Remove ${listing.title} from saved` : `Save ${listing.title}`}
-          onClick={() => {
-            setSaved(!saved);
-            if (!saved) showSuccessToast("Saved");
-          }}
-          className="absolute right-3 top-3 flex items-center rounded-full bg-white p-2 hover:bg-gray-50"
-        >
-          <NavIcon icon="/icons/post-options-bookmark.svg" size={16} className={saved ? "bg-brand-900" : "bg-[#0f172a]"} />
-        </button>
+        {canSave && (
+          <button
+            type="button"
+            aria-pressed={saved}
+            aria-label={saved ? `Remove ${listing.title} from saved` : `Save ${listing.title}`}
+            onClick={toggleSaved}
+            className="absolute right-3 top-3 flex items-center rounded-full bg-white p-2 hover:bg-gray-50"
+          >
+            <NavIcon icon="/icons/post-options-bookmark.svg" size={16} className={saved ? "bg-brand-900" : "bg-[#0f172a]"} />
+          </button>
+        )}
       </div>
 
       <div className="flex flex-1 flex-col items-start gap-2 p-4">
