@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import { useRef, useState } from "react";
 import { showErrorToast, showSuccessToast } from "@/components/shared/AppToast";
-import { ListingFormLayout, WizardNav } from "@/components/shared/ListingFormLayout";
+import { ListingFormLayout, ListingPreview, PreviewToggle, WizardNav } from "@/components/shared/ListingFormLayout";
 import { FIELD_BOX, FIELD_INPUT, FormField } from "@/components/shared/ModalFormParts";
 import { SelectField } from "@/components/shared/SelectField";
 import { ListingDocumentsField } from "@/components/shared/ListingDocumentsField";
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { SERVICES_KEY, useTaxonomy } from "@/hooks/useServices";
 import { errorMessage, notifyError } from "@/lib/errors";
+import { formatPrice } from "@/lib/format";
 import { createOffering, offeringAction, updateOffering } from "@/lib/services-api";
 import { uploadMedia } from "@/lib/upload";
 import { classificationOptions, submitListingDocuments, type PendingDocument } from "@/lib/verification-api";
@@ -24,6 +25,10 @@ const SERVICE_MODES = [
   { value: "QuoteRequired", label: "Quote required" },
   { value: "InspectionFirst", label: "Inspection first" },
 ] as const;
+/** The button a customer sees on the card for each way of selling. */
+const MODE_CTA: Record<string, string> = { FixedPrice: "Book", QuoteRequired: "Request a quote", InspectionFirst: "Request an inspection" };
+/** Shown on the preview card until a photo is added. */
+const PLACEHOLDER_IMAGE = "/images/marketplace-equipment.jpg";
 const UNITS = ["PerJob", "PerHour", "PerDay", "PerSqm", "PerUnit"] as const;
 const TEXTAREA = "resize-none rounded-[10px] border border-gray-200 px-3.5 py-2 text-sm leading-5 text-[#0f172a] placeholder:text-[#94a3b8] focus:border-brand-900 focus:outline-none";
 
@@ -57,6 +62,7 @@ export function ServiceListingForm({ offering, onClose }: ServiceListingFormProp
   const [uploading, setUploading] = useState(false);
   const [step, setStep] = useState(0);
   const [documents, setDocuments] = useState<PendingDocument[]>([]);
+  const [previewing, setPreviewing] = useState(false);
   const photoInput = useRef<HTMLInputElement | null>(null);
   const existingPhotos = (offering?.media ?? []).map((item) => item.url).filter((url): url is string => Boolean(url));
 
@@ -122,6 +128,17 @@ export function ServiceListingForm({ offering, onClose }: ServiceListingFormProp
   });
 
   const canSave = form.title.trim() !== "" && form.category !== "";
+  const cover = photos[0]?.url ?? existingPhotos[0];
+  const amount = num(form.price);
+  const previewCard = {
+    id: offering?.id ?? "preview",
+    kind: form.category || "Service",
+    image: cover ?? PLACEHOLDER_IMAGE,
+    price: amount !== null && Number.isFinite(amount) ? formatPrice(amount, "GHS", form.unit) : "Price on request",
+    title: form.title.trim() || "Your service",
+    location: list(form.areas).join(", ") || "Ghana",
+    cta: MODE_CTA[form.mode] ?? "View",
+  };
 
   const footer = (
     <WizardNav step={step} onBack={() => setStep((current) => current - 1)}>
@@ -150,9 +167,11 @@ export function ServiceListingForm({ offering, onClose }: ServiceListingFormProp
       onClose={onClose}
       steps={SERVICE_STEPS}
       step={step}
+      headerAction={<PreviewToggle previewing={previewing} onToggle={() => setPreviewing((current) => !current)} />}
       footer={footer}
     >
-      {step === 0 && (
+      {previewing && <ListingPreview listing={previewCard} note={cover ? undefined : "Add a photo of your work. The picture shown here is only a stand-in."} />}
+      {!previewing && step === 0 && (
         <>
       <FormField label="Service title">
         <label className={cn(FIELD_BOX, "border-gray-200")}>
@@ -172,7 +191,7 @@ export function ServiceListingForm({ offering, onClose }: ServiceListingFormProp
       </div>
         </>
       )}
-      {step === 1 && (
+      {!previewing && step === 1 && (
         <>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <FormField label="Price in GHS (optional)">
@@ -196,7 +215,7 @@ export function ServiceListingForm({ offering, onClose }: ServiceListingFormProp
       </FormField>
         </>
       )}
-      {step === 2 && (
+      {!previewing && step === 2 && (
         <>
       <FormField label="Areas you serve (comma separated)">
         <label className={cn(FIELD_BOX, "border-gray-200")}>

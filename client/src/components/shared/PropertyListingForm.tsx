@@ -5,9 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { showSuccessToast } from "@/components/shared/AppToast";
-import { ListingCard } from "@/components/shared/ListingCard";
 import { ListingDocumentsField } from "@/components/shared/ListingDocumentsField";
-import { ListingFormLayout, WizardNav } from "@/components/shared/ListingFormLayout";
+import { ListingFormLayout, ListingPreview, PreviewToggle, WizardNav } from "@/components/shared/ListingFormLayout";
 import { LocationCombobox } from "@/components/shared/LocationCombobox";
 import { ChoiceChip, FIELD_BOX, FIELD_INPUT, FormField } from "@/components/shared/ModalFormParts";
 import { NavIcon } from "@/components/shared/NavIcon";
@@ -35,7 +34,6 @@ import { uploadMedia } from "@/lib/upload";
 import { classificationOptions, submitListingDocuments, type PendingDocument } from "@/lib/verification-api";
 import { cn } from "@/lib/utils";
 
-const SECTION_TITLE = "text-base font-bold leading-[23px] text-[#0f172a]";
 const STEPS = ["Basics", "Price and location", "Photos and review"];
 const MAX_ISSUES_SHOWN = 3;
 const SEVERITY_STYLE: Record<string, string> = {
@@ -287,9 +285,7 @@ export function PropertyListingForm({ draftParam, editId, onClose }: PropertyLis
       step={step}
       onClose={onClose}
       headerAction={
-        <button type="button" onClick={() => setPreviewing((current) => !current)} className="h-9 whitespace-nowrap rounded-[10px] bg-[#eff5ff] px-3.5 text-[13px] font-medium text-brand-900 hover:bg-[#e2edff]">
-          {previewing ? "Back to editing" : "Preview"}
-        </button>
+        <PreviewToggle previewing={previewing} onToggle={() => setPreviewing((current) => !current)} />
       }
       footer={loading ? null : footer}
     >
@@ -299,10 +295,7 @@ export function PropertyListingForm({ draftParam, editId, onClose }: PropertyLis
           <Skeleton className="h-40 w-full rounded-2xl" />
         </>
       ) : previewing ? (
-        <div className="mx-auto flex w-full max-w-[360px] flex-col gap-3">
-          <h3 className={SECTION_TITLE}>How it will look</h3>
-          <ListingCard listing={previewCard} />
-        </div>
+        <ListingPreview listing={previewCard} />
       ) : (
         <>
           {step === 0 && (

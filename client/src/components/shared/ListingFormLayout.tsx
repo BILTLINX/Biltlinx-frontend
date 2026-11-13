@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
+import { ListingCard } from "@/components/shared/ListingCard";
 import { WizardSteps } from "@/components/shared/ModalFormParts";
+import type { ListingCardData } from "@/types/listing";
 
 interface ListingFormLayoutProps {
   titleId: string;
@@ -36,6 +38,28 @@ export function ListingFormLayout({ titleId, title, subtitle, onClose, headerAct
       <div className="flex min-h-[420px] flex-1 flex-col gap-4 overflow-y-auto px-5 py-4 sm:px-6">{children}</div>
       {footer && <div className="flex shrink-0 flex-col gap-3 border-t border-gray-200 px-5 py-4 sm:px-6">{footer}</div>}
     </>
+  );
+}
+
+/** The header button that swaps a listing form for how the listing will look. */
+export function PreviewToggle({ previewing, onToggle }: { previewing: boolean; onToggle: () => void }) {
+  return (
+    <button type="button" onClick={onToggle} className="h-9 whitespace-nowrap rounded-[10px] bg-[#eff5ff] px-3.5 text-[13px] font-medium text-brand-900 hover:bg-[#e2edff]">
+      {previewing ? "Back to editing" : "Preview"}
+    </button>
+  );
+}
+
+/** What the listing looks like in search results, and anything the card cannot show. */
+export function ListingPreview({ listing, note }: { listing: ListingCardData; note?: string }) {
+  return (
+    <div className="mx-auto flex w-full max-w-[360px] flex-col gap-3">
+      <h3 className="text-base font-bold leading-[23px] text-[#0f172a]">How it will look</h3>
+      <div inert>
+        <ListingCard listing={listing} />
+      </div>
+      {note && <p className="text-xs leading-[17px] text-gray-500">{note}</p>}
+    </div>
   );
 }
 

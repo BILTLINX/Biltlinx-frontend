@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { showSuccessToast } from "@/components/shared/AppToast";
-import { ListingFormLayout, WizardNav } from "@/components/shared/ListingFormLayout";
+import { ListingFormLayout, ListingPreview, PreviewToggle, WizardNav } from "@/components/shared/ListingFormLayout";
 import { ChoiceChip, FIELD_BOX, FIELD_INPUT, FormField } from "@/components/shared/ModalFormParts";
 import { SelectField } from "@/components/shared/SelectField";
 import { ListingDocumentsField } from "@/components/shared/ListingDocumentsField";
@@ -27,7 +27,7 @@ import {
   STAY_TYPES,
   updateOperatorProperty,
 } from "@/lib/stay-api";
-import { SHAPE_LABEL, STAY_TYPE_LABEL } from "@/lib/stay-mapper";
+import { FALLBACK_STAY_IMAGE, SHAPE_LABEL, STAY_TYPE_LABEL } from "@/lib/stay-mapper";
 import { uploadMedia } from "@/lib/upload";
 import { classificationOptions, submitListingDocuments, type PendingDocument } from "@/lib/verification-api";
 import type { SaveStayInput, StayDetailDto } from "@/types/api/schema";
@@ -304,6 +304,7 @@ export function StayListingForm({ stayId, onClose }: StayListingFormProps) {
   const photoInput = useRef<HTMLInputElement | null>(null);
   const [step, setStep] = useState(0);
   const [documents, setDocuments] = useState<PendingDocument[]>([]);
+  const [previewing, setPreviewing] = useState(false);
 
   const stay = useQuery({ queryKey: [...STAY_KEY, "one", id, "editor"], queryFn: () => getStay(id as string), enabled: Boolean(id), refetchOnWindowFocus: false });
   useEffect(() => {
@@ -369,6 +370,19 @@ export function StayListingForm({ stayId, onClose }: StayListingFormProps) {
   const toggleAmenity = (amenity: string) => set("amenities", form.amenities.includes(amenity) ? form.amenities.filter((item) => item !== amenity) : [...form.amenities, amenity]);
   const canSave = form.name.trim() !== "" && form.city.trim() !== "";
   const existingPhotos = stay.data?.photos ?? [];
+  const nightlyRates = (stay.data?.rooms ?? []).flatMap((room) => (room.isActive ? (room.ratePlans ?? []).filter((plan) => plan.isActive).map((plan) => plan.nightly) : []));
+  const fromNightly = nightlyRates.length > 0 ? Math.min(...nightlyRates) : null;
+  const previewCard = {
+    id: id ?? "preview",
+    kind: STAY_TYPE_LABEL[form.type] ?? "Stay",
+    image: form.newPhotos[0]?.url ?? existingPhotos[0] ?? FALLBACK_STAY_IMAGE,
+    price: fromNightly !== null ? `From ${formatMoney(fromNightly)}` : "Price on request",
+    priceUnit: fromNightly !== null ? "night" : undefined,
+    title: form.name.trim() || "Your stay",
+    location: [form.area, form.city].filter((part) => part.trim()).join(", ") || "Ghana",
+    detail: form.amenities.length > 0 ? { icon: "bed" as const, text: form.amenities.slice(0, 3).join(" · ") } : undefined,
+    cta: "View and book",
+  };
   const next = () => setStep((current) => current + 1);
   const footer = (
     <WizardNav step={step} onBack={() => setStep((current) => current - 1)}>
@@ -405,11 +419,13 @@ export function StayListingForm({ stayId, onClose }: StayListingFormProps) {
       onClose={onClose}
       steps={STAY_STEPS}
       step={step}
+      headerAction={<PreviewToggle previewing={previewing} onToggle={() => setPreviewing((current) => !current)} />}
       footer={footer}
     >
       {stay.isError && <p className="text-sm text-[#dc2626]">{errorMessage(stay.error)}</p>}
       {!hydrated && !stay.isError && <Skeleton className="h-64 w-full rounded-2xl" />}
-      {hydrated && step === 0 && (
+      {hydrated && previewing && <ListingPreview listing={previewCard} note={fromNightly === null ? "The price shows once the stay has a room with a rate." : undefined} />}
+      {hydrated && !previewing && step === 0 && (
         <div className="flex flex-col gap-3.5">
           <Text label="Name" value={form.name} onChange={(value) => set("name", value)} placeholder="e.g. Golden Palm Hotel" />
           <FormField label="Type">
@@ -436,7 +452,7 @@ export function StayListingForm({ stayId, onClose }: StayListingFormProps) {
           </FormField>
         </div>
       )}
-      {hydrated && step === 1 && (
+      {hydrated && !previewing && step === 1 && (
         <div className="flex flex-col gap-3.5">
           <div className="grid gap-3 sm:grid-cols-3">
             <Text label="Cleaning fee (GHS)" value={form.cleaningFee} onChange={(value) => set("cleaningFee", value)} />
@@ -485,7 +501,7 @@ export function StayListingForm({ stayId, onClose }: StayListingFormProps) {
           )}
         </div>
       )}
-      {hydrated && step === 2 && (
+      {hydrated && !previewing && step === 2 && (
         <div className="flex flex-col gap-3.5">
           <input
             ref={photoInput}
