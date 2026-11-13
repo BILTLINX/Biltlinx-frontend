@@ -47,11 +47,11 @@ export function ProviderCard({ provider, kind }: { provider: ProviderCardDto; ki
       {provider.headline && <p className="text-[13px] leading-[19px] text-[#475569]">{provider.headline}</p>}
       {provider.credentialWarning && <p className="rounded-lg bg-[#fef3c7] p-2.5 text-xs leading-[17px] text-[#b45309]">{provider.credentialWarning}</p>}
 
-      <div className="mt-auto flex flex-col gap-2 @[380px]:flex-row">
-        <Button variant="primary" onClick={() => setQuoteOpen(true)} className="h-10 min-w-0 whitespace-nowrap rounded-[10px] px-4 lg:rounded-[10px] @[380px]:flex-1">
+      <div className="mt-auto flex gap-2">
+        <Button variant="primary" onClick={() => setQuoteOpen(true)} className="h-10 min-w-0 whitespace-nowrap rounded-[10px] px-3 lg:rounded-[10px] flex-1">
           Request quote
         </Button>
-        <Link href={href} className="flex h-10 min-w-0 items-center justify-center whitespace-nowrap rounded-[10px] border border-gray-200 px-4 text-sm font-medium text-night-900 hover:bg-gray-50 @[380px]:flex-1">
+        <Link href={href} className="flex h-10 min-w-0 items-center justify-center whitespace-nowrap rounded-[10px] border border-gray-200 px-3 text-sm font-medium text-night-900 hover:bg-gray-50 flex-1">
           View profile
         </Link>
       </div>
