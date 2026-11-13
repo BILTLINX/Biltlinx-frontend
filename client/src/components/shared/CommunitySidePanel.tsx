@@ -23,6 +23,7 @@ export function CommunitySidePanel({ detail }: { detail: CommunityDetail }) {
             All ›
           </button>
         </div>
+        {detail.events.length === 0 && <p className="text-[13px] leading-[19px] text-gray-500">No events planned yet.</p>}
         {detail.events.map((event) => (
           <Link key={event.id} href={`/communities/${detail.community.id}/events/${event.id}`} className="flex items-center gap-2.5 text-left">
             <span className="flex shrink-0 flex-col items-center rounded-[10px] bg-[#0f172a] px-2.5 py-1.5">

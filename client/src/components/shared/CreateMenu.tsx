@@ -13,6 +13,13 @@ function menuItemHref(item: { key: string; label: string }) {
   return item.key === "request" ? "/request-board/new" : comingSoonHref(item.label);
 }
 
+/** The entries that open a form in a dialog instead of going to a page. */
+type ModalKey = "property" | "stay" | "service" | "community" | "event";
+
+function opensModal(key: string): key is ModalKey {
+  return key === "property" || key === "stay" || key === "service" || key === "community" || key === "event";
+}
+
 interface DesktopSubmenuItem {
   key: string;
   icon: string;
@@ -105,13 +112,9 @@ function DesktopMenuRow({
 }: {
   item: DesktopMenuItem;
   onNavigate: () => void;
-  onOpenListingModal: (type: "property" | "stay" | "service") => void;
+  onOpenListingModal: (type: ModalKey) => void;
 }) {
-  if (
-    item.key === "property" ||
-    item.key === "stay" ||
-    item.key === "service"
-  ) {
+  if (opensModal(item.key)) {
     const listingKey = item.key;
     return (
       <button
@@ -269,7 +272,7 @@ function MobileMenuRow({
   open: boolean;
   onToggle: () => void;
   onOpenMobilePostModal: (type: "media" | "poll" | "article") => void;
-  onOpenListingModal: (type: "property" | "stay" | "service") => void;
+  onOpenListingModal: (type: ModalKey) => void;
 }) {
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const [position, setPosition] = useState<{
@@ -283,6 +286,22 @@ function MobileMenuRow({
       if (rect) setPosition({ top: rect.bottom + 4, left: rect.left + 36 });
     }
     onToggle();
+  }
+
+  if (!item.submenu && opensModal(item.key)) {
+    const modalKey = item.key;
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          onOpenListingModal(modalKey);
+          onNavigate();
+        }}
+        className={MOBILE_ROW_CLASS}
+      >
+        <MobileRowContent icon={item.icon} label={item.label} />
+      </button>
+    );
   }
 
   if (!item.submenu) {
@@ -504,7 +523,7 @@ export function CreateMenu({
   onNavigate: () => void;
   onOpenPostModal: (type: "media" | "poll" | "article") => void;
   onOpenMobilePostModal: (type: "media" | "poll" | "article") => void;
-  onOpenListingModal: (type: "property" | "stay" | "service") => void;
+  onOpenListingModal: (type: ModalKey) => void;
 }) {
   const [openMobileKey, setOpenMobileKey] = useState<string | null>(null);
   const toggleMobileKey = (key: string) =>

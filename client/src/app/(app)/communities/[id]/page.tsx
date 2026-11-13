@@ -7,15 +7,20 @@ import { AppShell } from "@/components/shared/AppShell";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { CommunityDetailContent } from "@/components/shared/CommunityDetailContent";
 import { CommunitySidePanel } from "@/components/shared/CommunitySidePanel";
+import { CreateEventModal } from "@/components/shared/CreateEventModal";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { Button } from "@/components/ui/Button";
-import { getCommunityDetail } from "@/lib/dummy-communities";
+import { useCommunityDetail } from "@/hooks/useCommunities";
+import { memberCount } from "@/lib/dummy-communities";
 import { shareContent } from "@/lib/share";
 
 export default function CommunityDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const detail = getCommunityDetail(id);
+  const detail = useCommunityDetail(id);
   const [joined, setJoined] = useState(false);
+  const [planning, setPlanning] = useState(false);
+  // Whoever started the community is in it already, so there is nothing to join.
+  const mine = Boolean(detail?.community.mine);
 
   return (
     <AppShell activeKey="communities" contentFullWidth>
@@ -30,18 +35,25 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
               <div className="flex min-w-[220px] flex-1 flex-col gap-1">
                 <h1 className="text-2xl font-bold leading-8 text-[#0f172a] sm:text-[26px] sm:leading-[34px]">{detail.community.name}</h1>
                 <p className="text-sm leading-5 text-gray-500">
-                  Public community · {detail.community.members} members · {detail.activity}
+                  {detail.community.privacy ?? "Public"} community · {memberCount(detail.community)} · {detail.activity}
                 </p>
               </div>
               <div className="flex shrink-0 gap-2">
-                <Button
-                  variant={joined ? "outline" : "primary"}
-                  onClick={() => setJoined((value) => !value)}
-                  aria-pressed={joined}
-                  className="h-11 w-auto rounded-[10px] px-4 lg:rounded-[10px]"
-                >
-                  {joined ? "Joined" : "Join community"}
-                </Button>
+                {mine && (
+                  <Button variant="primary" onClick={() => setPlanning(true)} className="h-11 w-auto rounded-[10px] px-4 lg:rounded-[10px]">
+                    Create event
+                  </Button>
+                )}
+                {!mine && (
+                  <Button
+                    variant={joined ? "outline" : "primary"}
+                    onClick={() => setJoined((value) => !value)}
+                    aria-pressed={joined}
+                    className="h-11 w-auto rounded-[10px] px-4 lg:rounded-[10px]"
+                  >
+                    {joined ? "Joined" : "Join community"}
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   onClick={() => shareContent({ title: detail.community.name, path: `#community-${detail.community.id}` })}
@@ -52,7 +64,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
               </div>
             </header>
             <div className="flex w-full flex-col items-start gap-6 xl:flex-row">
-              <CommunityDetailContent detail={detail} joined={joined} />
+              <CommunityDetailContent detail={detail} joined={joined || mine} />
               <CommunitySidePanel detail={detail} />
             </div>
           </>
@@ -65,6 +77,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
           </>
         )}
       </PageContainer>
+      {mine && <CreateEventModal open={planning} communityId={id} onClose={() => setPlanning(false)} />}
     </AppShell>
   );
 }

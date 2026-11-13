@@ -25,11 +25,14 @@ export function EventDetailContent({ detail }: { detail: EventDetail }) {
         </p>
       </header>
 
-      <section className="flex flex-col gap-2.5 rounded-2xl border border-gray-200 bg-white p-5">
-        <h2 className="text-base font-bold leading-[23px] text-[#0f172a]">About this event</h2>
-        <p className="text-sm leading-5 text-[#334155]">{detail.about}</p>
-      </section>
+      {detail.about && (
+        <section className="flex flex-col gap-2.5 rounded-2xl border border-gray-200 bg-white p-5">
+          <h2 className="text-base font-bold leading-[23px] text-[#0f172a]">About this event</h2>
+          <p className="text-sm leading-5 text-[#334155]">{detail.about}</p>
+        </section>
+      )}
 
+      {detail.homes.length > 0 && (
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-base font-bold leading-[23px] text-[#0f172a]">Homes on the tour</h2>
@@ -56,6 +59,7 @@ export function EventDetailContent({ detail }: { detail: EventDetail }) {
           ))}
         </div>
       </section>
+      )}
     </div>
   );
 }

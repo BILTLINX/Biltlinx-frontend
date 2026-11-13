@@ -8,11 +8,12 @@ import { filterList, FilterPanel, type FilterSection } from "@/components/shared
 import { PageContainer } from "@/components/shared/PageContainer";
 import { CommunitiesRail } from "@/components/shared/CommunitiesRail";
 import { CommunityCard } from "@/components/shared/CommunityCard";
+import { CreateCommunityModal } from "@/components/shared/CreateCommunityModal";
 import { DiscussionRow } from "@/components/shared/DiscussionRow";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { useCommunities } from "@/hooks/useCommunities";
 import { comingSoonHref } from "@/lib/coming-soon";
 import {
-  COMMUNITIES,
   COMMUNITY_FILTERS,
   DISCUSSIONS,
   FILTER_TYPES,
@@ -34,18 +35,21 @@ export default function CommunitiesPage() {
   const router = useRouter();
   const [shows, setShows] = useState<string[]>([]);
   const [joined, setJoined] = useState<string[]>([]);
+  const [creating, setCreating] = useState(false);
+  const { communities: all } = useCommunities();
   const comingSoon = (feature: string) => () => router.push(comingSoonHref(feature));
+  const startCommunity = () => setCreating(true);
 
   const term = useSearchTerm();
   const mineOnly = shows.length === 1 && shows[0] === "My communities";
   const communities = useMemo(() => {
-    return COMMUNITIES.filter(
+    return all.filter(
       (community) =>
         (shows.length === 0 ||
-          shows.some((show) => (show === "My communities" ? joined.includes(community.id) : community.type === FILTER_TYPES[show as keyof typeof FILTER_TYPES]))) &&
+          shows.some((show) => (show === "My communities" ? community.mine || joined.includes(community.id) : community.type === FILTER_TYPES[show as keyof typeof FILTER_TYPES]))) &&
         (!term || `${community.name} ${community.description}`.toLowerCase().includes(term)),
     );
-  }, [shows, term, joined]);
+  }, [all, shows, term, joined]);
 
   const discussions = useMemo(() => {
     return DISCUSSIONS.filter((discussion) => communities.some((community) => community.id === discussion.communityId) && (!term || discussion.question.toLowerCase().includes(term)));
@@ -56,7 +60,7 @@ export default function CommunitiesPage() {
   }
 
   return (
-    <AppShell activeKey="communities" contentFullWidth rightRail={<CommunitiesRail />}>
+    <AppShell activeKey="communities" contentFullWidth rightRail={<CommunitiesRail onCreate={startCommunity} />}>
       <PageContainer>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
           <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -100,7 +104,7 @@ export default function CommunitiesPage() {
                 title="You haven’t joined a community yet"
                 body="Find your estate, your trade or fellow diaspora buyers. Ask questions, share tips, swap trusted contacts."
                 primary={{ label: "Explore communities", onClick: () => setShows([]) }}
-                secondary={{ label: "Start a community", onClick: comingSoon("Create a community") }}
+                secondary={{ label: "Start a community", onClick: startCommunity }}
               />
             ) : (
               <SearchEmpty noun="communities" />
@@ -116,7 +120,7 @@ export default function CommunitiesPage() {
                 <DiscussionRow
                   key={discussion.id}
                   discussion={discussion}
-                  communityName={COMMUNITIES.find((community) => community.id === discussion.communityId)?.name ?? ""}
+                  communityName={all.find((community) => community.id === discussion.communityId)?.name ?? ""}
                 />
               ))}
             </div>
@@ -124,9 +128,10 @@ export default function CommunitiesPage() {
         )}
 
         <div className="xl:hidden">
-          <CommunitiesRail />
+          <CommunitiesRail onCreate={startCommunity} />
         </div>
       </PageContainer>
+      <CreateCommunityModal open={creating} onClose={() => setCreating(false)} />
     </AppShell>
   );
 }

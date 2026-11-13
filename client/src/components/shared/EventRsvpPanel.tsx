@@ -22,7 +22,7 @@ export function EventRsvpPanel({ detail }: { detail: EventDetail }) {
     <DetailAside className="xl:w-[360px]">
       <section className={CARD}>
         <h2 className="text-[15px] font-bold leading-[22px] text-[#0f172a]">
-          Free · {detail.spotsLeft} of {detail.capacity} spots left
+          {detail.capacity === null ? "Free · Open to everyone" : `Free · ${detail.spotsLeft} of ${detail.capacity} spots left`}
         </h2>
         <div role="radiogroup" aria-label="Are you going?" className="flex flex-col gap-2">
           <p className="text-[13px] font-semibold leading-[19px] text-[#0f172a]">Are you going?</p>
@@ -66,9 +66,11 @@ export function EventRsvpPanel({ detail }: { detail: EventDetail }) {
             <p className="text-xs leading-[17px] text-gray-500">Host</p>
           </div>
         </div>
-        <span className="self-start rounded-full bg-[#dcfce7] px-2 py-[3px] text-[11px] font-medium leading-[14px] text-[#16a34a]">
-          Business verified ✓
-        </span>
+        {detail.host.verified && (
+          <span className="self-start rounded-full bg-[#dcfce7] px-2 py-[3px] text-[11px] font-medium leading-[14px] text-[#16a34a]">
+            Business verified ✓
+          </span>
+        )}
       </section>
 
       <section className={`${CARD} gap-2`}>

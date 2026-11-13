@@ -29,19 +29,20 @@ export function CommunityDetailContent({ detail, joined }: CommunityDetailConten
       <div role="tablist" aria-label="Community sections" className="no-scrollbar flex overflow-x-auto border-b border-gray-200">
         {COMMUNITY_TABS.map((tab) => {
           const active = tab.key === "posts";
+          const count = tab.key === "events" ? detail.events.length : 0;
           return (
             <button
               key={tab.key}
               type="button"
               role="tab"
               aria-selected={active}
-              onClick={active ? undefined : comingSoon(tab.label.split(" · ")[0])}
+              onClick={active ? undefined : comingSoon(tab.label)}
               className={cn(
                 "-mb-px shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-[13px] leading-[19px]",
                 active ? "border-brand-900 font-semibold text-brand-900" : "border-transparent font-medium text-gray-500 hover:text-[#0f172a]",
               )}
             >
-              {tab.label}
+              {count > 0 ? `${tab.label} · ${count}` : tab.label}
             </button>
           );
         })}
@@ -59,6 +60,7 @@ export function CommunityDetailContent({ detail, joined }: CommunityDetailConten
         </button>
       </div>
 
+      {detail.posts.length === 0 && <p className="text-sm leading-5 text-gray-500">No posts yet. Be the first to share something.</p>}
       {detail.posts.map((post) => (
         <article key={post.id} className="flex flex-col gap-2.5 rounded-2xl border border-gray-200 bg-white p-5">
           <div className="flex items-center gap-2.5">

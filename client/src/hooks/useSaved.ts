@@ -3,51 +3,10 @@
 import { useCallback, useSyncExternalStore } from "react";
 import { showSuccessToast } from "@/components/shared/AppToast";
 import { useSession } from "@/context/SessionContext";
+import { NONE, readList as read, subscribeToLists as subscribe, writeList as write } from "@/lib/browser-list";
 import type { SavedCollection, SavedDraft, SavedItem } from "@/lib/saved-items";
 
 // There is no saved-items API yet, so saves and their collections live in this browser, one list of each per signed-in account.
-const CHANGED = "biltlinx:saved-changed";
-const NONE: never[] = [];
-const parsed = new Map<string, { raw: string | null; items: unknown[] }>();
-
-function read<T>(storageKey: string): T[] {
-  let raw: string | null = null;
-  try {
-    raw = localStorage.getItem(storageKey);
-  } catch {
-    // Storage can be blocked; saving then simply does not stick.
-  }
-  const cached = parsed.get(storageKey);
-  if (cached && cached.raw === raw) return cached.items as T[];
-  let items: unknown[] = NONE;
-  try {
-    const value: unknown = raw ? JSON.parse(raw) : [];
-    if (Array.isArray(value)) items = value;
-  } catch {
-    // A damaged list is treated as empty.
-  }
-  parsed.set(storageKey, { raw, items });
-  return items as T[];
-}
-
-function write(storageKey: string, items: unknown[]) {
-  try {
-    localStorage.setItem(storageKey, JSON.stringify(items));
-  } catch {
-    // See read().
-  }
-  window.dispatchEvent(new Event(CHANGED));
-}
-
-function subscribe(callback: () => void) {
-  window.addEventListener(CHANGED, callback);
-  window.addEventListener("storage", callback);
-  return () => {
-    window.removeEventListener(CHANGED, callback);
-    window.removeEventListener("storage", callback);
-  };
-}
-
 function useStorageKeys() {
   const { user } = useSession();
   const owner = user?.id ?? "guest";

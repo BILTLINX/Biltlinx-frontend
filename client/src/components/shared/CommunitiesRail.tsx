@@ -1,20 +1,29 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { RailCta } from "@/components/shared/RailCta";
+import { useCommunities } from "@/hooks/useCommunities";
 import { comingSoonHref } from "@/lib/coming-soon";
 import { COMMUNITY_EVENTS, JOINED_COMMUNITIES } from "@/lib/dummy-communities";
 import { cn } from "@/lib/utils";
 
 const CARD = "flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-4";
+const COMMUNITY_ROW = "flex items-center gap-2.5";
 
-/** Communities side cards (Figma node 1044:22122): your communities, upcoming events with RSVP, and the community rules. */
-export function CommunitiesRail() {
+/** Communities side cards (Figma node 1044:22122): your communities, upcoming events with RSVP, and the community rules. `onCreate` opens the form that starts a community. */
+export function CommunitiesRail({ onCreate }: { onCreate: () => void }) {
   const router = useRouter();
+  const { started } = useCommunities();
   const [rsvps, setRsvps] = useState<string[]>([]);
   const comingSoon = (feature: string) => () => router.push(comingSoonHref(feature));
+  // The ones you started come first and open their page; the sample ones have no page yet.
+  const yours = [
+    ...started.map((community) => ({ id: community.id, name: community.name, note: "Started by you", image: community.image, href: `/communities/${community.id}` })),
+    ...JOINED_COMMUNITIES.map((community) => ({ ...community, href: undefined })),
+  ];
 
   function toggleRsvp(id: string) {
     setRsvps((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
@@ -22,7 +31,7 @@ export function CommunitiesRail() {
 
   return (
     <div className="flex w-full flex-col gap-4">
-      <RailCta title="Start a community" body="Bring neighbours, builders and owners together around what you care about." label="Create a community" href={comingSoonHref("Create a community")} />
+      <RailCta title="Start a community" body="Bring neighbours, builders and owners together around what you care about." label="Create a community" onClick={onCreate} />
 
       <section className={CARD}>
         <div className="flex items-center justify-between gap-2">
@@ -31,17 +40,28 @@ export function CommunitiesRail() {
             Manage ›
           </button>
         </div>
-        {JOINED_COMMUNITIES.map((community) => (
-          <div key={community.id} className="flex items-center gap-2.5">
-            <span className="relative block size-10 shrink-0 overflow-hidden rounded-[10px] bg-[#eef2ff]">
-              <Image src={community.image} alt="" fill className="object-cover" sizes="40px" />
-            </span>
-            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <p className="truncate text-[13px] font-semibold leading-[19px] text-[#0f172a]">{community.name}</p>
-              <p className="truncate text-xs leading-[17px] text-gray-500">{community.note}</p>
+        {yours.map((community) => {
+          const row = (
+            <>
+              <span className="relative block size-10 shrink-0 overflow-hidden rounded-[10px] bg-[#eef2ff]">
+                <Image src={community.image} alt="" fill className="object-cover" sizes="40px" />
+              </span>
+              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span className="truncate text-[13px] font-semibold leading-[19px] text-[#0f172a]">{community.name}</span>
+                <span className="truncate text-xs leading-[17px] text-gray-500">{community.note}</span>
+              </span>
+            </>
+          );
+          return community.href ? (
+            <Link key={community.id} href={community.href} className={cn(COMMUNITY_ROW, "hover:opacity-80")}>
+              {row}
+            </Link>
+          ) : (
+            <div key={community.id} className={COMMUNITY_ROW}>
+              {row}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </section>
 
       <section className={CARD}>

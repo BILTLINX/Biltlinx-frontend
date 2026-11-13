@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import type { Community } from "@/lib/dummy-communities";
+import { memberCount, type Community } from "@/lib/dummy-communities";
 import { cn } from "@/lib/utils";
 
 interface CommunityCardProps {
@@ -31,22 +31,32 @@ export function CommunityCard({ community, joined, onToggleJoin }: CommunityCard
           </Link>
         </h3>
         <p className="text-xs font-medium leading-[17px] text-gray-500">
-          {community.type} · {community.members} members
+          {community.type} · {memberCount(community)}
         </p>
         <p className="text-[13px] leading-[19px] text-[#475569]">{community.description}</p>
-        <button
-          type="button"
-          onClick={onToggleJoin}
-          aria-pressed={joined}
-          className={cn(
-            "mt-auto h-9 w-full rounded-[10px] px-4 text-sm font-medium",
-            joined
-              ? "border border-gray-200 bg-white text-[#0f172a] hover:bg-gray-50"
-              : "bg-[#eff5ff] text-brand-900 hover:bg-[#e2edff]",
-          )}
-        >
-          {joined ? "Joined" : "Join"}
-        </button>
+        {/* You cannot leave a community you started, so its card opens it instead. */}
+        {community.mine ? (
+          <Link
+            href={`/communities/${community.id}`}
+            className="mt-auto flex h-9 w-full items-center justify-center rounded-[10px] border border-gray-200 bg-white px-4 text-sm font-medium text-[#0f172a] hover:bg-gray-50"
+          >
+            Open your community
+          </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={onToggleJoin}
+            aria-pressed={joined}
+            className={cn(
+              "mt-auto h-9 w-full rounded-[10px] px-4 text-sm font-medium",
+              joined
+                ? "border border-gray-200 bg-white text-[#0f172a] hover:bg-gray-50"
+                : "bg-[#eff5ff] text-brand-900 hover:bg-[#e2edff]",
+            )}
+          >
+            {joined ? "Joined" : "Join"}
+          </button>
+        )}
       </div>
     </article>
   );

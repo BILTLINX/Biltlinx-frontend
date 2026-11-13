@@ -8,11 +8,12 @@ import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { EventDetailContent } from "@/components/shared/EventDetailContent";
 import { EventRsvpPanel } from "@/components/shared/EventRsvpPanel";
 import { PageContainer } from "@/components/shared/PageContainer";
+import { useCommunityDetail } from "@/hooks/useCommunities";
 import { getEventDetail } from "@/lib/dummy-communities";
 
 export default function EventDetailPage({ params }: { params: Promise<{ id: string; eventId: string }> }) {
   const { id, eventId } = use(params);
-  const detail = getEventDetail(id, eventId);
+  const detail = getEventDetail(useCommunityDetail(id), eventId);
 
   return (
     <AppShell activeKey="communities" contentFullWidth>

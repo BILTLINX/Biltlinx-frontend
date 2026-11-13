@@ -21,6 +21,13 @@ export const FILTER_TYPES: Partial<Record<CommunityFilter, string>> = {
   Professionals: "Professionals",
 };
 
+/** The types a community can be, as offered when starting one. */
+export const COMMUNITY_TYPES = Object.values(FILTER_TYPES);
+
+export const COMMUNITY_PRIVACY = ["Public", "Private"] as const;
+
+export type CommunityPrivacy = (typeof COMMUNITY_PRIVACY)[number];
+
 export interface Community {
   id: string;
   name: string;
@@ -28,6 +35,28 @@ export interface Community {
   members: string;
   description: string;
   image: string;
+  /** Public when not set. */
+  privacy?: CommunityPrivacy;
+  /** Its own rules; the sample communities share the default ones. */
+  rules?: string[];
+  /** Started by the person looking at it. */
+  mine?: boolean;
+}
+
+/** The cover a new community gets when no picture is uploaded for it. */
+export const COMMUNITY_COVERS: Record<string, string> = {
+  Neighbourhood: "/images/marketplace/property-sale.jpg",
+  "Building & DIY": "/images/marketplace/equipment.jpg",
+  Landlords: "/images/marketplace/rental.jpg",
+  "Diaspora buyers": "/images/marketplace/land.jpg",
+  Professionals: "/images/marketplace/property-tower.jpg",
+};
+
+export const DEFAULT_COMMUNITY_RULES = ["Be respectful", "No paid ads outside the Marketplace", "Report scams to moderators"];
+
+/** "4.2k members", or "1 member" for a community that only has its founder. */
+export function memberCount(community: Community) {
+  return `${community.members} ${community.members === "1" ? "member" : "members"}`;
 }
 
 export const COMMUNITIES: Community[] = [
@@ -125,7 +154,7 @@ export const COMMUNITY_EVENTS: CommunityEvent[] = [
 
 export const COMMUNITY_TABS = [
   { key: "posts", label: "Posts" },
-  { key: "events", label: "Events · 2" },
+  { key: "events", label: "Events" },
   { key: "members", label: "Members" },
   { key: "about", label: "About" },
 ] as const;
@@ -146,6 +175,57 @@ export interface CommunityDetailEvent {
   month: string;
   title: string;
   meta: string;
+  /** Only on an event someone started here; the sample events share placeholder details instead. */
+  hostName?: string;
+  kind?: string;
+  when?: string;
+  where?: string;
+  about?: string;
+  capacity?: number;
+}
+
+export const EVENT_KINDS = ["Meetup", "Open house", "Webinar", "Site visit"] as const;
+
+/** An event started from the "Create event" form, kept in this browser until the events API exists. */
+export interface StartedEvent {
+  id: string;
+  communityId: string;
+  title: string;
+  kind: string;
+  /** yyyy-mm-dd */
+  date: string;
+  /** hh:mm, 24-hour */
+  time: string;
+  place: string;
+  about: string;
+  /** Unlimited when not set. */
+  capacity?: number;
+  hostName: string;
+}
+
+/** "14:30" → "2:30 pm" */
+function clockLabel(time: string) {
+  const [hours, minutes] = time.split(":").map(Number);
+  return `${hours % 12 || 12}${minutes ? `:${String(minutes).padStart(2, "0")}` : ""} ${hours < 12 ? "am" : "pm"}`;
+}
+
+/** A started event as the community page lists it. */
+export function eventSummary(event: StartedEvent): CommunityDetailEvent {
+  const [year, month, day] = event.date.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  return {
+    id: event.id,
+    day: String(day),
+    month: date.toLocaleDateString("en-GB", { month: "short" }),
+    title: event.title,
+    meta: `${event.place} · ${clockLabel(event.time)}`,
+    hostName: event.hostName,
+    kind: event.kind,
+    when: `${date.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" }).replace(",", "")} · ${clockLabel(event.time)}`,
+    where: event.place,
+    about: event.about,
+    capacity: event.capacity,
+  };
 }
 
 export interface CommunityDetail {
@@ -190,12 +270,26 @@ export function getCommunityDetail(id: string): CommunityDetail | undefined {
       { id: "e1", day: "1", month: "Nov", title: "Homeowners meeting", meta: "Lizzie’s Place · 10 am" },
       { id: "e2", day: "15", month: "Nov", title: "Open house tour", meta: "6 homes · 2 pm" },
     ],
-    rules: ["Be respectful", "No paid ads outside the Marketplace", "Report scams to moderators"],
+    rules: DEFAULT_COMMUNITY_RULES,
     moderators: [
       { id: "m1", avatar: "/images/communities/detail-mod-1.png" },
       { id: "m2", avatar: "/images/communities/detail-mod-2.png" },
       { id: "m3", avatar: "/images/communities/detail-mod-3.png" },
     ],
+  };
+}
+
+/** The page of a community the viewer has just started: its own details, the viewer as its only moderator, and nothing posted or planned yet. */
+export function startedCommunityDetail(community: Community, viewerAvatar: string): CommunityDetail {
+  return {
+    community,
+    breadcrumbs: [{ label: "Communities", href: "/communities" }, { label: community.name }],
+    activity: "Started by you",
+    viewerAvatar,
+    posts: [],
+    events: [],
+    rules: community.rules ?? DEFAULT_COMMUNITY_RULES,
+    moderators: [{ id: "you", avatar: viewerAvatar }],
   };
 }
 
@@ -220,9 +314,10 @@ export interface EventDetail {
   about: string;
   homes: EventHome[];
   homesTotal: number;
-  spotsLeft: number;
-  capacity: number;
-  host: { name: string; avatar: string };
+  /** Both null when there is no limit on who can come. */
+  spotsLeft: number | null;
+  capacity: number | null;
+  host: { name: string; avatar: string; verified: boolean };
   going: { total: number; avatars: string[] };
 }
 
@@ -230,10 +325,33 @@ export const RSVP_OPTIONS = ["Going", "Maybe", "Can’t go"] as const;
 
 export type RsvpOption = (typeof RSVP_OPTIONS)[number];
 
-export function getEventDetail(communityId: string, eventId: string): EventDetail | undefined {
-  const detail = getCommunityDetail(communityId);
+export function getEventDetail(detail: CommunityDetail | undefined, eventId: string): EventDetail | undefined {
   const event = detail?.events.find((candidate) => candidate.id === eventId);
   if (!detail || !event) return undefined;
+
+  if (event.hostName) {
+    return {
+      event,
+      community: detail.community,
+      breadcrumbs: [
+        { label: "Communities", href: "/communities" },
+        { label: detail.community.name, href: `/communities/${detail.community.id}` },
+        { label: "Events" },
+        { label: event.title },
+      ],
+      cover: detail.community.image,
+      kind: event.kind ?? "Event",
+      when: event.when ?? "",
+      where: event.where ?? "",
+      about: event.about ?? "",
+      homes: [],
+      homesTotal: 0,
+      spotsLeft: event.capacity ? event.capacity - 1 : null,
+      capacity: event.capacity ?? null,
+      host: { name: event.hostName, avatar: detail.viewerAvatar, verified: false },
+      going: { total: 1, avatars: [detail.viewerAvatar] },
+    };
+  }
 
   const weekday = new Date(`${event.day} ${event.month} 2026`).toLocaleDateString("en-GB", { weekday: "short" });
 
@@ -259,7 +377,7 @@ export function getEventDetail(communityId: string, eventId: string): EventDetai
     homesTotal: 6,
     spotsLeft: 38,
     capacity: 60,
-    host: { name: "Kasapa Properties Ltd", avatar: "/images/communities/event-host.png" },
+    host: { name: "Kasapa Properties Ltd", avatar: "/images/communities/event-host.png", verified: true },
     going: {
       total: 22,
       avatars: [1, 2, 3, 4, 5, 6].map((index) => `/images/communities/event-going-${index}.png`),
