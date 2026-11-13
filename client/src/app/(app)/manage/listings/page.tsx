@@ -10,6 +10,7 @@ import { AnchoredPanel } from "@/components/shared/AnchoredPanel";
 import { AppShell } from "@/components/shared/AppShell";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { CreateListingModal, type ListingTarget } from "@/components/shared/CreateListingModal";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { ListingActionDialog } from "@/components/shared/ListingActionDialog";
 import { ListingDocumentsDialog } from "@/components/shared/ListingDocumentsDialog";
 import { ManageTabs } from "@/components/shared/ManageTabs";
@@ -72,7 +73,7 @@ function RowMenu({ open, onToggle, onClose, items }: { open: boolean; onToggle: 
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   return (
     <>
-      <button ref={triggerRef} type="button" aria-label="More actions" aria-expanded={open} onClick={onToggle} className="px-1 text-lg leading-none text-gray-500">
+      <button ref={triggerRef} type="button" aria-label="More actions" aria-expanded={open} onClick={onToggle} className="flex size-8 items-center justify-center rounded-lg text-lg leading-none text-gray-500 hover:bg-gray-100">
         ⋯
       </button>
       <AnchoredPanel open={open} onClose={onClose} triggerRef={triggerRef} estimatedHeight={items.length * 36 + 40} minWidth={176}>
@@ -199,6 +200,7 @@ function ManageListings() {
       if (!property) return [];
       return [
         ...(propertyListingStatus(property.status) === "Approved" ? [{ label: "Post to feed", run: () => setPostFor(property) }] : []),
+        { label: "Still available", run: () => confirm.mutate(property.id) },
         { label: "Documents", run: () => setDocumentsFor(property) },
         ...rowActions(property).map((item) => ({ label: item.label, run: () => setAction({ property, action: item.action }) })),
       ];
@@ -249,25 +251,8 @@ function ManageListings() {
           ))}
         </div>
 
-        <div className="flex flex-col gap-2.5">
-          <div role="tablist" aria-label="Type" className="flex flex-wrap gap-2.5">
-            {KIND_FILTERS.map((option) => (
-              <button
-                key={option.key}
-                type="button"
-                role="tab"
-                aria-selected={option.key === kindFilter}
-                onClick={() => setKindFilter(option.key)}
-                className={cn(
-                  "rounded-full border px-3.5 py-2 text-[13px] font-medium leading-[19px]",
-                  option.key === kindFilter ? "border-brand-900 bg-[#eff5ff] text-brand-900" : "border-gray-200 bg-white text-[#334155] hover:bg-gray-50",
-                )}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-          <div role="tablist" aria-label="Status" className="flex flex-wrap gap-2.5">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div role="tablist" aria-label="Status" className="no-scrollbar flex gap-2 overflow-x-auto">
             {FILTERS.map((option) => (
               <button
                 key={option.key}
@@ -276,8 +261,25 @@ function ManageListings() {
                 aria-selected={option.key === filter}
                 onClick={() => setFilter(option.key)}
                 className={cn(
-                  "rounded-full border px-3.5 py-2 text-[13px] font-medium leading-[19px]",
+                  "shrink-0 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-[13px] font-medium leading-[19px]",
                   option.key === filter ? "border-[#0f172a] bg-[#0f172a] text-white" : "border-gray-200 bg-white text-[#334155] hover:bg-gray-50",
+                )}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          <div role="tablist" aria-label="Type" className="flex shrink-0 self-start rounded-[10px] border border-gray-200 bg-white p-1 lg:self-auto">
+            {KIND_FILTERS.map((option) => (
+              <button
+                key={option.key}
+                type="button"
+                role="tab"
+                aria-selected={option.key === kindFilter}
+                onClick={() => setKindFilter(option.key)}
+                className={cn(
+                  "whitespace-nowrap rounded-lg px-3.5 py-1.5 text-[13px] font-medium leading-[19px]",
+                  option.key === kindFilter ? "bg-brand-900 text-white" : "text-[#334155] hover:bg-gray-50",
                 )}
               >
                 {option.label}
@@ -287,12 +289,12 @@ function ManageListings() {
         </div>
 
         {showDrafts && (drafts.data?.length ?? 0) > 0 && (
-          <div className="flex flex-col gap-2 rounded-2xl border border-dashed border-gray-300 bg-white p-4">
-            <p className="text-sm font-bold text-[#0f172a]">Unfinished property drafts</p>
+          <div className="flex flex-col rounded-2xl border border-gray-200 bg-white">
+            <p className="border-b border-gray-200 px-4 py-3 text-sm font-bold text-[#0f172a]">Unfinished property drafts</p>
             {drafts.data?.map((draft) => (
-              <div key={draft.id} className="flex items-center gap-3 text-[13px] text-[#334155]">
-                <span className="min-w-0 flex-1 truncate font-medium">{draft.name || "Untitled draft"}</span>
-                <span className="shrink-0 text-xs text-gray-500">Saved {formatDate(draft.updatedAt)}</span>
+              <div key={draft.id} className="flex items-center gap-3 border-b border-gray-100 px-4 py-2.5 text-[13px] text-[#334155] last:border-b-0">
+                <span className="min-w-0 flex-1 truncate font-medium text-[#0f172a]">{draft.name || "Untitled draft"}</span>
+                <span className="hidden shrink-0 text-xs text-gray-500 sm:inline">Saved {formatDate(draft.updatedAt)}</span>
                 <button type="button" onClick={() => setDialog({ initial: { kind: "property", draftId: draft.id } })} className="shrink-0 font-medium text-brand-900">
                   Continue
                 </button>
@@ -304,77 +306,91 @@ function ManageListings() {
           </div>
         )}
 
-        <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white">
-          <table className="w-full min-w-[900px] border-collapse text-left">
-            <thead className="bg-[#f8fafc]">
-              <tr className="text-[11px] font-bold leading-4 text-gray-500">
-                {["LISTING", "PRICE", "STATUS", "AVAILABILITY", "LAST CONFIRMED"].map((heading) => (
-                  <th key={heading} scope="col" className="px-4 py-2.5 font-bold">
-                    {heading}
-                  </th>
-                ))}
-                <th scope="col" aria-label="Actions" className="px-4 py-2.5" />
-              </tr>
-            </thead>
-            <tbody>
-              {pending && (
-                <tr>
-                  <td colSpan={6} className="p-4">
-                    <Skeleton className="h-12 w-full" />
-                  </td>
+        {!pending && rows.length === 0 && !failure && filter === "all" && kindFilter === "all" && !needle ? (
+          <EmptyState
+            mood="sad"
+            icon="home-sad"
+            title="You have not listed anything yet"
+            body="List a property, a stay or a service to start getting enquiries and bookings."
+            primary={{ label: "Create listing", onClick: () => setDialog({ initial: null }) }}
+          />
+        ) : (
+          <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white">
+            <table className="w-full min-w-[760px] border-collapse text-left">
+              <thead className="bg-[#f8fafc]">
+                <tr className="text-[11px] font-bold uppercase leading-4 tracking-wide text-gray-500">
+                  {["Listing", "Price", "Status", "Availability"].map((heading) => (
+                    <th key={heading} scope="col" className="px-4 py-3 font-bold">
+                      {heading}
+                    </th>
+                  ))}
+                  <th scope="col" aria-label="Actions" className="px-4 py-3" />
                 </tr>
-              )}
-              {rows.map((row) => {
-                const property = row.kind === "property" ? propertyById.get(row.id) : undefined;
-                return (
-                  <tr key={row.key} className="border-t border-gray-200 text-[13px] leading-[19px] text-[#334155]">
-                    <td className="px-4 py-3">
-                      <Link href={row.href} className="flex items-center gap-2.5">
-                        <span className="relative block h-[38px] w-12 shrink-0 overflow-hidden rounded-lg bg-[#eef2ff]">
-                          <Image src={row.image} alt="" fill className="object-cover" sizes="48px" />
-                        </span>
-                        <span className="flex flex-col whitespace-nowrap">
-                          <span className="font-semibold text-[#0f172a]">{row.title}</span>
-                          <span className="text-xs leading-[17px] text-gray-500">{row.meta}</span>
-                          {row.details.length > 0 && <span className="text-xs leading-[17px] text-gray-500">{row.details.join(" · ")}</span>}
-                        </span>
-                      </Link>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3">{row.price}</td>
-                    <td className="px-4 py-3">
-                      <span className={cn("whitespace-nowrap rounded-full px-2.5 py-[3px] text-[11px] font-medium leading-4", LISTING_STATUS_TONE[row.status])}>{LISTING_STATUS_LABEL[row.status]}</span>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3">
-                      {property ? property.availability : "—"}
-                      {property?.isStale && <span className="ml-2 rounded-full bg-[#fef3c7] px-2 py-[2px] text-[10px] font-medium text-[#b45309]">Confirm</span>}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3">{property ? formatDate(property.lastConfirmedAt) : "—"}</td>
-                    <td className="relative px-4 py-3">
-                      <div className="flex items-center gap-3 whitespace-nowrap">
-                        <button type="button" onClick={() => editRow(row)} className="text-[13px] font-medium text-brand-900">
-                          Edit
-                        </button>
-                        {property && (
-                          <button type="button" onClick={() => confirm.mutate(property.id)} className="text-[13px] font-medium text-brand-900">
-                            Still available
-                          </button>
+              </thead>
+              <tbody>
+                {pending &&
+                  [0, 1, 2].map((n) => (
+                    <tr key={n} className="border-t border-gray-200">
+                      <td colSpan={5} className="p-4">
+                        <Skeleton className="h-12 w-full" />
+                      </td>
+                    </tr>
+                  ))}
+                {rows.map((row) => {
+                  const property = row.kind === "property" ? propertyById.get(row.id) : undefined;
+                  return (
+                    <tr key={row.key} className="border-t border-gray-200 text-[13px] leading-[19px] text-[#334155] hover:bg-[#f8fafc]">
+                      <td className="max-w-[360px] px-4 py-3">
+                        <Link href={row.href} className="flex items-center gap-3">
+                          <span className="relative block h-12 w-16 shrink-0 overflow-hidden rounded-lg bg-[#eef2ff]">
+                            <Image src={row.image} alt="" fill className="object-cover" sizes="64px" />
+                          </span>
+                          <span className="flex min-w-0 flex-col">
+                            <span className="truncate font-semibold text-[#0f172a]">{row.title}</span>
+                            <span className="truncate text-xs leading-[17px] text-gray-500">{row.meta}</span>
+                            {row.details.length > 0 && <span className="truncate text-xs leading-[17px] text-gray-400">{row.details.join(" · ")}</span>}
+                          </span>
+                        </Link>
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 font-semibold text-[#0f172a]">{row.price}</td>
+                      <td className="px-4 py-3">
+                        <span className={cn("whitespace-nowrap rounded-full px-2.5 py-[3px] text-[11px] font-medium leading-4", LISTING_STATUS_TONE[row.status])}>{LISTING_STATUS_LABEL[row.status]}</span>
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3">
+                        {property ? (
+                          <div className="flex flex-col items-start gap-1">
+                            <span className="flex items-center gap-2">
+                              <span className={cn("rounded-full px-2.5 py-[3px] text-[11px] font-medium leading-4", property.availability === "Available" ? "bg-[#dcfce7] text-[#16a34a]" : "bg-[#f1f5f9] text-[#334155]")}>{property.availability}</span>
+                              {property.isStale && <span className="rounded-full bg-[#fef3c7] px-2 py-[2px] text-[10px] font-medium text-[#b45309]">Confirm</span>}
+                            </span>
+                            <span className="text-xs leading-[17px] text-gray-500">Confirmed {formatDate(property.lastConfirmedAt)}</span>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400">—</span>
                         )}
-                        <RowMenu open={menuFor === row.key} onToggle={() => setMenuFor(menuFor === row.key ? null : row.key)} onClose={() => setMenuFor(null)} items={menuItems(row)} />
-                      </div>
+                      </td>
+                      <td className="relative px-4 py-3">
+                        <div className="flex items-center justify-end gap-2 whitespace-nowrap">
+                          <button type="button" onClick={() => editRow(row)} className="h-8 rounded-lg border border-gray-200 bg-white px-3 text-[13px] font-medium text-[#0f172a] hover:bg-gray-50">
+                            Edit
+                          </button>
+                          <RowMenu open={menuFor === row.key} onToggle={() => setMenuFor(menuFor === row.key ? null : row.key)} onClose={() => setMenuFor(null)} items={menuItems(row)} />
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {!pending && rows.length === 0 && (
+                  <tr className="border-t border-gray-200">
+                    <td colSpan={5} className="px-4 py-10 text-center text-sm text-gray-500">
+                      {failure ? errorMessage(failure) : "No listings match."}
                     </td>
                   </tr>
-                );
-              })}
-              {!pending && rows.length === 0 && (
-                <tr className="border-t border-gray-200">
-                  <td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-500">
-                    {failure ? errorMessage(failure) : filter === "all" && kindFilter === "all" && !needle ? "You have not listed anything yet. Use Create listing to start." : "No listings match."}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
         {showProperties && filter !== "drafts" && properties.hasNextPage && (
           <button type="button" disabled={properties.isFetchingNextPage} onClick={() => void properties.fetchNextPage()} className="self-center text-[13px] font-medium text-brand-900">
             {properties.isFetchingNextPage ? "Loading…" : "Load more"}
