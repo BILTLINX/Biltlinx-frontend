@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { BookmarkIcon } from "@/components/shared/BookmarkIcon";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { RequestViewingModal } from "@/components/shared/RequestViewingModal";
 import { Button } from "@/components/ui/Button";
@@ -57,9 +58,9 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
             aria-pressed={saved}
             aria-label={saved ? `Remove ${listing.title} from saved` : `Save ${listing.title}`}
             onClick={toggleSaved}
-            className="absolute right-3 top-3 flex items-center rounded-full bg-white p-2 hover:bg-gray-50"
+            className="absolute right-3 top-3 flex items-center rounded-full bg-white p-1.5 hover:bg-gray-50"
           >
-            <NavIcon icon="/icons/post-options-bookmark.svg" size={16} className={saved ? "bg-brand-900" : "bg-[#0f172a]"} />
+            <BookmarkIcon saved={saved} size={20} className={saved ? "text-brand-900" : "text-[#0f172a]"} />
           </button>
         )}
       </div>
