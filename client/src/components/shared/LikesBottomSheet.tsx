@@ -1,5 +1,6 @@
 "use client";
 
+import { ProfileLink } from "@/components/shared/ProfileLink";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
@@ -188,7 +189,7 @@ function LikerRow({ liker, variant, isSelf }: { liker: Author; variant: "sheet" 
             <Image src={liker.profilePicUrl ?? "/icons/avatar-placeholder-user.svg"} alt="" fill sizes="32px" className="object-cover" />
           </span>
         )}
-        <span className="truncate text-sm font-medium text-[#111826]">{liker.username}</span>
+        <ProfileLink accountId={liker.id} className="truncate text-sm font-medium text-[#111826] hover:underline">{liker.username}</ProfileLink>
       </span>
 
       {isSelf ? null : variant === "sheet" ? (

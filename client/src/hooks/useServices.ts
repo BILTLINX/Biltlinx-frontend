@@ -48,8 +48,8 @@ export function useProviders(query: Omit<ProviderQuery, "page" | "results">, pag
   return usePagedSearch([...SERVICES_KEY, "providers", query], (n, signal) => searchProviders({ ...query, page: n, results: PAGE_SIZE }, signal), page);
 }
 
-export function useProvider(id: string) {
-  return useQuery({ queryKey: [...SERVICES_KEY, "provider", id], queryFn: () => getProvider(id) });
+export function useProvider(id: string | undefined) {
+  return useQuery({ queryKey: [...SERVICES_KEY, "provider", id], queryFn: () => getProvider(id as string), enabled: Boolean(id) });
 }
 
 export function useMyProvider(enabled = true) {

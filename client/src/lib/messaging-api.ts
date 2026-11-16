@@ -1,4 +1,4 @@
-import { apiRequest, type QueryValue } from "@/lib/api";
+import { ApiError, apiRequest, type QueryValue } from "@/lib/api";
 import type { BlockDto, ConversationDto, MessageDto, PagedOfConversationDto } from "@/types/api/schema";
 
 export type ConversationContextType = "Direct" | "Property" | "Stay" | "Service";
@@ -7,14 +7,20 @@ export function listConversations(query: { page?: number; results?: number; arch
   return apiRequest<PagedOfConversationDto>("/messages/conversations", { query: query as Record<string, QueryValue> });
 }
 
-export function startConversation(input: {
+export async function startConversation(input: {
   recipientAccountId: string;
   contextType?: ConversationContextType;
   contextId?: string;
   contextTitle?: string;
   message?: string;
 }) {
-  return apiRequest<ConversationDto>("/messages/conversations", { method: "POST", body: input });
+  const started = await apiRequest<ConversationDto | undefined>("/messages/conversations", { method: "POST", body: input });
+  if (started?.id) return started;
+  // The server accepted the request without sending the conversation back, so open the one it made (or already had) with this person.
+  const recent = await listConversations({ results: 50 });
+  const existing = recent.items?.find((conversation) => conversation.other.accountId === input.recipientAccountId);
+  if (!existing) throw new ApiError("The conversation could not be opened. Please try again.", 0);
+  return existing;
 }
 
 export function getMessages(conversationId: string, afterSeq?: number) {

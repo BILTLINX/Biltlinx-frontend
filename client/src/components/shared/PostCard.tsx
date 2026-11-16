@@ -1,5 +1,6 @@
 "use client";
 
+import { ProfileLink } from "@/components/shared/ProfileLink";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -145,7 +146,7 @@ function PostHeader({ post }: { post: PostCardData }) {
           )}
         </span>
         <div className="flex flex-col items-start whitespace-nowrap">
-          <p className="text-[12px] font-bold text-brand-900 sm:text-[13px]">{post.authorName}</p>
+          <ProfileLink accountId={post.authorId} className="text-[12px] font-bold text-brand-900 hover:underline sm:text-[13px]">{post.authorName}</ProfileLink>
           <p className="text-[9.5px] text-gray-500">
             {post.roleLine} <span className="font-medium">{post.postedAt}</span>
           </p>

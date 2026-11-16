@@ -1,5 +1,6 @@
 "use client";
 
+import { ProfileLink } from "@/components/shared/ProfileLink";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
@@ -175,7 +176,7 @@ export function MessageThread({ conversation, onBack, className }: MessageThread
         </span>
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <h2 className="truncate text-[15px] font-bold leading-[22px] text-[#0f172a]">
-            {conversation.other.name}
+            <ProfileLink accountId={conversation.other.accountId} className="hover:underline">{conversation.other.name}</ProfileLink>
             {conversation.other.isVerified && <span className="ml-1.5 text-xs font-medium text-[#16a34a]">Verified ✓</span>}
           </h2>
           <p className="truncate text-xs leading-[17px] text-gray-500">

@@ -1,5 +1,6 @@
 "use client";
 
+import { ProfileLink } from "@/components/shared/ProfileLink";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -19,7 +20,7 @@ import type { PortfolioItemDto } from "@/types/api/schema";
 
 const CARD = "flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-4";
 
-function PortfolioCard({ item }: { item: PortfolioItemDto }) {
+export function PortfolioCard({ item }: { item: PortfolioItemDto }) {
   const media = item.media ?? [];
   return (
     <article className="flex flex-col gap-2 overflow-hidden rounded-xl border border-gray-200">
@@ -72,7 +73,7 @@ export function ProviderProfile({ id, kind }: { id: string; kind: "professional"
                     <Image src={data.owner.profilePicUrl ?? "/icons/avatar-placeholder-user.svg"} alt={name} fill className="object-cover" sizes="80px" />
                   </span>
                   <div className="flex min-w-0 flex-1 flex-col gap-1">
-                    <h1 className="text-2xl font-bold leading-8 text-[#0f172a]">{name}</h1>
+                    <h1 className="text-2xl font-bold leading-8 text-[#0f172a]"><ProfileLink accountId={data.owner.accountId} providerId={data.id} className="hover:text-brand-900 hover:underline">{name}</ProfileLink></h1>
                     {data.headline && <p className="text-sm font-medium text-brand-900">{data.headline}</p>}
                     <p className="flex items-center gap-1.5 text-[13px] text-gray-500">
                       <NavIcon icon="/icons/post-options-location.svg" size={13} className="bg-gray-500" />

@@ -1,5 +1,6 @@
 "use client";
 
+import { ProfileLink } from "@/components/shared/ProfileLink";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { getMediaItems, MediaCarousel, PostFollowButton, PostStatsBar } from "@/components/shared/PostCard";
@@ -42,7 +43,7 @@ export function PostDetailCard({ post, commentsCount }: PostDetailCardProps) {
         </span>
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
-            <p className="text-[15px] font-bold leading-[22px] text-[#0f172a]">{post.authorName}</p>
+            <ProfileLink accountId={post.authorId} className="text-[15px] font-bold leading-[22px] text-[#0f172a] hover:text-brand-900 hover:underline">{post.authorName}</ProfileLink>
             {post.verified && (
               <span className="rounded-full bg-[#dcfce7] px-2 py-[3px] text-[11px] font-medium leading-[14px] text-[#16a34a]">
                 {post.verified === "organization" ? "Business verified ✓" : "Verified ✓"}

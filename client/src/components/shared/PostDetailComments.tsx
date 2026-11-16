@@ -1,5 +1,6 @@
 "use client";
 
+import { ProfileLink } from "@/components/shared/ProfileLink";
 import Image from "next/image";
 import { useState, type FormEvent } from "react";
 import { NavIcon } from "@/components/shared/NavIcon";
@@ -162,7 +163,7 @@ function CommentRow({
       <Avatar src={comment.avatar} size={nested ? 28 : 36} />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex flex-col gap-1 rounded-[14px] bg-[#f8fafc] px-3.5 py-2.5">
-          <p className="text-[13px] font-semibold leading-[19px] text-[#0f172a]">{comment.authorName}</p>
+          <ProfileLink accountId={comment.authorId} className="text-[13px] font-semibold leading-[19px] text-[#0f172a] hover:text-brand-900 hover:underline">{comment.authorName}</ProfileLink>
           <p className="whitespace-pre-line text-[13px] leading-[19px] text-[#334155]">{comment.text}</p>
         </div>
         <div className="flex gap-3.5 px-3.5 text-xs font-medium leading-[17px] text-gray-500">

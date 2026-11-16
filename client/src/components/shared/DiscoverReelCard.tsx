@@ -1,5 +1,6 @@
 "use client";
 
+import { ProfileLink } from "@/components/shared/ProfileLink";
 import Image from "next/image";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
@@ -197,7 +198,7 @@ export function DiscoverReelCard({
               <div className="relative size-9 shrink-0 overflow-hidden rounded-full border border-white/40">
                 <Image src={reel.authorAvatar} alt="" fill sizes="36px" className="object-cover" />
               </div>
-              <p className={cn("whitespace-nowrap text-[14px] font-bold text-white", TEXT_SHADOW)}>{reel.authorName}</p>
+              <ProfileLink accountId={reel.authorId} className={cn("whitespace-nowrap text-[14px] font-bold text-white hover:underline", TEXT_SHADOW)}>{reel.authorName}</ProfileLink>
               <FollowButton following={following} onToggle={toggleFollow} name={reel.authorName} />
             </div>
             <p className={cn("line-clamp-2 text-[13px] font-medium text-white", TEXT_SHADOW)}>{captionText}</p>
@@ -232,7 +233,7 @@ export function DiscoverReelCard({
                 </span>
               )}
             </div>
-            <p className="truncate text-[14px] font-bold text-brand-900">{reel.authorName}</p>
+            <ProfileLink accountId={reel.authorId} className="truncate text-[14px] font-bold text-brand-900 hover:underline">{reel.authorName}</ProfileLink>
           </div>
           <FollowButton following={following} onToggle={toggleFollow} name={reel.authorName} />
         </div>

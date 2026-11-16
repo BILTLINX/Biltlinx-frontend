@@ -1,5 +1,6 @@
 "use client";
 
+import { ProfileLink } from "@/components/shared/ProfileLink";
 import Image from "next/image";
 import { useQuery } from "@tanstack/react-query";
 import { FollowButton } from "@/components/shared/FollowButton";
@@ -70,7 +71,7 @@ function WhoToFollowRow({ suggestion }: { suggestion: SuggestedAccount }) {
           )}
         </span>
         <div className="flex min-w-0 flex-col">
-          <p className="truncate text-[11px] font-bold text-gray-700">{account.username}</p>
+          <ProfileLink accountId={account.id} className="truncate text-[11px] font-bold text-gray-700 hover:underline">{account.username}</ProfileLink>
           {role && <p className="truncate text-[7.6px] text-gray-500">{role}</p>}
         </div>
       </div>
