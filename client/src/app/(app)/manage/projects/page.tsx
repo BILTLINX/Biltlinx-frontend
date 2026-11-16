@@ -7,6 +7,7 @@ import { useState } from "react";
 import { showSuccessToast } from "@/components/shared/AppToast";
 import { AppShell } from "@/components/shared/AppShell";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
+import { CreateProjectModal } from "@/components/shared/CreateProjectModal";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { PROJECTS_KEY, useMyProjects } from "@/hooks/useProjects";
@@ -19,6 +20,7 @@ export default function ManageProjectsPage() {
   const queryClient = useQueryClient();
   const projects = useMyProjects();
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
 
   const toggle = useMutation({
     mutationFn: ({ id, publish }: { id: string; publish: boolean }) => (publish ? publishProject(id) : pauseProject(id)),
@@ -46,9 +48,9 @@ export default function ManageProjectsPage() {
             <h1 className="text-2xl font-bold leading-8 text-[#0f172a]">Your projects</h1>
             <p className="text-sm leading-5 text-gray-500">Developments you are building, with their units, milestones, site updates and reservations.</p>
           </div>
-          <Link href="/manage/projects/new" className="flex h-10 items-center rounded-[10px] bg-brand-900 px-5 text-sm font-medium text-white hover:bg-brand-900/90">
+          <button type="button" onClick={() => setCreating(true)} className="flex h-10 items-center rounded-[10px] bg-brand-900 px-5 text-sm font-medium text-white hover:bg-brand-900/90">
             New project
-          </Link>
+          </button>
         </div>
 
         {projects.isPending && <Skeleton className="h-28 w-full rounded-2xl" />}
@@ -56,9 +58,9 @@ export default function ManageProjectsPage() {
         {projects.data?.length === 0 && (
           <p className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500">
             You have not started a project yet.{" "}
-            <Link href="/manage/projects/new" className="font-medium text-brand-900">
+            <button type="button" onClick={() => setCreating(true)} className="font-medium text-brand-900">
               Create your first one
-            </Link>
+            </button>
           </p>
         )}
         <div className="grid gap-4 md:grid-cols-2">
@@ -113,6 +115,7 @@ export default function ManageProjectsPage() {
           ))}
         </div>
       </PageContainer>
+      <CreateProjectModal open={creating} onClose={() => setCreating(false)} />
     </AppShell>
   );
 }

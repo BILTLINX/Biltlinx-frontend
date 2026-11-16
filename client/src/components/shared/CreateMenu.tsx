@@ -14,10 +14,10 @@ function menuItemHref(item: { key: string; label: string }) {
 }
 
 /** The entries that open a form in a dialog instead of going to a page. */
-type ModalKey = "property" | "stay" | "service" | "community" | "event";
+type ModalKey = "property" | "stay" | "service" | "community" | "event" | "project";
 
 function opensModal(key: string): key is ModalKey {
-  return key === "property" || key === "stay" || key === "service" || key === "community" || key === "event";
+  return key === "property" || key === "stay" || key === "service" || key === "community" || key === "event" || key === "project";
 }
 
 interface DesktopSubmenuItem {
@@ -358,16 +358,12 @@ function MobileMenuRow({
                         onNavigate();
                       }}
                     />
-                  ) : sub.key === "property" ||
-                    sub.key === "stay" ||
-                    sub.key === "service" ? (
+                  ) : opensModal(sub.key) ? (
                     <button
                       key={sub.key}
                       type="button"
                       onClick={() => {
-                        onOpenListingModal(
-                          sub.key as "property" | "stay" | "service",
-                        );
+                        onOpenListingModal(sub.key as ModalKey);
                         onNavigate();
                       }}
                       className={MOBILE_ROW_CLASS}

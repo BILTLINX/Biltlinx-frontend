@@ -1,17 +1,16 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { showSuccessToast } from "@/components/shared/AppToast";
+import { DeveloperRoleNotice } from "@/components/shared/DeveloperRoleNotice";
 import { FIELD_BOX, FIELD_INPUT, FormField } from "@/components/shared/ModalFormParts";
 import { Button } from "@/components/ui/Button";
 import { PROJECTS_KEY } from "@/hooks/useProjects";
-import { requestCapability } from "@/lib/account-api";
 import { ApiError } from "@/lib/api";
-import { errorMessage, notifyError } from "@/lib/errors";
+import { notifyError } from "@/lib/errors";
 import { PROJECT_STAGES } from "@/lib/project-mapper";
 import { createProject, updateProject } from "@/lib/projects-api";
 import { uploadMedia, type UploadedMedia } from "@/lib/upload";
@@ -69,12 +68,6 @@ export function ProjectDetailsForm({ initial }: ProjectDetailsFormProps) {
     },
   });
 
-  const requestRole = useMutation({
-    mutationFn: () => requestCapability("Developer", "I want to list development projects on Biltlinx."),
-    onSuccess: () => showSuccessToast("Developer role requested. We will let you know when it is approved."),
-    onError: (error) => notifyError(error),
-  });
-
   async function pickFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
     setUploading(true);
@@ -121,25 +114,7 @@ export function ProjectDetailsForm({ initial }: ProjectDetailsFormProps) {
 
   const box = (key?: string) => cn(FIELD_BOX, key && errors[key] ? "border-[#dc2626]" : "border-gray-200");
 
-  if (needsRole) {
-    return (
-      <section className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-5">
-        <h2 className="text-base font-bold text-[#0f172a]">The Developer role is needed</h2>
-        <p className="text-sm leading-5 text-gray-500">
-          Only approved developers can create projects. Request the role and we will review it, or manage your roles from your account settings.
-        </p>
-        <div className="flex flex-wrap gap-2.5">
-          <Button variant="primary" onClick={() => requestRole.mutate()} disabled={requestRole.isPending || requestRole.isSuccess} className="w-auto px-5">
-            {requestRole.isSuccess ? "Role requested" : "Request the Developer role"}
-          </Button>
-          <Link href="/account-settings?tab=teams" className="flex h-10 items-center rounded-lg border border-gray-200 px-5 text-sm font-medium text-[#0f172a] hover:bg-gray-50">
-            Roles and teams
-          </Link>
-        </div>
-        {requestRole.isError && <p className="text-xs text-[#dc2626]">{errorMessage(requestRole.error)}</p>}
-      </section>
-    );
-  }
+  if (needsRole) return <DeveloperRoleNotice className="rounded-2xl border border-gray-200 bg-white p-5" />;
 
   return (
     <section className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5">
