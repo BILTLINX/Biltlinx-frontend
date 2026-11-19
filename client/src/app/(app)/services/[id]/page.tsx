@@ -7,8 +7,10 @@ import { use, useState } from "react";
 import { showSuccessToast } from "@/components/shared/AppToast";
 import { AppShell } from "@/components/shared/AppShell";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
+import { KeyFacts, type KeyFact } from "@/components/shared/KeyFacts";
 import { offeringPrice } from "@/components/shared/OfferingCard";
 import { PageContainer } from "@/components/shared/PageContainer";
+import { PropertyGallery } from "@/components/shared/PropertyGallery";
 import { QuoteRequestDialog } from "@/components/shared/QuoteRequestDialog";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -39,6 +41,11 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
 
   const provider = data?.provider;
   const name = provider?.displayName ?? provider?.owner.username ?? "Provider";
+  const photos = (data?.media ?? []).map((file) => file.url).filter((url): url is string => Boolean(url));
+  const facts: KeyFact[] = [];
+  if (data) facts.push({ value: offeringPrice(data), label: "Price" });
+  if (data?.serviceAreas && data.serviceAreas.length > 0) facts.push({ value: data.serviceAreas.join(", "), label: "Service area" });
+  if (data?.maxBookingsPerDay) facts.push({ value: String(data.maxBookingsPerDay), label: "Jobs per day" });
 
   function submitBooking() {
     book.mutate(
@@ -69,22 +76,31 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
         {data && provider && (
           <>
             <Breadcrumbs crumbs={[{ label: "Services", href: "/services" }, { label: data.category ?? "Service" }, { label: data.title ?? "Service" }]} />
+            {photos.length > 0 && (
+              <PropertyGallery
+                gallery={{ main: photos[0], side: [photos[1] ?? null, photos[2] ?? null], moreLabel: photos.length > 3 ? `+ ${photos.length - 3} photos` : null }}
+                title={data.title ?? "Service"}
+              />
+            )}
             <div className="flex w-full flex-col items-start gap-6 xl:flex-row">
               <div className="flex w-full min-w-0 flex-1 flex-col gap-5">
-                {(data.media ?? []).length > 0 && (
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {data.media?.slice(0, 4).map((file, index) => (
-                      <div key={`${file.url}-${index}`} className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-[#eef2ff]">
-                        {file.url && <Image src={file.url} alt="" fill unoptimized className="object-cover" sizes="400px" />}
-                      </div>
-                    ))}
-                  </div>
-                )}
                 <header className="flex flex-col gap-2">
-                  <span className="self-start rounded-full bg-[#eff5ff] px-2.5 py-1 text-xs font-medium text-brand-900">{data.category}</span>
-                  <h1 className="text-2xl font-bold leading-8 text-[#0f172a] sm:text-[26px]">{data.title}</h1>
-                  <p className="text-[28px] font-bold leading-9 text-[#0f172a]">{offeringPrice(data)}</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-[#eff5ff] px-2.5 py-1 text-xs font-medium text-brand-900">{data.category}</span>
+                    {provider.credentialVerified && <span className="rounded-full bg-[#dcfce7] px-2 py-[3px] text-[11px] font-medium text-[#16a34a]">Credential verified ✓</span>}
+                    {provider.owner.isVerified && <span className="rounded-full bg-[#dcfce7] px-2 py-[3px] text-[11px] font-medium text-[#16a34a]">ID verified ✓</span>}
+                  </div>
+                  <h1 className="text-2xl font-bold leading-8 text-[#0f172a] sm:text-[26px] sm:leading-[34px]">{data.title}</h1>
+                  <Link href={`/professionals/${provider.id}`} className="flex items-center gap-2 text-[13px] leading-[19px]">
+                    <span className="relative block size-6 shrink-0 overflow-hidden rounded-full bg-[#eef2ff]">
+                      <Image src={provider.owner.profilePicUrl ?? "/icons/avatar-placeholder-user.svg"} alt="" fill className="object-cover" sizes="24px" />
+                    </span>
+                    <span className="font-medium text-brand-900">{name}</span>
+                    {provider.city && <span className="text-gray-500">· {provider.city}</span>}
+                  </Link>
                 </header>
+
+                <KeyFacts facts={facts} />
                 {data.description && (
                   <section className="flex flex-col gap-2 rounded-2xl border border-gray-200 bg-white p-4">
                     <h2 className="text-base font-bold text-[#0f172a]">What is included</h2>
@@ -101,15 +117,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
               </div>
 
               <aside className="flex w-full flex-col gap-3.5 rounded-2xl border border-gray-200 bg-white p-5 xl:sticky xl:top-0 xl:w-[360px] xl:shrink-0 xl:self-start">
-                <Link href={`/professionals/${provider.id}`} className="flex items-center gap-3">
-                  <span className="relative block size-12 shrink-0 overflow-hidden rounded-full bg-[#eef2ff]">
-                    <Image src={provider.owner.profilePicUrl ?? "/icons/avatar-placeholder-user.svg"} alt="" fill className="object-cover" sizes="48px" />
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block truncate text-[15px] font-bold text-[#0f172a]">{name}</span>
-                    <span className="block text-xs text-gray-500">{provider.city}</span>
-                  </span>
-                </Link>
+                <p className="text-[26px] font-bold leading-9 text-[#0f172a]">{offeringPrice(data)}</p>
 
                 {bookable ? (
                   <>
@@ -161,6 +169,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
                 >
                   Message {name}
                 </Button>
+                <p className="text-xs leading-[17px] text-gray-500">You will not be charged until you accept a quote or the provider confirms. Payments are held by Biltlinx until the work is delivered.</p>
                 <Link href="/services/my-bookings" className="text-center text-[13px] font-medium text-brand-900">
                   See my bookings
                 </Link>

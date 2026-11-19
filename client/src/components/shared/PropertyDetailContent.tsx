@@ -1,9 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { KeyFacts } from "@/components/shared/KeyFacts";
 import { NavIcon } from "@/components/shared/NavIcon";
+import { PropertyCard } from "@/components/shared/PropertyCard";
 import { getDocumentUrl } from "@/lib/properties-api";
 import { notifyError } from "@/lib/errors";
 import { propertyLocation, type PropertyDetailView } from "@/lib/property-mapper";
@@ -61,7 +61,7 @@ export function PropertyDetailContent({ detail, similar }: { detail: PropertyDet
             {card.price}
             {card.priceUnit && <span className="text-base font-medium text-gray-500"> / {card.priceUnit}</span>}
           </span>
-          <span className="text-[13px] font-medium leading-[19px] text-gray-500">{detail.priceNote}</span>
+          <span className="text-[13px] font-medium leading-[19px] text-gray-500">{detail.headlineNote}</span>
         </p>
       </header>
 
@@ -120,19 +120,7 @@ export function PropertyDetailContent({ detail, similar }: { detail: PropertyDet
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
             {similar.slice(0, 3).map((home) => (
-              <Link
-                key={home.id}
-                href={home.href ?? "/properties"}
-                className="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white text-left hover:bg-gray-50"
-              >
-                <span className="relative block h-[120px] w-full">
-                  <Image src={home.image} alt="" fill className="object-cover" sizes="(min-width: 640px) 240px, 100vw" />
-                </span>
-                <span className="flex flex-col gap-0.5 p-3">
-                  <span className="text-[15px] font-bold leading-[22px] text-[#0f172a]">{home.price}</span>
-                  <span className="truncate text-xs leading-[17px] text-gray-500">{home.title}</span>
-                </span>
-              </Link>
+              <PropertyCard key={home.id} listing={home} />
             ))}
           </div>
         </section>

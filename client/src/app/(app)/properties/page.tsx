@@ -6,7 +6,7 @@ import { useState } from "react";
 import { AppShell } from "@/components/shared/AppShell";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { filterText, FilterPanel, type FilterSection, type FilterValues } from "@/components/shared/FilterPanel";
-import { ListingCard } from "@/components/shared/ListingCard";
+import { PropertyCard } from "@/components/shared/PropertyCard";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { PropertiesRail } from "@/components/shared/PropertiesRail";
 import { Pagination } from "@/components/ui/Pagination";
@@ -136,7 +136,7 @@ export default function PropertiesPage() {
         {cards.length > 0 && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {cards.map((listing) => (
-              <ListingCard key={listing.id} listing={listing} />
+              <PropertyCard key={listing.id} listing={listing} />
             ))}
           </div>
         )}

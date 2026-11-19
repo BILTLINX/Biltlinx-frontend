@@ -81,6 +81,8 @@ export interface PropertyDetailView {
   gallery: { main: string; side: [string | null, string | null]; moreLabel: string | null };
   updated: string;
   priceNote: string;
+  /** Under the headline price: whether it is negotiable and, for a sale, what a square metre costs. */
+  headlineNote: string;
   keyFacts: KeyFact[];
   terms: KeyFact[];
   description: string;
@@ -104,6 +106,15 @@ export function toDocumentView(document: ListingDocumentDto): PropertyDocumentVi
     isPublic: document.isPublic,
     url: document.url,
   };
+}
+
+function headlineNote(property: PropertyDto): string {
+  const parts: string[] = [];
+  if (property.isNegotiable) parts.push("Negotiable");
+  if (property.listingType !== "Rent" && property.floorAreaSqm) {
+    parts.push(`≈ ${formatMoney(Math.round(property.price / property.floorAreaSqm), property.currency ?? "GHS")} / m²`);
+  }
+  return parts.length > 0 ? parts.join(" · ") : priceNote(property);
 }
 
 function priceNote(property: PropertyDto): string {
@@ -152,6 +163,7 @@ export function toPropertyDetail(property: PropertyDto, documents: ListingDocume
     },
     updated: property.isStale ? `Last confirmed ${formatDate(property.lastConfirmedAt)}` : `Confirmed ${formatRelative(property.lastConfirmedAt)} ago`,
     priceNote: priceNote(property),
+    headlineNote: headlineNote(property),
     keyFacts: facts,
     terms,
     description: property.description ?? "",

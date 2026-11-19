@@ -123,7 +123,8 @@ export function AppShell({
   const toggleCollapse = () => setSidebarOverride(!collapsed);
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-hidden bg-gray-50">
+    // `data-sidebar` lets a page's CSS react to the sidebar (e.g. `group-data-[sidebar=collapsed]/shell:`) without being passed the state.
+    <div data-sidebar={collapsed ? "collapsed" : "expanded"} className="group/shell flex h-screen w-full flex-col overflow-hidden bg-gray-50">
       <OfflineBanner />
       {topNav ?? <TopNav />}
       <div className="flex w-full flex-1 overflow-hidden">

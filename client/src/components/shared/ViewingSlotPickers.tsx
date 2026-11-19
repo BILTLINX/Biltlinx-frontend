@@ -12,7 +12,7 @@ const TRIGGER =
   "flex h-11 w-full [@media(max-height:860px)]:h-10 items-center gap-2 rounded-[10px] border bg-white px-3.5 text-left text-[13px] leading-5 text-[#0f172a] focus-visible:border-brand-900 focus-visible:outline-none sm:text-sm";
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-function toKey(year: number, month: number, day: number) {
+export function toKey(year: number, month: number, day: number) {
   return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
@@ -22,7 +22,7 @@ export function todayKey() {
   return toKey(now.getFullYear(), now.getMonth(), now.getDate());
 }
 
-function parseKey(key: string) {
+export function parseKey(key: string) {
   const [year, month, day] = key.split("-").map(Number);
   return new Date(year, month - 1, day);
 }

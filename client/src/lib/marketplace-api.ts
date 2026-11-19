@@ -1,7 +1,5 @@
 import { apiRequest, type QueryValue } from "@/lib/api";
-import { formatMoney } from "@/lib/format";
-import type { ListingCardData } from "@/types/listing";
-import type { MarketplaceFacetsDto, OfferDto, PagedOfOfferDto, PriceChangeDto } from "@/types/api/schema";
+import type { MarketplaceFacetsDto, PagedOfOfferDto, PriceChangeDto } from "@/types/api/schema";
 
 export interface MarketplaceQuery {
   page?: number;
@@ -25,7 +23,8 @@ export const KIND_LABEL: Record<string, string> = {
   Service: "Services",
 };
 
-const KIND_PILL: Record<string, string> = {
+/** The short label on a card's category pill. */
+export const KIND_PILL: Record<string, string> = {
   PropertySale: "Property sale",
   PropertyRent: "Rental",
   Land: "Land",
@@ -33,16 +32,7 @@ const KIND_PILL: Record<string, string> = {
   Service: "Service",
 };
 
-/** The button on a card says what the next step is for that kind of listing. */
-const KIND_CTA: Record<string, string> = {
-  PropertySale: "Request viewing",
-  PropertyRent: "Request viewing",
-  Land: "Enquire",
-  Stay: "Check availability",
-  Service: "Request quote",
-};
-
-const UNIT_SUFFIX: Record<string, string> = {
+export const UNIT_SUFFIX: Record<string, string> = {
   PerNight: "night",
   PerDay: "day",
   PerWeek: "week",
@@ -64,23 +54,4 @@ export function getFacets() {
 
 export function getPriceHistory(listingId: string) {
   return apiRequest<PriceChangeDto[]>(`/marketplace/listings/${listingId}/price-history`);
-}
-
-export function offerToCard(offer: OfferDto): ListingCardData {
-  const kind = offer.kind ?? "";
-  const route = offer.detailRoute ?? "/marketplace";
-  return {
-    id: `${kind}-${offer.id}`,
-    kind: KIND_PILL[kind] ?? "Listing",
-    image: offer.coverUrl ?? "/images/marketplace/property-sale.jpg",
-    href: route,
-    price: `${offer.priceLabel && offer.priceLabel !== "Asking price" ? `${offer.priceLabel} ` : ""}${formatMoney(offer.price, offer.currency ?? "GHS")}`,
-    priceUnit: offer.unit ? UNIT_SUFFIX[offer.unit] : undefined,
-    title: offer.title ?? "Listing",
-    location: [offer.category, offer.city].filter(Boolean).join(" · ") || "Ghana",
-    badges: offer.negotiable ? [{ label: "Negotiable", tone: "neutral" }] : undefined,
-    cta: KIND_CTA[kind] ?? "View details",
-    ctaHref: route,
-    ownerId: offer.ownerAccountId,
-  };
 }

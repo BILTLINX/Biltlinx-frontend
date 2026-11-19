@@ -1,3 +1,4 @@
+import type { OfferDto, ProviderCardDto } from "@/types/api/schema";
 import type { DiscoverReel } from "@/types/reel";
 import type { ListingCardData } from "@/types/listing";
 import type { PostCardData } from "@/types/post";
@@ -62,6 +63,35 @@ export function savedListing(listing: ListingCardData): SavedDraft | null {
     subtitle: listing.location,
     price: listing.priceUnit ? `${listing.price} / ${listing.priceUnit}` : listing.price,
     image: listing.image,
+    href,
+  };
+}
+
+/** A marketplace offer as a saved item, or null when it has no page to come back to. */
+export function savedOffer(offer: OfferDto, kind: string, price: string): SavedDraft | null {
+  if (!offer.detailRoute) return null;
+  return {
+    key: offer.detailRoute,
+    type: "Marketplace",
+    kind,
+    title: offer.title ?? kind,
+    subtitle: offer.city ?? undefined,
+    price,
+    image: offer.coverUrl ?? "/images/marketplace/property-sale.jpg",
+    href: offer.detailRoute,
+  };
+}
+
+/** A professional as a saved item. */
+export function savedProvider(provider: ProviderCardDto, kind: "professional" | "artisan", name: string): SavedDraft {
+  const href = `/${kind === "professional" ? "professionals" : "artisans"}/${provider.id}`;
+  return {
+    key: href,
+    type: kind === "professional" ? "Professionals" : "Artisans",
+    kind: kind === "professional" ? "Professional" : "Artisan",
+    title: name,
+    subtitle: (provider.categories ?? []).slice(0, 2).join(" · ") || provider.city || undefined,
+    image: provider.owner.profilePicUrl ?? AVATAR_PLACEHOLDER,
     href,
   };
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { DatePickerField } from "@/components/shared/ViewingSlotPickers";
+import { parseKey } from "@/components/shared/ViewingSlotPickers";
 import { useMutation } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
@@ -8,10 +8,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, use, useMemo, useRef, useState } from "react";
 import { AppShell } from "@/components/shared/AppShell";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
+import { KeyFacts, type KeyFact } from "@/components/shared/KeyFacts";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { PropertyGallery } from "@/components/shared/PropertyGallery";
 import { SelectField } from "@/components/shared/SelectField";
+import { StayAvailabilityCalendar } from "@/components/shared/StayAvailabilityCalendar";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useStartConversation } from "@/hooks/useMessaging";
@@ -26,9 +28,9 @@ import { cn } from "@/lib/utils";
 
 const CARD = "flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-4";
 
-function PriceLines({ price }: { price: PriceBreakdownDto }) {
+function PriceLines({ price, className }: { price: PriceBreakdownDto; className?: string }) {
   return (
-    <div className="flex flex-col gap-1 rounded-lg bg-[#f8fafc] p-3 text-[12px] leading-[17px] text-[#334155]">
+    <div className={cn("flex flex-col gap-1 rounded-lg bg-[#f8fafc] p-3 text-[12px] leading-[17px] text-[#334155]", className)}>
       {(price.lines ?? []).map((line, index) => (
         <div key={`${line.label}-${index}`} className="flex justify-between gap-3">
           <span>{line.label}</span>
@@ -41,6 +43,21 @@ function PriceLines({ price }: { price: PriceBreakdownDto }) {
       </div>
       {price.cancellationTerms && <p className="pt-1 text-gray-500">{price.cancellationTerms}</p>}
     </div>
+  );
+}
+
+/** "Sat 24 Oct" */
+function shortDate(key: string) {
+  return parseKey(key).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }).replace(",", "");
+}
+
+/** One half of the dates box in the booking panel; it takes you to the calendar to pick the day. */
+function DateCell({ label, value }: { label: string; value: string }) {
+  return (
+    <a href="#availability" className="flex flex-col gap-0.5 px-3.5 py-2.5 hover:bg-gray-50">
+      <span className="text-[10px] font-bold tracking-wide text-gray-500">{label}</span>
+      <span className={cn("text-sm font-semibold", value ? "text-[#0f172a]" : "text-[#94a3b8]")}>{value ? shortDate(value) : "Add date"}</span>
+    </a>
   );
 }
 
@@ -123,6 +140,17 @@ function StayDetail({ id }: { id: string }) {
   });
 
   const stay = detail.data;
+  const stayRooms = stay?.rooms ?? [];
+  const plans = stayRooms.flatMap((room) => (room.ratePlans ?? []).map((plan) => ({ plan, room })));
+  const fromNightly = plans.length > 0 ? Math.min(...plans.map(({ plan }) => plan.nightly)) : null;
+  // "Book now" reserves the cheapest rate that is free for the chosen dates; the other rates are reserved from the list on the left.
+  const open = datesValid ? plans.filter(({ room }) => room.bookable !== false) : [];
+  const cheapest = open.length > 0 ? open.reduce((best, item) => (item.plan.quote.total < best.plan.quote.total ? item : best)) : null;
+  const facts: KeyFact[] = [];
+  if (stayRooms.length > 0) facts.push({ value: `Up to ${Math.max(...stayRooms.map((room) => room.maxGuestsPerUnit))}`, label: "Guests" });
+  if (stayRooms.length === 1 && stayRooms[0].bedsDescription) facts.push({ value: stayRooms[0].bedsDescription, label: "Bed" });
+  if (stay?.checkInFrom) facts.push({ value: `From ${stay.checkInFrom}`, label: "Check-in" });
+  if (stay?.checkOutBy) facts.push({ value: `By ${stay.checkOutBy}`, label: "Check-out" });
   const photos = stay?.photos ?? [];
   const gallery = useMemo(
     () => ({ main: photos[0] ?? FALLBACK_STAY_IMAGE, side: [photos[1] ?? null, photos[2] ?? null] as [string | null, string | null], moreLabel: photos.length > 3 ? `+ ${photos.length - 3} photos` : null }),
@@ -162,6 +190,8 @@ function StayDetail({ id }: { id: string }) {
                     </span>
                   </p>
                 </header>
+
+                {facts.length > 0 && <KeyFacts facts={facts} />}
 
                 {stay.description && (
                   <section className={CARD}>
@@ -211,6 +241,15 @@ function StayDetail({ id }: { id: string }) {
                   ))}
                 </section>
 
+                <StayAvailabilityCalendar
+                  checkIn={checkIn}
+                  checkOut={checkOut}
+                  onChange={(start, end) => {
+                    setCheckIn(start);
+                    setCheckOut(end);
+                  }}
+                />
+
                 <section className={CARD}>
                   <h2 className="text-base font-bold text-[#0f172a]">House rules and cancellation</h2>
                   <dl className="grid gap-x-6 gap-y-2 text-[13px] sm:grid-cols-2">
@@ -241,30 +280,38 @@ function StayDetail({ id }: { id: string }) {
                   {stay.houseRules && <p className="whitespace-pre-line text-[13px] leading-[19px] text-[#334155]">{stay.houseRules}</p>}
                   {stay.accessibility && <p className="text-[13px] leading-[19px] text-[#334155]">Accessibility: {stay.accessibility}</p>}
                 </section>
+
+                <section className={CARD}>
+                  <h2 className="text-base font-bold text-[#0f172a]">Reviews</h2>
+                  <p className="text-[13px] leading-[19px] text-gray-500">No reviews yet. Guests will be able to review this stay after they check out.</p>
+                </section>
               </div>
 
               <aside className="flex w-full flex-col gap-3.5 rounded-2xl border border-gray-200 bg-white p-5 xl:sticky xl:top-0 xl:w-[360px] xl:shrink-0 xl:self-start">
-                <h2 className="text-base font-bold text-[#0f172a]">Your stay</h2>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[10px] font-bold text-gray-500">CHECK IN</span>
-                    <DatePickerField value={checkIn} onChange={setCheckIn} />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[10px] font-bold text-gray-500">CHECK OUT</span>
-                    <DatePickerField value={checkOut} min={checkIn || undefined} onChange={setCheckOut} />
-                  </div>
+                <p className="flex items-baseline gap-1.5 text-[26px] font-bold leading-9 text-[#0f172a]">
+                  {fromNightly !== null ? formatMoney(fromNightly, stay.currency ?? "GHS") : "Price on request"}
+                  {fromNightly !== null && <span className="text-sm font-normal text-gray-500">/ night</span>}
+                </p>
+                <div className="grid grid-cols-2 divide-x divide-gray-200 overflow-hidden rounded-xl border border-gray-200">
+                  <DateCell label="CHECK IN" value={checkIn} />
+                  <DateCell label="CHECK OUT" value={checkOut} />
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="flex flex-col gap-0.5 rounded-xl border border-gray-200 px-3.5 pb-1 pt-2.5">
+                  <span className="text-[10px] font-bold tracking-wide text-gray-500">GUESTS</span>
+                  <SelectField
+                    aria-label="Guests"
+                    value={String(guests)}
+                    onChange={(value) => setGuests(Number(value))}
+                    className="h-7 rounded-none border-0 px-0 text-sm font-semibold"
+                    options={Array.from({ length: 10 }, (_, index) => ({ value: String(index + 1), label: `${index + 1} ${index === 0 ? "guest" : "guests"}` }))}
+                  />
+                </div>
+                {stayRooms.some((room) => room.quantity > 1) && (
                   <label className="flex flex-col gap-0.5 rounded-xl border border-gray-200 px-3.5 py-2.5">
-                    <span className="text-[10px] font-bold text-gray-500">GUESTS</span>
-                    <input type="number" min={1} max={20} value={guests} onChange={(event) => setGuests(Math.max(1, Number(event.target.value) || 1))} className="w-full bg-transparent text-sm font-semibold text-[#0f172a] focus:outline-none" />
-                  </label>
-                  <label className="flex flex-col gap-0.5 rounded-xl border border-gray-200 px-3.5 py-2.5">
-                    <span className="text-[10px] font-bold text-gray-500">ROOMS</span>
+                    <span className="text-[10px] font-bold tracking-wide text-gray-500">ROOMS</span>
                     <input type="number" min={1} max={10} value={rooms} onChange={(event) => setRooms(Math.max(1, Number(event.target.value) || 1))} className="w-full bg-transparent text-sm font-semibold text-[#0f172a] focus:outline-none" />
                   </label>
-                </div>
+                )}
                 {(stay.academicPeriods ?? []).length > 0 && (
                   <label className="flex flex-col gap-1 text-[13px] font-semibold text-[#0f172a]">
                     Academic period
@@ -277,9 +324,14 @@ function StayDetail({ id }: { id: string }) {
                     />
                   </label>
                 )}
-                <p className="text-xs leading-[17px] text-gray-500">
-                  {datesValid ? `${nights} ${nights === 1 ? "night" : "nights"}. Pick a rate on the left to reserve. We hold it for 15 minutes while you pay.` : "Choose both dates to see what is available."}
-                </p>
+                {datesValid && (
+                  <span className={cn("self-start rounded-full px-2.5 py-1 text-[11px] font-medium", cheapest ? "bg-[#dcfce7] text-[#16a34a]" : "bg-[#fee2e2] text-[#dc2626]")}>
+                    {cheapest ? "Available for your dates" : "Not available for your dates"}
+                  </span>
+                )}
+                <Button variant="primary" disabled={!cheapest || hold.isPending} onClick={() => cheapest && hold.mutate(cheapest.plan.id)} className="h-12 rounded-[10px] lg:rounded-[10px]">
+                  {!datesValid ? "Choose your dates" : hold.isPending ? "Reserving…" : "Book now"}
+                </Button>
                 <Button
                   variant="outline"
                   disabled={message.isPending}
@@ -293,6 +345,15 @@ function StayDetail({ id }: { id: string }) {
                 >
                   Message host
                 </Button>
+                {cheapest && (
+                  <>
+                    <PriceLines price={cheapest.plan.quote} className="bg-transparent p-0 text-[13px] leading-5 text-gray-500" />
+                    <p className="text-xs leading-[17px] text-gray-500">
+                      {cheapest.room.name} · {cheapest.plan.name}, the lowest rate for these dates. You are not charged yet; we hold it for 15 minutes while you pay.
+                    </p>
+                  </>
+                )}
+                {!datesValid && <p className="text-xs leading-[17px] text-gray-500">Choose both dates to see what is available and the full price.</p>}
                 <div className="flex items-center gap-3 border-t border-gray-200 pt-3.5">
                   <span className="relative block size-10 shrink-0 overflow-hidden rounded-full bg-[#eef2ff]">
                     <Image src={stay.operator.profilePicUrl ?? "/icons/avatar-placeholder-user.svg"} alt="" fill className="object-cover" sizes="40px" />

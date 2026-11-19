@@ -7,7 +7,7 @@ import { Suspense, useMemo } from "react";
 import { AppShell } from "@/components/shared/AppShell";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { filterList, filterText, FilterPanel, type FilterSection } from "@/components/shared/FilterPanel";
-import { ListingCard } from "@/components/shared/ListingCard";
+import { PropertyCard } from "@/components/shared/PropertyCard";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { StayRail } from "@/components/shared/StayRail";
 import { Pagination } from "@/components/ui/Pagination";
@@ -155,7 +155,7 @@ function StayContent() {
         {cards.length > 0 && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {cards.map((stay) => (
-              <ListingCard key={stay.id} listing={stay} />
+              <PropertyCard key={stay.id} listing={stay} />
             ))}
           </div>
         )}

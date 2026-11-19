@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 import { AppShell } from "@/components/shared/AppShell";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { filterList, filterText, FilterPanel, type FilterSection, type FilterValues } from "@/components/shared/FilterPanel";
-import { ListingCard } from "@/components/shared/ListingCard";
+import { MarketplaceCard } from "@/components/shared/MarketplaceCard";
 import { MarketplaceRail } from "@/components/shared/MarketplaceRail";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { Pagination } from "@/components/ui/Pagination";
@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { PAGE_SIZE, usePage, usePagedSearch } from "@/hooks/usePagedSearch";
 import { comingSoonHref } from "@/lib/coming-soon";
 import { errorMessage } from "@/lib/errors";
-import { getFacets, KIND_LABEL, offerToCard, searchMarketplace } from "@/lib/marketplace-api";
+import { getFacets, KIND_LABEL, searchMarketplace } from "@/lib/marketplace-api";
 import { useDebouncedSearch } from "@/context/SearchContext";
 
 const NO_FILTERS: FilterValues = { kind: [], city: "", category: "", currency: "", minPrice: "", maxPrice: "", unit: "" };
@@ -81,7 +81,6 @@ export default function MarketplacePage() {
   const [page, setPage] = usePage(query);
   const result = usePagedSearch(["marketplace", "offers", query], (n, signal) => searchMarketplace({ ...query, page: n, results: PAGE_SIZE }, signal), page);
   const { total, totalPages } = result;
-  const cards = useMemo(() => result.items.map(offerToCard), [result.items]);
 
   return (
     <AppShell activeKey="feed" activeChildKey="marketplace" contentFullWidth rightRail={<MarketplaceRail />}>
@@ -122,8 +121,8 @@ export default function MarketplacePage() {
             </button>
           </div>
         )}
-        {!result.isPending && !result.isError && cards.length === 0 && search && <SearchEmpty noun="listings" />}
-        {!result.isPending && !result.isError && cards.length === 0 && !search && (
+        {!result.isPending && !result.isError && result.items.length === 0 && search && <SearchEmpty noun="listings" />}
+        {!result.isPending && !result.isError && result.items.length === 0 && !search && (
           <EmptyState
             mood="sad"
             icon="search-sad"
@@ -133,11 +132,14 @@ export default function MarketplacePage() {
             secondary={{ label: "Save this search", href: comingSoonHref("Saved searches") }}
           />
         )}
-        {cards.length > 0 && (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {cards.map((listing) => (
-              <ListingCard key={listing.id} listing={listing} />
-            ))}
+        {result.items.length > 0 && (
+          // Two across with the sidebar open; three only when it is collapsed and the page is wide enough for them.
+          <div className="@container">
+            <div className="grid grid-cols-1 gap-4 @[560px]:grid-cols-2 group-data-[sidebar=collapsed]/shell:@[760px]:grid-cols-3">
+              {result.items.map((offer) => (
+                <MarketplaceCard key={`${offer.kind}-${offer.id}`} offer={offer} />
+              ))}
+            </div>
           </div>
         )}
         <Pagination page={page} totalPages={totalPages} onChange={setPage} />

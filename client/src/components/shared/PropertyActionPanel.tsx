@@ -1,9 +1,11 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { showSuccessToast } from "@/components/shared/AppToast";
+import { BookmarkIcon } from "@/components/shared/BookmarkIcon";
 import { DetailAside } from "@/components/shared/DetailAside";
 import { EnquiryModal } from "@/components/shared/EnquiryModal";
 import { NavIcon } from "@/components/shared/NavIcon";
@@ -12,7 +14,9 @@ import { Button } from "@/components/ui/Button";
 import { useCompare } from "@/context/CompareContext";
 import { useStartConversation } from "@/hooks/useMessaging";
 import { useReportUnavailable } from "@/hooks/useProperties";
+import { useSaved } from "@/hooks/useSaved";
 import type { PropertyDetailView } from "@/lib/property-mapper";
+import { savedListing } from "@/lib/saved-items";
 import { shareContent } from "@/lib/share";
 
 const CARD = "flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-4";
@@ -28,6 +32,7 @@ export function PropertyActionPanel({ detail }: { detail: PropertyDetailView }) 
   const owner = property.owner;
   const report = useReportUnavailable(property.id);
   const message = useStartConversation();
+  const { canSave, saved, toggle: toggleSaved } = useSaved(savedListing(card));
   const isRental = property.listingType === "Rent";
   const unavailable = property.availability !== null && property.availability !== "Available";
 
@@ -58,7 +63,18 @@ export function PropertyActionPanel({ detail }: { detail: PropertyDetailView }) 
             {unavailable && <p className="text-xs leading-[17px] text-[#b45309]">This property is {property.availability?.toLowerCase()}.</p>}
           </>
         )}
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-3 gap-2">
+          {canSave && (
+            <button
+              type="button"
+              aria-pressed={saved}
+              onClick={toggleSaved}
+              className="flex items-center justify-center gap-1.5 rounded-[10px] border border-gray-200 py-2 text-[13px] font-medium leading-[19px] text-[#334155] hover:bg-gray-50"
+            >
+              <BookmarkIcon saved={saved} size={16} />
+              {saved ? "Saved" : "Save"}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => shareContent({ title: card.title, path: `/properties/${property.id}` })}
@@ -138,6 +154,14 @@ export function PropertyActionPanel({ detail }: { detail: PropertyDetailView }) 
             {report.isSuccess ? "Reported. Thank you." : "Report as no longer available"}
           </button>
         )}
+      </section>
+
+      <section className={`${CARD} gap-2`}>
+        <h2 className="text-sm font-bold leading-5 text-[#0f172a]">{isRental ? "Want help renting?" : "Want help buying?"}</h2>
+        <p className="text-xs leading-[17px] text-gray-500">Concierge can line up a surveyor and a lawyer to check this property before you pay.</p>
+        <Link href="/concierge" className={`flex h-9 items-center justify-center border border-gray-200 px-4 text-sm font-medium text-[#0f172a] hover:bg-gray-50 ${ROUNDED}`}>
+          Ask Concierge
+        </Link>
       </section>
 
       <RequestViewingModal
