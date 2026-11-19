@@ -14,10 +14,10 @@ function menuItemHref(item: { key: string; label: string }) {
 }
 
 /** The entries that open a form in a dialog instead of going to a page. */
-type ModalKey = "property" | "stay" | "service" | "community" | "event" | "project";
+type ModalKey = "property" | "stay" | "service" | "community" | "event" | "project" | "marketplace";
 
 function opensModal(key: string): key is ModalKey {
-  return key === "property" || key === "stay" || key === "service" || key === "community" || key === "event" || key === "project";
+  return key === "property" || key === "stay" || key === "service" || key === "community" || key === "event" || key === "project" || key === "marketplace";
 }
 
 interface DesktopSubmenuItem {
@@ -76,6 +76,12 @@ const DESKTOP_LIST_SECTIONS: DesktopMenuSection[] = [
         key: "project",
         icon: "/icons/briefcase-09.svg",
         label: "Post Project",
+        locked: true,
+      },
+      {
+        key: "marketplace",
+        icon: "/icons/tag-01.svg",
+        label: "List on Marketplace",
         locked: true,
       },
     ],
@@ -198,6 +204,12 @@ const LISTINGS_SUBMENU: DesktopSubmenuItem[] = [
     key: "project",
     icon: "/icons/briefcase-09.svg",
     label: "Post Project",
+    locked: true,
+  },
+  {
+    key: "marketplace",
+    icon: "/icons/tag-01.svg",
+    label: "List on Marketplace",
     locked: true,
   },
 ];

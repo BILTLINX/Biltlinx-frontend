@@ -6,14 +6,18 @@ import { useMemo, useState } from "react";
 import { AppShell } from "@/components/shared/AppShell";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { filterList, filterText, FilterPanel, type FilterSection, type FilterValues } from "@/components/shared/FilterPanel";
+import { CreateMarketplaceListingModal } from "@/components/shared/CreateMarketplaceListingModal";
 import { MarketplaceCard } from "@/components/shared/MarketplaceCard";
 import { MarketplaceRail } from "@/components/shared/MarketplaceRail";
 import { PageContainer } from "@/components/shared/PageContainer";
+import { Button } from "@/components/ui/Button";
 import { Pagination } from "@/components/ui/Pagination";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { useMarketListings } from "@/hooks/useMarketListings";
 import { PAGE_SIZE, usePage, usePagedSearch } from "@/hooks/usePagedSearch";
 import { comingSoonHref } from "@/lib/coming-soon";
 import { errorMessage } from "@/lib/errors";
+import { listingToOffer } from "@/lib/market-listings";
 import { getFacets, KIND_LABEL, searchMarketplace } from "@/lib/marketplace-api";
 import { useDebouncedSearch } from "@/context/SearchContext";
 
@@ -81,6 +85,8 @@ export default function MarketplacePage() {
   const [page, setPage] = usePage(query);
   const result = usePagedSearch(["marketplace", "offers", query], (n, signal) => searchMarketplace({ ...query, page: n, results: PAGE_SIZE }, signal), page);
   const { total, totalPages } = result;
+  const [listing, setListing] = useState(false);
+  const { listings: mine } = useMarketListings();
 
   return (
     <AppShell activeKey="feed" activeChildKey="marketplace" contentFullWidth rightRail={<MarketplaceRail />}>
@@ -90,6 +96,9 @@ export default function MarketplacePage() {
             <h1 className="text-2xl font-bold leading-8 text-[#0f172a]">Marketplace</h1>
             <p className="text-sm leading-5 text-gray-500">Buy, rent, hire, book or order anything for the built environment. Every listing shows its price.</p>
           </div>
+          <Button variant="primary" onClick={() => setListing(true)} className="h-10 w-auto shrink-0 rounded-[10px] px-4 text-sm font-medium lg:rounded-[10px]">
+            List on Marketplace
+          </Button>
           <FilterPanel
             className="shrink-0 sm:max-w-[45%] sm:justify-end"
             sections={sections}
@@ -97,6 +106,22 @@ export default function MarketplacePage() {
             onChange={(next) => setFilters(filterList(next, "kind").join(",") !== kindKey ? { ...next, unit: "" } : next)}
           />
         </div>
+
+        {mine.length > 0 && (
+          <section className="flex flex-col gap-3">
+            <div>
+              <h2 className="text-base font-bold leading-[23px] text-[#0f172a]">Your listings</h2>
+              <p className="text-xs text-gray-500">Saved in this browser only for now. Buyers cannot see them yet.</p>
+            </div>
+            <div className="@container">
+              <div className="grid grid-cols-1 gap-4 @[560px]:grid-cols-2">
+                {mine.map((item) => (
+                  <MarketplaceCard key={item.id} offer={listingToOffer(item)} />
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <p className="text-sm font-medium text-[#0f172a]">
@@ -133,9 +158,9 @@ export default function MarketplacePage() {
           />
         )}
         {result.items.length > 0 && (
-          // Two across with the sidebar open; three only when it is collapsed and the page is wide enough for them.
+          // Always two across, whether the sidebar is open or collapsed.
           <div className="@container">
-            <div className="grid grid-cols-1 gap-4 @[560px]:grid-cols-2 group-data-[sidebar=collapsed]/shell:@[760px]:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 @[560px]:grid-cols-2">
               {result.items.map((offer) => (
                 <MarketplaceCard key={`${offer.kind}-${offer.id}`} offer={offer} />
               ))}
@@ -148,6 +173,7 @@ export default function MarketplacePage() {
           <MarketplaceRail />
         </div>
       </PageContainer>
+      <CreateMarketplaceListingModal open={listing} onClose={() => setListing(false)} />
     </AppShell>
   );
 }

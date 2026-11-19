@@ -127,7 +127,7 @@ function StayContent() {
         </div>
 
         {isPending && (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {[0, 1, 2].map((n) => (
               <Skeleton key={n} className="h-[340px] rounded-2xl" />
             ))}
@@ -153,7 +153,7 @@ function StayContent() {
           />
         )}
         {cards.length > 0 && (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {cards.map((stay) => (
               <PropertyCard key={stay.id} listing={stay} />
             ))}

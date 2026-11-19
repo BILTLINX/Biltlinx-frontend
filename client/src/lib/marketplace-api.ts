@@ -42,6 +42,10 @@ export const UNIT_SUFFIX: Record<string, string> = {
   PerHour: "hour",
   PerSqm: "sqm",
   PerUnit: "unit",
+  PerBag: "bag",
+  PerTonne: "tonne",
+  PerPlot: "plot",
+  PerAcre: "acre",
 };
 
 export function searchMarketplace(query: MarketplaceQuery, signal?: AbortSignal) {

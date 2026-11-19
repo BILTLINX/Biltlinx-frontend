@@ -11,9 +11,9 @@ import type { OfferDto } from "@/types/api/schema";
 
 /** One offer (Figma node 1519:47774): title, location and save above a photo carrying the category, price and an open button. The whole photo opens the listing. */
 export function MarketplaceCard({ offer }: { offer: OfferDto }) {
-  const href = offer.detailRoute ?? "/marketplace";
+  const href = offer.detailRoute;
   const kind = KIND_PILL[offer.kind ?? ""] ?? offer.category ?? "";
-  const price = formatMoney(offer.price, offer.currency ?? "GHS");
+  const price = offer.price > 0 ? formatMoney(offer.price, offer.currency ?? "GHS") : "GHS —";
   const unit = offer.unit ? UNIT_SUFFIX[offer.unit] : undefined;
   const { canSave, saved, toggle } = useSaved(savedOffer(offer, kind, unit ? `${price} / ${unit}` : price));
 
@@ -43,9 +43,11 @@ export function MarketplaceCard({ offer }: { offer: OfferDto }) {
       </div>
 
       <div className="relative h-[230px] w-full overflow-hidden rounded-[14px] bg-[#eef2ff]">
-        <Image src={offer.coverUrl ?? "/images/marketplace/property-sale.jpg"} alt="" fill unoptimized className="object-cover" sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 307px" />
+        {offer.coverUrl && <Image src={offer.coverUrl} alt="" fill unoptimized className="object-cover" sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 307px" />}
+        {/* The same soft dark tint as the property card photos. */}
+        <div aria-hidden className="pointer-events-none absolute inset-0 bg-[#0f1729]/35" />
         <div aria-hidden className="absolute inset-x-0 bottom-0 h-[130px] bg-gradient-to-b from-[rgba(15,23,41,0)] to-[rgba(15,23,41,0.82)]" />
-        <Link href={href} aria-label={`View ${offer.title}`} className="absolute inset-0" />
+        {href && <Link href={href} aria-label={`View ${offer.title}`} className="absolute inset-0" />}
         <span className="pointer-events-none absolute left-2.5 top-2.5 flex items-center rounded-full bg-white px-2.5 py-1 text-xs font-semibold leading-[1.35] text-[#0f172a]">{kind}</span>
         <p className="pointer-events-none absolute bottom-[15px] left-3.5 right-16 flex items-baseline gap-1 leading-[1.35]">
           <span className="truncate text-2xl font-bold text-white">{price}</span>
