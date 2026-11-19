@@ -93,11 +93,6 @@ export default function OrganizationPage() {
                   );
                 })}
               </div>
-              {!supported && (
-                <p className="rounded-xl bg-[#fef3c7] px-4 py-3 text-[13px] leading-[1.45] text-[#b45309]">
-                  Estates, institutions and public agencies are not on Biltlinx yet. Pick Property developer or Property management company to set up now.
-                </p>
-              )}
             </section>
 
             <section className={CARD}>

@@ -16,14 +16,14 @@ const ACTION_LABEL: Record<string, string> = {
   RequestInspection: "Request inspection",
 };
 
-const MODE_LABEL: Record<string, string> = {
+export const MODE_LABEL: Record<string, string> = {
   FixedPrice: "Fixed price",
   QuoteRequired: "Quote required",
   InspectionFirst: "Inspection first",
 };
 
 /** The amount without its unit, e.g. "From GHS 1,500". */
-function offeringAmount(offering: OfferingDto) {
+export function offeringAmount(offering: OfferingDto) {
   if (offering.price === null) return offering.priceLabel ?? "Price on request";
   return `${offering.priceLabel ? `${offering.priceLabel} ` : ""}${offering.currency ?? "GHS"} ${offering.price.toLocaleString("en-GH")}`;
 }

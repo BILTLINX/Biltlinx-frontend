@@ -19,6 +19,8 @@ export function PropertyCard({ listing }: { listing: ListingCardData }) {
     <article className="relative flex w-full min-w-0 flex-col gap-2 overflow-hidden rounded-3xl border border-[#e2e8f0] bg-white p-2 shadow-[0px_10px_24px_-6px_rgba(15,23,41,0.08)]">
       <div className="relative h-[200px] w-full overflow-hidden rounded-[18px] bg-[#eef2ff]">
         <Image src={listing.image} alt="" fill className="object-cover" sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" />
+        {/* A soft dark tint so the white pills read clearly over any photo. */}
+        <div aria-hidden className="pointer-events-none absolute inset-0 bg-[#0f1729]/35" />
         {listing.href && <Link href={listing.href} aria-label={`View ${listing.title}`} className="absolute inset-0" />}
         <span className={`pointer-events-none absolute left-2.5 top-2.5 rounded-full px-2.5 py-1 text-xs font-semibold leading-[1.35] text-[#0f172a] ${GLASS}`}>{listing.kind}</span>
         {verified && (

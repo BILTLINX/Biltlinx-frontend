@@ -82,11 +82,6 @@ export default function BusinessTypePage() {
                 })}
               </div>
 
-              {!supported && (
-                <p className="rounded-xl bg-[#fef3c7] px-4 py-3 text-[13px] leading-[1.45] text-[#b45309]">
-                  Selling products, equipment hire and haulage are not on Biltlinx yet. Pick Estate agency or Stay operator to set up now, and check back for the rest.
-                </p>
-              )}
 
               {typeId === "other" && (
                 <label className="flex flex-col gap-1.5">

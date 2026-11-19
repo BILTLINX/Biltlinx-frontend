@@ -6,7 +6,6 @@ import { AppShell } from "@/components/shared/AppShell";
 import { EmptyState, type EmptyIcon } from "@/components/shared/EmptyState";
 import { filterList, filterText, FilterPanel, type FilterSection, type FilterValues } from "@/components/shared/FilterPanel";
 import { PageContainer } from "@/components/shared/PageContainer";
-import { ProfessionalCard } from "@/components/shared/ProfessionalCard";
 import { ProviderCard } from "@/components/shared/ProviderCard";
 import { Pagination } from "@/components/ui/Pagination";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -115,10 +114,13 @@ export function ProviderDirectory({ kind, title, subtitle, activeChildKey, right
           />
         )}
         {items.length > 0 && (
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(min(320px,100%),1fr))] gap-4">
-            {items.map((provider) => (
-              kind === "professional" ? <ProfessionalCard key={provider.id} provider={provider} /> : <ProviderCard key={provider.id} provider={provider} kind={kind} />
-            ))}
+          // Two across, whether the sidebar is open or collapsed.
+          <div className="@container">
+            <div className="grid grid-cols-1 gap-4 @[560px]:grid-cols-2">
+              {items.map((provider) => (
+                <ProviderCard key={provider.id} provider={provider} kind={kind} />
+              ))}
+            </div>
           </div>
         )}
         <Pagination page={page} totalPages={totalPages} onChange={setPage} />
