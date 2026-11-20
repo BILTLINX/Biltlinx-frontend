@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { AppShell } from "@/components/shared/AppShell";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -17,6 +17,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { useFollowAccount } from "@/hooks/useFollowAccount";
 import { useStartConversation } from "@/hooks/useMessaging";
 import { useProfile, type Profile } from "@/hooks/useProfile";
+import { useProviderPage } from "@/hooks/useProviderPage";
 import { CAPABILITIES } from "@/lib/account-api";
 import { shareContent } from "@/lib/share";
 import { cn } from "@/lib/utils";
@@ -325,8 +326,17 @@ function AboutTab({ profile }: { profile: Profile }) {
 
 /** A person's profile (opened from their name on posts, comments, reels and messages): who they are, how to reach them, what they do and what they have posted. */
 export function ProfileView({ id, providerId }: { id: string; providerId?: string }) {
-  const { profile, loading, feed } = useProfile(id, providerId);
+  const router = useRouter();
+  const { profile, loading: loadingProfile, feed } = useProfile(id, providerId);
   const [tab, setTab] = useState<TabKey>("posts");
+  // A professional or artisan has their own page, which is where their name should lead; this page is for everyone else.
+  const dedicated = useProviderPage(id, [profile?.name, profile?.organizationName], Boolean(profile) && !profile?.own);
+  const toDedicatedPage = dedicated.data ?? null;
+  const loading = loadingProfile || dedicated.isPending && dedicated.fetchStatus !== "idle" || toDedicatedPage !== null;
+
+  useEffect(() => {
+    if (toDedicatedPage) router.replace(toDedicatedPage);
+  }, [toDedicatedPage, router]);
 
   return (
     <AppShell activeKey="you" contentFullWidth>
@@ -340,7 +350,7 @@ export function ProfileView({ id, providerId }: { id: string; providerId?: strin
             primary={{ label: "Back to your feed", href: "/feed" }}
           />
         )}
-        {profile && (
+        {profile && !loading && (
           <>
             <Breadcrumbs crumbs={[{ label: "Home", href: "/feed" }, { label: profile.own ? "Your profile" : profile.name }]} />
             <ProfileHeader profile={profile} />

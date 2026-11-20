@@ -9,7 +9,6 @@ import { BookmarkIcon } from "@/components/shared/BookmarkIcon";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { MODE_LABEL, offeringAmount } from "@/components/shared/OfferingCard";
 import { PageContainer } from "@/components/shared/PageContainer";
-import { ProfileLink } from "@/components/shared/ProfileLink";
 import { ProviderReviews, type ProviderReview } from "@/components/shared/ProviderReviews";
 import { QuoteRequestDialog } from "@/components/shared/QuoteRequestDialog";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -268,9 +267,7 @@ export function ProviderProfile({ id, kind }: { id: string; kind: "professional"
 
                 <div className="flex flex-col gap-1">
                   <h1 className="flex items-center gap-1.5 text-[22px] font-bold leading-[30px] text-[#0f172a]">
-                    <ProfileLink accountId={data.owner.accountId} providerId={data.id} className="min-w-0 truncate hover:underline">
-                      {name}
-                    </ProfileLink>
+                    <span className="min-w-0 truncate">{name}</span>
                     {(data.owner.isVerified || data.credentialVerified) && <Image src="/icons/checkmark-badge-01.svg" alt="Verified" title="Verified" width={18} height={18} className="shrink-0" />}
                   </h1>
                   {role && <p className="text-sm leading-5 text-[#475569]">{role}</p>}
