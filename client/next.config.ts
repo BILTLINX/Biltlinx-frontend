@@ -9,6 +9,9 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "lh3.googleusercontent.com", pathname: "/a/**" },
     ],
   },
+  experimental: {
+    agentUpgrade: "security",
+  },
   turbopack: {
     root: path.join(__dirname),
   },
