@@ -19,27 +19,24 @@ import { PAGE_SIZE, usePage, usePagedSearch } from "@/hooks/usePagedSearch";
 import { comingSoonHref } from "@/lib/coming-soon";
 import { errorMessage } from "@/lib/errors";
 import { searchMarketplace } from "@/lib/marketplace-api";
-import { cn } from "@/lib/utils";
 
-const NO_FILTERS: FilterValues = { minPrice: "", maxPrice: "", unit: "", city: "", delivery: "", sort: "" };
+const NO_FILTERS: FilterValues = { category: "", minPrice: "", maxPrice: "", unit: "", city: "", delivery: "", sort: "" };
 const SORTS = [
   { value: "priceAsc", label: "Price: low to high" },
   { value: "priceDesc", label: "Price: high to low" },
 ];
-const TABS = [
-  { value: "", label: "All" },
+const CATEGORIES = [
   { value: "Materials", label: "Materials" },
   { value: "Equipment", label: "Equipment" },
   { value: "Land", label: "Land" },
 ];
-const TAB = "h-9 shrink-0 rounded-full border px-4 text-[13px] font-medium";
 
 export default function MarketplacePage() {
   const facets = useMarketFacets();
   const search = useDebouncedSearch();
-  const [category, setCategory] = useState("");
   const [filters, setFilters] = useState<FilterValues>(NO_FILTERS);
   const [listing, setListing] = useState(false);
+  const category = filterText(filters, "category");
   const city = filterText(filters, "city");
   const minPrice = filterText(filters, "minPrice");
   const maxPrice = filterText(filters, "maxPrice");
@@ -58,6 +55,7 @@ export default function MarketplacePage() {
   const activeUnit = unit && units.some((item) => item.unit === unit) ? unit : singleUnit ? units[0]?.unit : undefined;
 
   const sections: FilterSection[] = [
+    { type: "options", label: "Category", key: "category", display: "chips", options: CATEGORIES },
     { type: "options", label: "Sort by", key: "sort", display: "chips", options: SORTS },
     { type: "range", label: "Price", minKey: "minPrice", maxKey: "maxPrice", prefix: "GHS" },
     { type: "options", label: "Priced per", key: "unit", display: "chips", options: units.map((item) => ({ value: item.unit, label: item.label })), hidden: singleUnit },
@@ -83,7 +81,6 @@ export default function MarketplacePage() {
   const { total, totalPages } = result;
 
   function clearFilters() {
-    setCategory("");
     setFilters(NO_FILTERS);
   }
 
@@ -98,33 +95,15 @@ export default function MarketplacePage() {
           <Button variant="primary" onClick={() => setListing(true)} className="h-10 w-auto shrink-0 rounded-[10px] px-4 text-sm font-medium lg:rounded-[10px]">
             List on Marketplace
           </Button>
+          <Link href="/marketplace/orders" className="flex h-10 shrink-0 items-center rounded-[10px] border border-gray-200 bg-white px-4 text-sm font-medium text-[#334155] hover:bg-gray-50">
+            My orders
+          </Link>
           <FilterPanel
             className="shrink-0 sm:max-w-[45%] sm:justify-end"
             sections={sections}
             values={filters}
-            onChange={(next) => setFilters(filterText(next, "unit") && !units.some((item) => item.unit === filterText(next, "unit")) ? { ...next, unit: "" } : next)}
+            onChange={(next) => setFilters(filterText(next, "category") !== category || (filterText(next, "unit") && !units.some((item) => item.unit === filterText(next, "unit"))) ? { ...next, unit: "" } : next)}
           />
-        </div>
-
-        <div className="no-scrollbar flex gap-2 overflow-x-auto" role="tablist" aria-label="Category">
-          {TABS.map((tab) => (
-            <button
-              key={tab.value}
-              type="button"
-              role="tab"
-              aria-selected={category === tab.value}
-              onClick={() => {
-                setCategory(tab.value);
-                setFilters((current) => ({ ...current, unit: "" }));
-              }}
-              className={cn(TAB, category === tab.value ? "border-brand-900 bg-[#eff5ff] text-brand-900" : "border-gray-200 bg-white text-[#334155] hover:bg-gray-50")}
-            >
-              {tab.label}
-            </button>
-          ))}
-          <Link href="/marketplace/orders" className={cn(TAB, "ml-auto flex items-center border-gray-200 bg-white text-[#334155] hover:bg-gray-50")}>
-            My orders
-          </Link>
         </div>
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
