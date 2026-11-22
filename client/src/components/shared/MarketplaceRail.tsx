@@ -16,10 +16,10 @@ export function MarketplaceRail() {
   return (
     <div className="flex w-full flex-col gap-4">
       <section className={CARD}>
-        <h2 className="text-base font-bold leading-[23px] text-[#0f172a]">Sell, rent or hire on Biltlinx</h2>
-        <p className="text-[13px] leading-[19px] text-gray-500">List a property, a service, materials or equipment. Buyers see the price first, so set a real asking price.</p>
-        <Button variant="primary" onClick={() => router.push("/manage/listings?create=property")} className="h-10 rounded-[10px] lg:rounded-[10px]">
-          Create a listing
+        <h2 className="text-base font-bold leading-[23px] text-[#0f172a]">Sell or hire on Biltlinx</h2>
+        <p className="text-[13px] leading-[19px] text-gray-500">List materials, equipment or land. Buyers see the price first, so set a real asking price. Your payment is held until the buyer confirms delivery.</p>
+        <Button variant="primary" onClick={() => router.push("/manage/marketplace")} className="h-10 rounded-[10px] lg:rounded-[10px]">
+          Manage my listings
         </Button>
       </section>
 

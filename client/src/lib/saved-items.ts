@@ -1,4 +1,5 @@
-import type { OfferDto, ProviderCardDto } from "@/types/api/schema";
+import type { MarketOffer } from "@/types/api/marketplace";
+import type { ProviderCardDto } from "@/types/api/schema";
 import type { DiscoverReel } from "@/types/reel";
 import type { ListingCardData } from "@/types/listing";
 import type { PostCardData } from "@/types/post";
@@ -68,16 +69,15 @@ export function savedListing(listing: ListingCardData): SavedDraft | null {
 }
 
 /** A marketplace offer as a saved item, or null when it has no page to come back to. */
-export function savedOffer(offer: OfferDto, kind: string, price: string): SavedDraft | null {
-  if (!offer.detailRoute) return null;
+export function savedOffer(offer: MarketOffer, kind: string, price: string): SavedDraft | null {
   return {
     key: offer.detailRoute,
     type: "Marketplace",
     kind,
-    title: offer.title ?? kind,
-    subtitle: offer.city ?? undefined,
+    title: offer.title,
+    subtitle: offer.location || undefined,
     price,
-    image: offer.coverUrl ?? "/images/marketplace/property-sale.jpg",
+    image: offer.coverUrl ?? "/images/marketplace/material.jpg",
     href: offer.detailRoute,
   };
 }

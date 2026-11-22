@@ -30,14 +30,14 @@ export function MarketplaceSection() {
           size="section"
           icon="marketplace"
           title="No picks for you yet"
-          body="Browse a few listings or save a search, and we’ll start picking homes, land and materials for you."
+          body="Browse a few listings or save a search, and we’ll start picking materials, equipment and land for you."
           primary={{ label: "Browse Marketplace", href: "/marketplace" }}
         />
       )}
 
       <div className="no-scrollbar flex w-full items-start gap-3 overflow-x-auto pb-1 sm:grid sm:grid-cols-2 sm:gap-2.5 sm:overflow-visible sm:pb-0">
         {items.map((offer) => (
-          <div key={`${offer.kind}-${offer.id}`} className="w-[307px] shrink-0 sm:w-full sm:shrink">
+          <div key={offer.id} className="w-[307px] shrink-0 sm:w-full sm:shrink">
             <MarketplaceCard offer={offer} />
           </div>
         ))}

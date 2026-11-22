@@ -1,83 +1,79 @@
 "use client";
 
-import { SearchEmpty } from "@/components/shared/SearchEmpty";
-import { useQuery } from "@tanstack/react-query";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/shared/AppShell";
-import { EmptyState } from "@/components/shared/EmptyState";
-import { filterList, filterText, FilterPanel, type FilterSection, type FilterValues } from "@/components/shared/FilterPanel";
 import { CreateMarketplaceListingModal } from "@/components/shared/CreateMarketplaceListingModal";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { FilterPanel, filterText, type FilterSection, type FilterValues } from "@/components/shared/FilterPanel";
 import { MarketplaceCard } from "@/components/shared/MarketplaceCard";
 import { MarketplaceRail } from "@/components/shared/MarketplaceRail";
 import { PageContainer } from "@/components/shared/PageContainer";
+import { SearchEmpty } from "@/components/shared/SearchEmpty";
 import { Button } from "@/components/ui/Button";
 import { Pagination } from "@/components/ui/Pagination";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { useMarketListings } from "@/hooks/useMarketListings";
+import { useDebouncedSearch } from "@/context/SearchContext";
+import { useMarketFacets } from "@/hooks/useMarketplace";
 import { PAGE_SIZE, usePage, usePagedSearch } from "@/hooks/usePagedSearch";
 import { comingSoonHref } from "@/lib/coming-soon";
 import { errorMessage } from "@/lib/errors";
-import { listingToOffer } from "@/lib/market-listings";
-import { getFacets, KIND_LABEL, searchMarketplace } from "@/lib/marketplace-api";
-import { useDebouncedSearch } from "@/context/SearchContext";
+import { searchMarketplace } from "@/lib/marketplace-api";
+import { cn } from "@/lib/utils";
 
-const NO_FILTERS: FilterValues = { kind: [], city: "", category: "", currency: "", minPrice: "", maxPrice: "", unit: "" };
-const CURRENCIES = [
-  { value: "GHS", label: "GHS" },
-  { value: "USD", label: "USD" },
-];
+const NO_FILTERS: FilterValues = { minPrice: "", maxPrice: "", unit: "", city: "", delivery: "", sort: "" };
 const SORTS = [
-  { value: "", label: "Newest" },
-  { value: "price_asc", label: "Price: low to high" },
-  { value: "price_desc", label: "Price: high to low" },
+  { value: "priceAsc", label: "Price: low to high" },
+  { value: "priceDesc", label: "Price: high to low" },
 ];
+const TABS = [
+  { value: "", label: "All" },
+  { value: "Materials", label: "Materials" },
+  { value: "Equipment", label: "Equipment" },
+  { value: "Land", label: "Land" },
+];
+const TAB = "h-9 shrink-0 rounded-full border px-4 text-[13px] font-medium";
 
 export default function MarketplacePage() {
-  const facets = useQuery({ queryKey: ["marketplace", "facets"], queryFn: getFacets, staleTime: Infinity });
+  const facets = useMarketFacets();
   const search = useDebouncedSearch();
+  const [category, setCategory] = useState("");
   const [filters, setFilters] = useState<FilterValues>(NO_FILTERS);
-  const kindKey = filterList(filters, "kind").join(",");
+  const [listing, setListing] = useState(false);
   const city = filterText(filters, "city");
-  const category = filterText(filters, "category");
-  const currency = filterText(filters, "currency");
   const minPrice = filterText(filters, "minPrice");
   const maxPrice = filterText(filters, "maxPrice");
   const unit = filterText(filters, "unit");
   const sort = filterText(filters, "sort");
-
-  function clearFilters() {
-    setFilters(NO_FILTERS);
-  }
+  const delivery = filterText(filters, "delivery") === "true";
 
   const units = useMemo(() => {
-    const byKind = facets.data?.unitsByKind ?? {};
-    const keys = kindKey ? kindKey.split(",") : Object.keys(byKind);
-    const set = new Set(keys.flatMap((key) => byKind[key] ?? []));
-    return (facets.data?.units ?? []).filter((item) => item.unit && set.has(item.unit));
-  }, [facets.data, kindKey]);
-  const singleUnit = kindKey !== "" && units.length === 1;
-  const wantsPrice = minPrice.trim() !== "" || maxPrice.trim() !== "";
+    const categories = (facets.data?.categories ?? []).filter((item) => !category || item.category === category);
+    const seen = new Set<string>();
+    return categories.flatMap((item) => item.units).filter((item) => !seen.has(item.unit) && seen.add(item.unit));
+  }, [facets.data, category]);
+  const singleUnit = category !== "" && units.length === 1;
+  const wantsPrice = minPrice.trim() !== "" || maxPrice.trim() !== "" || sort !== "";
   const needsUnit = wantsPrice && !singleUnit && unit === "";
+  const activeUnit = unit && units.some((item) => item.unit === unit) ? unit : singleUnit ? units[0]?.unit : undefined;
+
   const sections: FilterSection[] = [
-    { type: "options", label: "Sort by", key: "sort", display: "chips", options: SORTS.filter((option) => option.value !== "") },
-    { type: "options", label: "Category", key: "kind", display: "list", multiple: true, options: (facets.data?.kinds ?? []).map((item) => ({ value: item, label: KIND_LABEL[item] ?? item })) },
+    { type: "options", label: "Sort by", key: "sort", display: "chips", options: SORTS },
     { type: "range", label: "Price", minKey: "minPrice", maxKey: "maxPrice", prefix: "GHS" },
-    { type: "options", label: "Priced per", key: "unit", display: "chips", options: units.map((item) => ({ value: item.unit ?? "", label: item.label ?? item.unit ?? "" })), hidden: singleUnit },
-    { type: "options", label: "Currency", key: "currency", display: "chips", options: CURRENCIES },
-    { type: "text", label: "City", key: "city", placeholder: "Any city" },
-    { type: "text", label: "Item type", key: "category", placeholder: "e.g. Cement, Excavator" },
+    { type: "options", label: "Priced per", key: "unit", display: "chips", options: units.map((item) => ({ value: item.unit, label: item.label })), hidden: singleUnit },
+    { type: "text", label: "Location", key: "city", placeholder: "Any area, e.g. Tema" },
+    { type: "toggle", label: "Delivery", key: "delivery", text: "Seller delivers" },
   ];
+
   const min = Number(minPrice);
   const max = Number(maxPrice);
-
   const query = {
     q: search || undefined,
-    kind: kindKey || undefined,
+    category: category || undefined,
     city: city.trim() || undefined,
-    category: category.trim() || undefined,
-    currency: currency || undefined,
-    sort: sort || undefined,
-    unit: unit || (singleUnit ? units[0]?.unit ?? undefined : undefined),
+    unit: activeUnit,
+    delivery: delivery || undefined,
+    sort: needsUnit ? undefined : sort || undefined,
     minPrice: !needsUnit && minPrice.trim() && Number.isFinite(min) ? min : undefined,
     maxPrice: !needsUnit && maxPrice.trim() && Number.isFinite(max) ? max : undefined,
   };
@@ -85,8 +81,11 @@ export default function MarketplacePage() {
   const [page, setPage] = usePage(query);
   const result = usePagedSearch(["marketplace", "offers", query], (n, signal) => searchMarketplace({ ...query, page: n, results: PAGE_SIZE }, signal), page);
   const { total, totalPages } = result;
-  const [listing, setListing] = useState(false);
-  const { listings: mine } = useMarketListings();
+
+  function clearFilters() {
+    setCategory("");
+    setFilters(NO_FILTERS);
+  }
 
   return (
     <AppShell activeKey="feed" activeChildKey="marketplace" contentFullWidth rightRail={<MarketplaceRail />}>
@@ -94,7 +93,7 @@ export default function MarketplacePage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <h1 className="text-2xl font-bold leading-8 text-[#0f172a]">Marketplace</h1>
-            <p className="text-sm leading-5 text-gray-500">Buy, rent, hire, book or order anything for the built environment. Every listing shows its price.</p>
+            <p className="text-sm leading-5 text-gray-500">Buy or hire building materials, equipment and land from sellers across Ghana. Every listing shows its price.</p>
           </div>
           <Button variant="primary" onClick={() => setListing(true)} className="h-10 w-auto shrink-0 rounded-[10px] px-4 text-sm font-medium lg:rounded-[10px]">
             List on Marketplace
@@ -103,25 +102,30 @@ export default function MarketplacePage() {
             className="shrink-0 sm:max-w-[45%] sm:justify-end"
             sections={sections}
             values={filters}
-            onChange={(next) => setFilters(filterList(next, "kind").join(",") !== kindKey ? { ...next, unit: "" } : next)}
+            onChange={(next) => setFilters(filterText(next, "unit") && !units.some((item) => item.unit === filterText(next, "unit")) ? { ...next, unit: "" } : next)}
           />
         </div>
 
-        {mine.length > 0 && (
-          <section className="flex flex-col gap-3">
-            <div>
-              <h2 className="text-base font-bold leading-[23px] text-[#0f172a]">Your listings</h2>
-              <p className="text-xs text-gray-500">Saved in this browser only for now. Buyers cannot see them yet.</p>
-            </div>
-            <div className="@container">
-              <div className="grid grid-cols-1 gap-4 @[560px]:grid-cols-2">
-                {mine.map((item) => (
-                  <MarketplaceCard key={item.id} offer={listingToOffer(item)} />
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
+        <div className="no-scrollbar flex gap-2 overflow-x-auto" role="tablist" aria-label="Category">
+          {TABS.map((tab) => (
+            <button
+              key={tab.value}
+              type="button"
+              role="tab"
+              aria-selected={category === tab.value}
+              onClick={() => {
+                setCategory(tab.value);
+                setFilters((current) => ({ ...current, unit: "" }));
+              }}
+              className={cn(TAB, category === tab.value ? "border-brand-900 bg-[#eff5ff] text-brand-900" : "border-gray-200 bg-white text-[#334155] hover:bg-gray-50")}
+            >
+              {tab.label}
+            </button>
+          ))}
+          <Link href="/marketplace/orders" className={cn(TAB, "ml-auto flex items-center border-gray-200 bg-white text-[#334155] hover:bg-gray-50")}>
+            My orders
+          </Link>
+        </div>
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <p className="text-sm font-medium text-[#0f172a]">
@@ -129,7 +133,6 @@ export default function MarketplacePage() {
           </p>
         </div>
         {needsUnit && <p className="text-xs text-[#b45309]">Choose what it is priced per, so we only compare like with like.</p>}
-
 
         {result.isPending && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -158,11 +161,10 @@ export default function MarketplacePage() {
           />
         )}
         {result.items.length > 0 && (
-          // Always two across, whether the sidebar is open or collapsed.
           <div className="@container">
             <div className="grid grid-cols-1 gap-4 @[560px]:grid-cols-2">
               {result.items.map((offer) => (
-                <MarketplaceCard key={`${offer.kind}-${offer.id}`} offer={offer} />
+                <MarketplaceCard key={offer.id} offer={offer} />
               ))}
             </div>
           </div>

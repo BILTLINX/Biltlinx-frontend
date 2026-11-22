@@ -1,13 +1,37 @@
-import type { OfferDto } from "@/types/api/schema";
+import type { MarketCategory, MarketListingStatus, MarketOffer, MarketOrderStatus } from "@/types/api/marketplace";
 
-export const MARKET_CATEGORIES = ["Materials", "Equipment", "Land"] as const;
+export const MARKET_CATEGORIES: MarketCategory[] = ["Materials", "Equipment", "Land"];
 
-export type MarketCategory = (typeof MARKET_CATEGORIES)[number];
+export const CATEGORY_PILL: Record<MarketCategory, string> = { Materials: "Material", Equipment: "Equipment", Land: "Land" };
 
-/** What each category is called on a card's pill. */
-const PILL: Record<MarketCategory, string> = { Materials: "Material", Equipment: "Equipment", Land: "Land" };
+export const CATEGORY_PLACEHOLDER: Record<MarketCategory, string> = {
+  Materials: "e.g. Dangote cement 42.5R, 50 kg",
+  Equipment: "e.g. 20-tonne excavator with operator",
+  Land: "e.g. Serviced plot, 70 x 100 ft, Dawhenya",
+};
 
-/** What a price can be per, for each category. The values are the unit names the marketplace cards already understand. */
+export const UNIT_SUFFIX: Record<string, string> = {
+  PerBag: "bag",
+  PerUnit: "item",
+  PerTonne: "tonne",
+  PerDay: "day",
+  PerWeek: "week",
+  PerHour: "hour",
+  PerPlot: "plot",
+  PerAcre: "acre",
+};
+
+export const UNIT_LABEL: Record<string, string> = {
+  PerBag: "per bag",
+  PerUnit: "per item",
+  PerTonne: "per tonne",
+  PerDay: "per day",
+  PerWeek: "per week",
+  PerHour: "per hour",
+  PerPlot: "per plot",
+  PerAcre: "per acre",
+};
+
 export const MARKET_UNITS: Record<MarketCategory, { value: string; label: string }[]> = {
   Materials: [
     { value: "PerBag", label: "per bag" },
@@ -25,55 +49,56 @@ export const MARKET_UNITS: Record<MarketCategory, { value: string; label: string
   ],
 };
 
-export const MARKET_DELIVERY = ["Pickup only", "I can deliver"] as const;
+export const LISTING_STATUS_LABEL: Record<MarketListingStatus, string> = {
+  PendingReview: "Pending review",
+  Live: "Live",
+  Rejected: "Not approved",
+  Paused: "Paused",
+  Removed: "Removed",
+};
 
-export type MarketDelivery = (typeof MARKET_DELIVERY)[number];
+export const ORDER_STATUS_LABEL: Record<MarketOrderStatus, string> = {
+  Requested: "Waiting for seller",
+  Accepted: "Accepted, awaiting payment",
+  Paid: "Paid, money held",
+  Dispatched: "On the way",
+  Completed: "Completed",
+  Declined: "Declined",
+  Cancelled: "Cancelled",
+  Disputed: "In dispute",
+  Refunded: "Refunded",
+};
 
-/** What stock is counted in, e.g. "bags" for something priced per bag. */
+export const ORDER_STATUS_TONE: Record<MarketOrderStatus, string> = {
+  Requested: "bg-[#fef3c7] text-[#b45309]",
+  Accepted: "bg-[#eff5ff] text-brand-900",
+  Paid: "bg-[#eff5ff] text-brand-900",
+  Dispatched: "bg-[#eff5ff] text-brand-900",
+  Completed: "bg-[#dcfce7] text-[#16a34a]",
+  Declined: "bg-[#f1f5f9] text-[#475569]",
+  Cancelled: "bg-[#f1f5f9] text-[#475569]",
+  Disputed: "bg-[#fee2e2] text-[#b91c1c]",
+  Refunded: "bg-[#f1f5f9] text-[#475569]",
+};
+
+export function isCounted(category: MarketCategory) {
+  return category !== "Land";
+}
+
 export function stockNoun(category: MarketCategory, unit: string) {
   if (category === "Equipment") return "units";
   if (category === "Land") return "plots";
   return unit === "PerBag" ? "bags" : unit === "PerTonne" ? "tonnes" : "items";
 }
 
-/** What the seller fills in. */
-export interface MarketListingDraft {
-  category: MarketCategory;
-  title: string;
-  description: string;
-  /** Public photo links; the first is the cover. */
-  photos: string[];
-  price: number;
-  unit: string;
-  location: string;
-  /** How many are for sale; null when not said. Land is a single plot, so it has none. */
-  stock: number | null;
-  minOrder: number | null;
-  delivery: MarketDelivery;
+export function unitSuffix(unit: string | null | undefined) {
+  return unit ? UNIT_SUFFIX[unit] : undefined;
 }
 
-export interface MarketListing extends MarketListingDraft {
-  id: string;
-  createdAt: string;
+export function unitPriceFor(listing: { price: number; bulk: { minQuantity: number; price: number } | null }, quantity: number) {
+  return listing.bulk && quantity >= listing.bulk.minQuantity ? listing.bulk.price : listing.price;
 }
 
-/** A listing in the shape the marketplace cards draw. It has no page of its own yet, so it has no route. */
-export function listingToOffer(listing: MarketListingDraft & { id?: string; createdAt?: string }): OfferDto {
-  return {
-    kind: "Marketplace",
-    id: listing.id ?? "preview",
-    title: listing.title,
-    city: listing.location,
-    price: listing.price,
-    currency: "GHS",
-    unit: listing.unit,
-    priceLabel: null,
-    category: PILL[listing.category],
-    negotiable: false,
-    coverUrl: listing.photos[0] ?? null,
-    detailRoute: null,
-    actions: null,
-    ownerAccountId: "",
-    createdAt: listing.createdAt ?? new Date().toISOString(),
-  };
+export function offerCategoryPill(offer: MarketOffer) {
+  return CATEGORY_PILL[offer.category] ?? offer.category;
 }

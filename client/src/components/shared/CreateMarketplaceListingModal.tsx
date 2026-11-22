@@ -8,12 +8,13 @@ import { MarketplaceCard } from "@/components/shared/MarketplaceCard";
 import { SelectField } from "@/components/shared/SelectField";
 import { FIELD_BOX, FIELD_INPUT, FormField, WizardSteps } from "@/components/shared/ModalFormParts";
 import { Button } from "@/components/ui/Button";
-import { useMarketListings } from "@/hooks/useMarketListings";
+import { useMarketListingMutations } from "@/hooks/useMarketplace";
 import { errorMessage } from "@/lib/errors";
 import { formatMoney } from "@/lib/format";
-import { listingToOffer, MARKET_CATEGORIES, MARKET_DELIVERY, MARKET_UNITS, stockNoun, type MarketCategory, type MarketDelivery } from "@/lib/market-listings";
+import { CATEGORY_PLACEHOLDER, isCounted, MARKET_CATEGORIES, MARKET_UNITS, stockNoun } from "@/lib/market-listings";
 import { uploadMedia, validateMediaFile, type UploadedMedia } from "@/lib/upload";
 import { cn } from "@/lib/utils";
+import type { MarketCategory, MarketListing, MarketOffer } from "@/types/api/marketplace";
 
 const STEPS = ["Details", "Photos", "Price & location", "Review"];
 const HEADINGS = [
@@ -42,32 +43,45 @@ function megabytes(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function Form({ onClose, onSubmitted }: { onClose: () => void; onSubmitted: (title: string) => void }) {
-  const { create } = useMarketListings();
+function numberOrNull(value: string) {
+  return value.trim() ? Number(value) : null;
+}
+
+function Form({ listing, onClose, onSubmitted }: { listing?: MarketListing; onClose: () => void; onSubmitted: (title: string) => void }) {
+  const { create, update } = useMarketListingMutations();
+  const saving = create.isPending || update.isPending;
   const fileInput = useRef<HTMLInputElement | null>(null);
   const [step, setStep] = useState(0);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [category, setCategory] = useState<MarketCategory>("Materials");
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [photos, setPhotos] = useState<PhotoEntry[]>([]);
+  const [category, setCategory] = useState<MarketCategory>(listing?.category ?? "Materials");
+  const [title, setTitle] = useState(listing?.title ?? "");
+  const [description, setDescription] = useState(listing?.description ?? "");
+  const [photos, setPhotos] = useState<PhotoEntry[]>(() =>
+    (listing?.photos ?? []).map((url, index) => ({ id: `existing-${index}`, name: `Photo ${index + 1}`, size: 0, media: { path: "", contentType: "image/jpeg", name: `Photo ${index + 1}`, publicUrl: url } })),
+  );
   const [dragging, setDragging] = useState(false);
   const [menuFor, setMenuFor] = useState<string | null>(null);
-  const [price, setPrice] = useState("");
-  const [unit, setUnit] = useState<string>(MARKET_UNITS.Materials[0].value);
-  const [location, setLocation] = useState("");
-  const [stock, setStock] = useState("");
-  const [minOrder, setMinOrder] = useState("");
-  const [delivery, setDelivery] = useState<MarketDelivery>(MARKET_DELIVERY[0]);
-  const [agreed, setAgreed] = useState(false);
+  const [price, setPrice] = useState(listing ? String(listing.price) : "");
+  const [unit, setUnit] = useState<string>(listing?.unit ?? MARKET_UNITS.Materials[0].value);
+  const [location, setLocation] = useState(listing?.location ?? "");
+  const [stock, setStock] = useState(listing?.stock != null && listing.category !== "Land" ? String(listing.stock) : "");
+  const [minOrder, setMinOrder] = useState(listing?.minOrder != null ? String(listing.minOrder) : "");
+  const [delivers, setDelivers] = useState(listing?.deliveryAvailable ?? false);
+  const [deliveryFee, setDeliveryFee] = useState(listing?.deliveryFee != null ? String(listing.deliveryFee) : "");
+  const [bulkQty, setBulkQty] = useState(listing?.bulk ? String(listing.bulk.minQuantity) : "");
+  const [bulkPrice, setBulkPrice] = useState(listing?.bulk ? String(listing.bulk.price) : "");
+  const [agreed, setAgreed] = useState(Boolean(listing));
 
   const units = MARKET_UNITS[category];
   const unitLabel = units.find((option) => option.value === unit)?.label ?? "";
   const amount = Number(price);
   const noun = stockNoun(category, unit);
-  const counted = category !== "Land";
-  const stockCount = stock.trim() ? Number(stock) : null;
-  const minCount = minOrder.trim() ? Number(minOrder) : null;
+  const counted = isCounted(category);
+  const stockCount = numberOrNull(stock);
+  const minCount = numberOrNull(minOrder);
+  const bulkCount = numberOrNull(bulkQty);
+  const bulkAmount = numberOrNull(bulkPrice);
+  const feeAmount = numberOrNull(deliveryFee);
 
   function chooseCategory(next: MarketCategory) {
     setCategory(next);
@@ -133,14 +147,35 @@ function Form({ onClose, onSubmitted }: { onClose: () => void; onSubmitted: (tit
       if (counted && stockCount !== null && !(Number.isInteger(stockCount) && stockCount > 0)) found.stock = "Use a whole number above zero";
       if (counted && minCount !== null && !(Number.isInteger(minCount) && minCount > 0)) found.minOrder = "Use a whole number above zero";
       if (counted && !found.stock && !found.minOrder && stockCount !== null && minCount !== null && minCount > stockCount) found.minOrder = "More than you have in stock";
+      if (counted && delivers && feeAmount !== null && !(feeAmount >= 0)) found.deliveryFee = "Use zero or more";
+      if (counted && (bulkQty.trim() || bulkPrice.trim())) {
+        if (!(bulkCount !== null && Number.isInteger(bulkCount) && bulkCount >= 2)) found.bulkQty = "Use a whole number of 2 or more";
+        if (!(bulkAmount !== null && bulkAmount > 0 && bulkAmount < amount)) found.bulkPrice = "Must be above zero and below the normal price";
+      }
     }
     setErrors(found);
     return Object.keys(found).length === 0;
   }
 
   function submit() {
-    create({ category, title: title.trim(), description: description.trim(), photos: photoUrls, price: amount, unit, location: location.trim(), stock: counted ? stockCount : null, minOrder: counted ? minCount : null, delivery: counted ? delivery : MARKET_DELIVERY[0] });
-    onSubmitted(title.trim());
+    const input = {
+      category,
+      title: title.trim(),
+      description: description.trim(),
+      price: amount,
+      unit,
+      location: location.trim(),
+      stock: counted ? stockCount : null,
+      minOrder: counted ? minCount : null,
+      deliveryAvailable: counted && delivers,
+      deliveryFee: counted && delivers ? feeAmount : null,
+      bulkMinQuantity: counted && bulkQty.trim() ? bulkCount : null,
+      bulkPrice: counted && bulkQty.trim() ? bulkAmount : null,
+      photos: photoUrls,
+    };
+    const done = () => onSubmitted(input.title);
+    if (listing) update.mutate({ id: listing.id, listing: input }, { onSuccess: done });
+    else create.mutate(input, { onSuccess: done });
   }
 
   function next() {
@@ -149,18 +184,21 @@ function Form({ onClose, onSubmitted }: { onClose: () => void; onSubmitted: (tit
     else submit();
   }
 
-  const preview = listingToOffer({
+  const preview: MarketOffer = {
+    id: "preview",
     category,
     title: title.trim() || "Your title",
-    description,
-    photos: photoUrls,
-    price: amount > 0 ? amount : 0,
-    unit,
     location: location.trim() || "Add a location",
+    price: amount > 0 ? amount : 0,
+    currency: "GHS",
+    unit,
+    coverUrl: photoUrls[0] ?? null,
+    deliveryAvailable: counted && delivers,
     stock: null,
-    minOrder: null,
-    delivery,
-  });
+    detailRoute: "",
+    sellerAccountId: "",
+    createdAt: new Date().toISOString(),
+  };
 
   return (
     <div className="flex min-h-0 flex-1">
@@ -191,7 +229,7 @@ function Form({ onClose, onSubmitted }: { onClose: () => void; onSubmitted: (tit
           <p className="text-[13px] text-gray-500">This is how buyers will see your listing.</p>
         </div>
         <div inert>
-          <MarketplaceCard offer={preview} />
+          <MarketplaceCard offer={preview} href={null} />
         </div>
         <p className="text-center text-[13px] text-gray-500">{step === STEPS.length - 1 ? "Shows as “Pending review” until approved." : "Updates as you fill in each step."}</p>
       </aside>
@@ -237,7 +275,7 @@ function Form({ onClose, onSubmitted }: { onClose: () => void; onSubmitted: (tit
               </FormField>
               <FormField label="Title" error={errors.title}>
                 <div className={cn(FIELD_BOX, errors.title ? "border-[#dc2626]" : "border-gray-200")}>
-                  <input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={TITLE_MAX} aria-label="Title" placeholder="e.g. Dangote cement 42.5R, 50 kg" className={FIELD_INPUT} />
+                  <input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={TITLE_MAX} aria-label="Title" placeholder={CATEGORY_PLACEHOLDER[category]} className={FIELD_INPUT} />
                 </div>
                 <p className="text-xs text-gray-500">
                   {title.length} / {TITLE_MAX}
@@ -357,20 +395,50 @@ function Form({ onClose, onSubmitted }: { onClose: () => void; onSubmitted: (tit
               {counted && (
                 <FormField label="Delivery">
                   <div role="radiogroup" aria-label="Delivery" className="grid grid-cols-2 gap-3">
-                    {MARKET_DELIVERY.map((option) => (
+                    {[
+                      { value: false, label: "Pickup only" },
+                      { value: true, label: "I can deliver" },
+                    ].map((option) => (
                       <button
-                        key={option}
+                        key={option.label}
                         type="button"
                         role="radio"
-                        aria-checked={delivery === option}
-                        onClick={() => setDelivery(option)}
-                        className={cn("h-11 rounded-[10px] border text-sm font-medium", delivery === option ? "border-brand-900 bg-[#eff5ff] text-brand-900" : "border-gray-200 bg-white text-[#334155] hover:bg-gray-50")}
+                        aria-checked={delivers === option.value}
+                        onClick={() => setDelivers(option.value)}
+                        className={cn("h-11 rounded-[10px] border text-sm font-medium", delivers === option.value ? "border-brand-900 bg-[#eff5ff] text-brand-900" : "border-gray-200 bg-white text-[#334155] hover:bg-gray-50")}
                       >
-                        {option}
+                        {option.label}
                       </button>
                     ))}
                   </div>
                 </FormField>
+              )}
+
+              {counted && delivers && (
+                <FormField label="Delivery fee" error={errors.deliveryFee}>
+                  <div className={cn(FIELD_BOX, errors.deliveryFee ? "border-[#dc2626]" : "border-gray-200")}>
+                    <span className="text-sm text-gray-500">GHS</span>
+                    <input value={deliveryFee} onChange={(event) => setDeliveryFee(event.target.value)} inputMode="decimal" aria-label="Delivery fee" placeholder="0" className={FIELD_INPUT} />
+                  </div>
+                  <p className="text-xs text-gray-500">Charged once per order. Leave empty for free delivery.</p>
+                </FormField>
+              )}
+
+              {counted && (
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField label="Bulk from (optional)" error={errors.bulkQty}>
+                    <div className={cn(FIELD_BOX, errors.bulkQty ? "border-[#dc2626]" : "border-gray-200")}>
+                      <input value={bulkQty} onChange={(event) => setBulkQty(event.target.value)} inputMode="numeric" aria-label="Bulk from" className={FIELD_INPUT} />
+                      <span className="text-sm text-gray-500">{noun}</span>
+                    </div>
+                  </FormField>
+                  <FormField label="Bulk price" error={errors.bulkPrice}>
+                    <div className={cn(FIELD_BOX, errors.bulkPrice ? "border-[#dc2626]" : "border-gray-200")}>
+                      <span className="text-sm text-gray-500">GHS</span>
+                      <input value={bulkPrice} onChange={(event) => setBulkPrice(event.target.value)} inputMode="decimal" aria-label="Bulk price" className={FIELD_INPUT} />
+                    </div>
+                  </FormField>
+                </div>
               )}
             </>
           )}
@@ -381,7 +449,7 @@ function Form({ onClose, onSubmitted }: { onClose: () => void; onSubmitted: (tit
                 {[
                   { label: "Category", value: category },
                   { label: "Price", value: [`${formatMoney(amount)} ${unitLabel}`, counted && stockCount !== null ? `${stockCount} in stock` : null].filter(Boolean).join(" · ") },
-                  { label: "Location", value: [location.trim(), counted ? (delivery === "I can deliver" ? "delivers" : "pickup only") : null].filter(Boolean).join(" · ") },
+                  { label: "Location", value: [location.trim(), counted ? (delivers ? "delivers" : "pickup only") : null].filter(Boolean).join(" · ") },
                   { label: "Photos", value: `${photoUrls.length} ${photoUrls.length === 1 ? "photo" : "photos"}` },
                 ].map((row) => (
                   <div key={row.label} className="flex items-start justify-between gap-4 border-b border-gray-200 py-2.5 last:border-b-0">
@@ -404,8 +472,8 @@ function Form({ onClose, onSubmitted }: { onClose: () => void; onSubmitted: (tit
         </div>
 
         <div className="shrink-0 px-5 pb-4 pt-2 sm:px-7 sm:pb-5">
-          <Button variant="primary" onClick={next} disabled={uploading || (step === STEPS.length - 1 && !agreed)} className="h-11 w-full rounded-full text-[15px] font-semibold">
-            {step < STEPS.length - 1 ? "Continue" : "Submit for review"}
+          <Button variant="primary" onClick={next} disabled={uploading || saving || (step === STEPS.length - 1 && !agreed)} className="h-11 w-full rounded-full text-[15px] font-semibold">
+            {step < STEPS.length - 1 ? "Continue" : saving ? "Saving…" : listing ? "Save changes" : "Submit for review"}
           </Button>
         </div>
       </div>
@@ -414,7 +482,7 @@ function Form({ onClose, onSubmitted }: { onClose: () => void; onSubmitted: (tit
 }
 
 /** What you see once a listing is submitted (Figma node 1607:51092). */
-function Submitted({ title, onClose }: { title: string; onClose: () => void }) {
+function Submitted({ title, editing, onClose }: { title: string; editing: boolean; onClose: () => void }) {
   const router = useRouter();
   return (
     <div className="flex flex-col items-center gap-3 px-6 pb-6 pt-8 text-center sm:px-8">
@@ -422,17 +490,19 @@ function Submitted({ title, onClose }: { title: string; onClose: () => void }) {
         <Image src="/icons/checkmark-badge-01.svg" alt="" width={30} height={30} />
       </span>
       <h2 id="list-marketplace-title" className="text-xl font-bold leading-7 text-[#0f172a]">
-        Submitted for review
+        {editing ? "Changes saved" : "Submitted for review"}
       </h2>
       <p className="text-sm leading-5 text-[#475569]">
-        Your “{title}” listing is now “Pending review”. We check new listings, usually within a few hours, and will notify you when it is live. You can edit or take it down any time from Manage › Listings.
+        {editing
+          ? `Your “${title}” listing was updated. If you changed the title, category or description it goes back to review before it shows again.`
+          : `Your “${title}” listing is now “Pending review”. We check new listings, usually within a few hours. You can edit, pause or take it down any time from Manage › Marketplace.`}
       </p>
       <div className="mt-2 flex w-full flex-col gap-2.5">
         <Button
           variant="primary"
           onClick={() => {
             onClose();
-            router.push("/manage/listings");
+            router.push("/manage/marketplace");
           }}
           className="h-12 w-full rounded-full text-[15px] font-semibold"
         >
@@ -447,7 +517,7 @@ function Submitted({ title, onClose }: { title: string; onClose: () => void }) {
 }
 
 /** List something on the marketplace (Figma nodes 1607:50286 to 1607:50963): four steps with a live preview of the card, then a confirmation (1607:51092). */
-export function CreateMarketplaceListingModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function CreateMarketplaceListingModal({ open, onClose, listing }: { open: boolean; onClose: () => void; listing?: MarketListing }) {
   const [submitted, setSubmitted] = useState<string | null>(null);
 
   function close() {
@@ -458,10 +528,10 @@ export function CreateMarketplaceListingModal({ open, onClose }: { open: boolean
   return (
     <>
       <CenteredDialog open={open && submitted === null} onClose={close} labelledBy="list-marketplace-title" className="max-w-[980px] lg:h-[600px]">
-        <Form onClose={close} onSubmitted={setSubmitted} />
+        <Form key={listing?.id ?? "new"} listing={listing} onClose={close} onSubmitted={setSubmitted} />
       </CenteredDialog>
       <CenteredDialog open={open && submitted !== null} onClose={close} labelledBy="list-marketplace-title" className="max-w-[480px]">
-        <Submitted title={submitted ?? ""} onClose={close} />
+        <Submitted title={submitted ?? ""} editing={Boolean(listing)} onClose={close} />
       </CenteredDialog>
     </>
   );

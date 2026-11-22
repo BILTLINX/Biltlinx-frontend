@@ -5,16 +5,15 @@ import Link from "next/link";
 import { BookmarkIcon } from "@/components/shared/BookmarkIcon";
 import { useSaved } from "@/hooks/useSaved";
 import { formatMoney } from "@/lib/format";
-import { KIND_PILL, UNIT_SUFFIX } from "@/lib/marketplace-api";
+import { offerCategoryPill, unitSuffix } from "@/lib/market-listings";
 import { savedOffer } from "@/lib/saved-items";
-import type { OfferDto } from "@/types/api/schema";
+import type { MarketOffer } from "@/types/api/marketplace";
 
 /** One offer (Figma node 1519:47774): title, location and save above a photo carrying the category, price and an open button. The whole photo opens the listing. */
-export function MarketplaceCard({ offer }: { offer: OfferDto }) {
-  const href = offer.detailRoute;
-  const kind = KIND_PILL[offer.kind ?? ""] ?? offer.category ?? "";
-  const price = offer.price > 0 ? formatMoney(offer.price, offer.currency ?? "GHS") : "GHS —";
-  const unit = offer.unit ? UNIT_SUFFIX[offer.unit] : undefined;
+export function MarketplaceCard({ offer, href = offer.detailRoute, badge }: { offer: MarketOffer; href?: string | null; badge?: string }) {
+  const kind = offerCategoryPill(offer);
+  const price = formatMoney(offer.price, offer.currency);
+  const unit = unitSuffix(offer.unit);
   const { canSave, saved, toggle } = useSaved(savedOffer(offer, kind, unit ? `${price} / ${unit}` : price));
 
   return (
@@ -22,10 +21,10 @@ export function MarketplaceCard({ offer }: { offer: OfferDto }) {
       <div className="flex items-start justify-between gap-2 px-2 pt-2">
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <p className="truncate text-base font-semibold leading-[1.35] text-[#0f172a]">{offer.title}</p>
-          {offer.city && (
+          {offer.location && (
             <p className="flex items-center gap-1 text-[13px] leading-[1.35] text-[#475569]">
               <Image src="/icons/location-01.svg" alt="" width={14} height={14} />
-              <span className="truncate">{offer.city}</span>
+              <span className="truncate">{offer.location}</span>
             </p>
           )}
         </div>
@@ -44,11 +43,13 @@ export function MarketplaceCard({ offer }: { offer: OfferDto }) {
 
       <div className="relative h-[230px] w-full overflow-hidden rounded-[14px] bg-[#eef2ff]">
         {offer.coverUrl && <Image src={offer.coverUrl} alt="" fill unoptimized className="object-cover" sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 307px" />}
-        {/* The same soft dark tint as the property card photos. */}
         <div aria-hidden className="pointer-events-none absolute inset-0 bg-[#0f1729]/35" />
         <div aria-hidden className="absolute inset-x-0 bottom-0 h-[130px] bg-gradient-to-b from-[rgba(15,23,41,0)] to-[rgba(15,23,41,0.82)]" />
         {href && <Link href={href} aria-label={`View ${offer.title}`} className="absolute inset-0" />}
-        <span className="pointer-events-none absolute left-2.5 top-2.5 flex items-center rounded-full bg-white px-2.5 py-1 text-xs font-semibold leading-[1.35] text-[#0f172a]">{kind}</span>
+        <span className="pointer-events-none absolute left-2.5 top-2.5 flex items-center gap-1.5">
+          <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold leading-[1.35] text-[#0f172a]">{kind}</span>
+          {badge && <span className="rounded-full bg-[#fef3c7] px-2.5 py-1 text-xs font-semibold leading-[1.35] text-[#b45309]">{badge}</span>}
+        </span>
         <p className="pointer-events-none absolute bottom-[15px] left-3.5 right-16 flex items-baseline gap-1 leading-[1.35]">
           <span className="truncate text-2xl font-bold text-white">{price}</span>
           {unit && <span className="text-sm font-medium text-[#e2e8f0]">/{unit}</span>}

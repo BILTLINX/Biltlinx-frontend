@@ -72,6 +72,14 @@ function PaymentReturn() {
     if (reservationStatus === "Reserved") void queryClient.invalidateQueries({ queryKey: ["projects"] });
   }, [reservationStatus, queryClient]);
 
+  const marketOrder = payment.data?.purpose === "MarketOrder";
+  useEffect(() => {
+    if (marketOrder) {
+      void queryClient.invalidateQueries({ queryKey: ["marketplace"] });
+      void queryClient.invalidateQueries({ queryKey: ["action-needed"] });
+    }
+  }, [marketOrder, queryClient]);
+
   const concierge = payment.data?.purpose === "ConciergeFee";
   useEffect(() => {
     if (concierge) void queryClient.invalidateQueries({ queryKey: ["concierge"] });
@@ -93,6 +101,14 @@ function PaymentReturn() {
     content = <Result tone="fail" title="The payment did not go through" body={payment.data.failureReason ?? "You have not been charged. Your hold stays for a few minutes so you can try again."} />;
   } else if (payment.data.status === "Pending" || payment.data.status === "Processing") {
     content = <Result tone="wait" title="Your payment is still processing" body="Mobile money can take a minute. We will confirm your booking as soon as it arrives. You can leave this page." />;
+  } else if (payment.data.purpose === "MarketOrder") {
+    content = (
+      <Result tone="ok" title="Payment received" body={`${formatMoney(payment.data.amount, payment.data.currency ?? "GHS")} paid. Biltlinx holds it until you confirm delivery, then releases it to the seller.`}>
+        <Link href={`/marketplace/orders/${payment.data.subjectId}`} className="text-sm font-medium text-brand-900">
+          View my order
+        </Link>
+      </Result>
+    );
   } else if (payment.data.purpose === "ConciergeFee") {
     content = (
       <Result tone="ok" title="Concierge fee received" body={`${formatMoney(payment.data.amount, payment.data.currency ?? "GHS")} paid. Your Concierge plan continues from here.`}>
