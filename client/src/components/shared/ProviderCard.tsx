@@ -36,24 +36,20 @@ export function ProviderCard({ provider, kind }: { provider: ProviderCardDto; ki
   }
 
   return (
-    <article className="relative flex min-w-0 flex-col rounded-[28px] border border-[#e2e8f0] bg-[#f1f1f1] px-2.5 pb-2.5 pt-16">
-      <Link href={href} aria-label={`View ${name}`} className="absolute left-[29px] top-[21px] z-10 size-24 overflow-hidden rounded-full border-4 border-white bg-[#eef2ff] shadow-[0_4px_12px_rgba(15,23,41,0.15)]">
+    <article className="relative flex min-w-0 flex-col hover:border-[#cbd5e1] rounded-[28px] border border-[#e2e8f0] bg-[#f1f1f1] px-2.5 pb-2.5 pt-16">
+      <div className="pointer-events-none absolute left-[29px] top-[21px] z-10 size-24 overflow-hidden rounded-full border-4 border-white bg-[#eef2ff] shadow-[0_4px_12px_rgba(15,23,41,0.15)]">
         <Image src={provider.owner.profilePicUrl ?? "/icons/avatar-placeholder-user.svg"} alt="" fill className="object-cover" sizes="96px" />
-      </Link>
+      </div>
 
       <div className="flex flex-col gap-3 rounded-[22px] border border-[#e2e8f0] bg-white px-5 pb-5 pt-4">
         <div className="flex min-h-7 items-center gap-1.5 pl-[112px]">
-          <h2 className="truncate text-xl font-semibold leading-[1.4] text-[#0f172a]">
-            <Link href={href} className="hover:underline">
-              {name}
-            </Link>
-          </h2>
+          <h2 className="truncate text-xl font-semibold leading-[1.4] text-[#0f172a]">{name}</h2>
           {verified && <Image src="/icons/checkmark-badge-01.svg" alt="Verified" title="Verified" width={18} height={18} className="shrink-0" />}
         </div>
 
         {provider.headline && <p className="line-clamp-2 text-sm leading-[1.4] text-[#475569]">{provider.headline}</p>}
 
-        <div className="flex items-center gap-1">
+        <div className="relative z-10 flex items-center gap-1">
           <button
             type="button"
             onClick={() => setQuoteOpen(true)}
@@ -71,6 +67,9 @@ export function ProviderCard({ provider, kind }: { provider: ProviderCardDto; ki
           )}
         </div>
       </div>
+
+      {/* The whole card opens the profile; the buttons sit above this link. */}
+      <Link href={href} aria-label={`View ${name}`} className="absolute inset-0 rounded-[28px]" />
 
       {quoteOpen && (
         <QuoteRequestDialog open onClose={() => setQuoteOpen(false)} target={{ providerIds: [provider.id], providerName: name, category: provider.categories?.[0], city: provider.city ?? undefined }} />

@@ -1,16 +1,13 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/shared/AppShell";
-import { CreateMarketplaceListingModal } from "@/components/shared/CreateMarketplaceListingModal";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { FilterPanel, filterText, type FilterSection, type FilterValues } from "@/components/shared/FilterPanel";
 import { MarketplaceCard } from "@/components/shared/MarketplaceCard";
 import { MarketplaceRail } from "@/components/shared/MarketplaceRail";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { SearchEmpty } from "@/components/shared/SearchEmpty";
-import { Button } from "@/components/ui/Button";
 import { Pagination } from "@/components/ui/Pagination";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useDebouncedSearch } from "@/context/SearchContext";
@@ -35,7 +32,6 @@ export default function MarketplacePage() {
   const facets = useMarketFacets();
   const search = useDebouncedSearch();
   const [filters, setFilters] = useState<FilterValues>(NO_FILTERS);
-  const [listing, setListing] = useState(false);
   const category = filterText(filters, "category");
   const city = filterText(filters, "city");
   const minPrice = filterText(filters, "minPrice");
@@ -92,12 +88,6 @@ export default function MarketplacePage() {
             <h1 className="text-2xl font-bold leading-8 text-[#0f172a]">Marketplace</h1>
             <p className="text-sm leading-5 text-gray-500">Buy or hire building materials, equipment and land from sellers across Ghana. Every listing shows its price.</p>
           </div>
-          <Button variant="primary" onClick={() => setListing(true)} className="h-10 w-auto shrink-0 rounded-[10px] px-4 text-sm font-medium lg:rounded-[10px]">
-            List on Marketplace
-          </Button>
-          <Link href="/marketplace/orders" className="flex h-10 shrink-0 items-center rounded-[10px] border border-gray-200 bg-white px-4 text-sm font-medium text-[#334155] hover:bg-gray-50">
-            My orders
-          </Link>
           <FilterPanel
             className="shrink-0 sm:max-w-[45%] sm:justify-end"
             sections={sections}
@@ -154,7 +144,6 @@ export default function MarketplacePage() {
           <MarketplaceRail />
         </div>
       </PageContainer>
-      <CreateMarketplaceListingModal open={listing} onClose={() => setListing(false)} />
     </AppShell>
   );
 }
