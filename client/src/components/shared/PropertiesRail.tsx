@@ -9,7 +9,7 @@ import { comingSoonHref } from "@/lib/coming-soon";
 const CARD = "flex flex-col gap-2.5 rounded-2xl border border-gray-200 bg-white p-4";
 const ROUNDED_BUTTON = "rounded-[10px] lg:rounded-[10px]";
 
-/** Properties side cards (Figma node 1042:20565): map preview, search alerts and Concierge. */
+/** Properties side cards (Figma node 1042:20565): map preview and search alerts. */
 export function PropertiesRail() {
   const router = useRouter();
   const comingSoon = (feature: string) => () => router.push(comingSoonHref(feature));
@@ -43,16 +43,6 @@ export function PropertiesRail() {
         >
           Turn on alerts
         </button>
-      </section>
-
-      <section className={CARD}>
-        <h2 className="text-sm font-bold leading-5 text-[#0f172a]">Not sure where to start?</h2>
-        <p className="text-xs leading-[17px] text-gray-500">
-          Tell Concierge your budget and area. It builds a shortlist and books viewings, and you confirm every step.
-        </p>
-        <Button variant="primary" onClick={comingSoon("Concierge")} className={ROUNDED_BUTTON}>
-          Ask Concierge
-        </Button>
       </section>
     </div>
   );

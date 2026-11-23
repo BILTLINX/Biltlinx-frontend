@@ -18,7 +18,7 @@ export function ConciergeCard() {
 
       <Link
         href="/concierge/new"
-        className="flex h-[38px] w-full items-center justify-center rounded-lg bg-brand-900 text-[13px] font-medium text-white hover:bg-brand-900/90"
+        className="flex h-[38px] w-full items-center justify-center rounded-lg border border-[#e2e8f0] bg-white text-[13px] font-medium text-[#0f172a] hover:bg-gray-50"
       >
         Start with a Concierge
       </Link>

@@ -131,7 +131,7 @@ function AttentionCard({ item, primary }: { item: ActionCardData; primary?: bool
           // Desktop (Figma node 755:34636): 8px-radius rectangle, Inter Regular 14/20, 16×10 padding.
           "lg:gap-2 lg:rounded-lg lg:px-4 lg:py-2.5 lg:font-inter lg:text-sm lg:font-normal lg:leading-5",
           primary
-            ? "bg-brand-900 text-white hover:bg-brand-900/90"
+            ? "bg-[#eef4ff] text-[#1465e6] hover:bg-[#dfeaff]"
             : "border border-gray-200 text-night-900 hover:bg-gray-50",
         )}
       >

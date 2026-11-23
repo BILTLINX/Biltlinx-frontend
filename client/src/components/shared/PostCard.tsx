@@ -545,7 +545,7 @@ function ActionsRow({ post }: { post: PostCardData }) {
           <Button
             variant="primary"
             onClick={() => (opensViewing ? setViewingOpen(true) : router.push(comingSoonHref(primary.label)))}
-            className="h-auto w-auto rounded-xl px-3 py-1.5 text-[10px] sm:h-[38px] sm:rounded-lg sm:px-[15px] sm:py-0 sm:text-[13px]"
+            className="h-auto w-auto rounded-xl bg-[#eef4ff] px-3 py-1.5 text-[10px] text-[#1465e6] hover:bg-[#dfeaff] sm:h-[38px] sm:rounded-lg sm:px-[15px] sm:py-0 sm:text-[13px]"
           >
             {primary.label}
           </Button>
