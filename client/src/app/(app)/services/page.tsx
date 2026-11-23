@@ -5,6 +5,7 @@ import { useState } from "react";
 import { AppShell } from "@/components/shared/AppShell";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { filterList, filterText, FilterPanel, type FilterSection, type FilterValues } from "@/components/shared/FilterPanel";
+import { openRequestModal } from "@/hooks/useRequestModal";
 import { OfferingCard } from "@/components/shared/OfferingCard";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { ServicesRail } from "@/components/shared/ServicesRail";
@@ -114,7 +115,7 @@ export default function ServicesPage() {
             icon="services-sad"
             title="No services match"
             body="Try a different category or price. If it isn’t listed, describe it and providers will quote."
-            primary={{ label: "Request a service", href: "/request-board/new" }}
+            primary={{ label: "Request a service", onClick: openRequestModal }}
             secondary={{ label: "Clear filters", onClick: clearFilters }}
           />
         )}

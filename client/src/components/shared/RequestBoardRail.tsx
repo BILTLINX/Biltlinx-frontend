@@ -1,13 +1,12 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { openRequestModal } from "@/hooks/useRequestModal";
 
 const CARD = "flex flex-col gap-2.5 rounded-2xl border border-gray-200 bg-white p-4";
 
 /** Request Board side cards (Figma node 1043:22445): post-a-request prompt and a safety reminder. */
 export function RequestBoardRail() {
-  const router = useRouter();
 
   return (
     <div className="flex w-full flex-col gap-4">
@@ -18,7 +17,7 @@ export function RequestBoardRail() {
         </p>
         <Button
           variant="primary"
-          onClick={() => router.push("/request-board/new")}
+          onClick={openRequestModal}
           className="rounded-[10px] lg:rounded-[10px]"
         >
           Post a request

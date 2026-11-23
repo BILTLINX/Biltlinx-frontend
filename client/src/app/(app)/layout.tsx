@@ -1,5 +1,6 @@
 import { Suspense, type ReactNode } from "react";
 import { RequireAuth } from "@/components/providers/RequireAuth";
+import { RequestModalHost } from "@/components/shared/RequestModalHost";
 import { MessagingProvider } from "@/context/MessagingContext";
 import { SearchProvider } from "@/context/SearchContext";
 
@@ -8,7 +9,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     <Suspense fallback={null}>
       <RequireAuth>
         <MessagingProvider>
-          <SearchProvider>{children}</SearchProvider>
+          <SearchProvider>
+            {children}
+            <RequestModalHost />
+          </SearchProvider>
         </MessagingProvider>
       </RequireAuth>
     </Suspense>

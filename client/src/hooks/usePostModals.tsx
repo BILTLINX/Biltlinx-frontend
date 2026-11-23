@@ -8,11 +8,12 @@ import { CreateMarketplaceListingModal } from "@/components/shared/CreateMarketp
 import { CreateProjectModal } from "@/components/shared/CreateProjectModal";
 import { CreatePollModal } from "@/components/shared/CreatePollModal";
 import { CreatePostModal } from "@/components/shared/CreatePostModal";
+import { PostRequestModal } from "@/components/shared/PostRequestModal";
 import { PostPropertyModal } from "@/components/shared/PostPropertyModal";
 import { PostServiceModal } from "@/components/shared/PostServiceModal";
 import { PostStayModal } from "@/components/shared/PostStayModal";
 
-export type PostModalType = "media" | "poll" | "article" | "property" | "stay" | "service" | "community" | "event" | "project" | "marketplace";
+export type PostModalType = "media" | "poll" | "article" | "property" | "stay" | "service" | "community" | "event" | "project" | "marketplace" | "request";
 
 /** Shared state + JSX for the create modals (posts, listings, a community), so any
  * trigger (TopNav's Create button, the feed composer's icons, etc.) can open them. */
@@ -40,6 +41,7 @@ export function usePostModals() {
       <CreateCommunityModal open={open && type === "community"} onClose={close} />
       <CreateProjectModal open={open && type === "project"} onClose={close} />
       <CreateMarketplaceListingModal open={open && type === "marketplace"} onClose={close} />
+      <PostRequestModal open={open && type === "request"} onClose={close} />
       <CreateEventModal open={open && type === "event"} onClose={close} onStartCommunity={() => openPostModal("community")} />
     </>
   );

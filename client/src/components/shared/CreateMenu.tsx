@@ -8,16 +8,16 @@ import { VisibilityRow } from "@/components/shared/VisibilityRow";
 import { comingSoonHref } from "@/lib/coming-soon";
 import { cn } from "@/lib/utils";
 
-/** Where a menu entry goes: Post a Request has its own page; the rest are not built yet. */
+/** Where a menu entry goes: the entries that are not built yet. */
 function menuItemHref(item: { key: string; label: string }) {
-  return item.key === "request" ? "/request-board/new" : comingSoonHref(item.label);
+  return comingSoonHref(item.label);
 }
 
 /** The entries that open a form in a dialog instead of going to a page. */
-type ModalKey = "property" | "stay" | "service" | "community" | "event" | "project" | "marketplace";
+type ModalKey = "property" | "stay" | "service" | "community" | "event" | "project" | "marketplace" | "request";
 
 function opensModal(key: string): key is ModalKey {
-  return key === "property" || key === "stay" || key === "service" || key === "community" || key === "event" || key === "project" || key === "marketplace";
+  return key === "property" || key === "stay" || key === "service" || key === "community" || key === "event" || key === "project" || key === "marketplace" || key === "request";
 }
 
 interface DesktopSubmenuItem {

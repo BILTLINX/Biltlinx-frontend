@@ -11,6 +11,7 @@ import { Pagination } from "@/components/ui/Pagination";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { usePage } from "@/hooks/usePagedSearch";
 import { useProviders, useTaxonomy } from "@/hooks/useServices";
+import { openRequestModal } from "@/hooks/useRequestModal";
 import { errorMessage } from "@/lib/errors";
 import { useDebouncedSearch } from "@/context/SearchContext";
 
@@ -109,7 +110,7 @@ export function ProviderDirectory({ kind, title, subtitle, activeChildKey, right
             icon={NO_RESULTS[kind].icon}
             title={NO_RESULTS[kind].title}
             body={NO_RESULTS[kind].body}
-            primary={{ label: NO_RESULTS[kind].post, href: "/request-board/new" }}
+            primary={{ label: NO_RESULTS[kind].post, onClick: openRequestModal }}
             secondary={{ label: "Clear filters", onClick: clearFilters }}
           />
         )}

@@ -1,8 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { RailCta } from "@/components/shared/RailCta";
 import { Button } from "@/components/ui/Button";
+import { openRequestModal } from "@/hooks/useRequestModal";
 
 const CARD = "flex flex-col gap-2.5 rounded-2xl border border-gray-200 bg-white p-4";
 
@@ -16,7 +16,6 @@ const HIRING_STEPS = [
 
 /** Artisans side cards (Figma node 1043:21711): how hiring works and the multi-trade Request Board prompt. */
 export function ArtisansRail() {
-  const router = useRouter();
 
   return (
     <div className="flex w-full flex-col gap-4">
@@ -40,7 +39,7 @@ export function ArtisansRail() {
         </p>
         <Button
           variant="primary"
-          onClick={() => router.push("/request-board/new")}
+          onClick={openRequestModal}
           className="rounded-[10px] lg:rounded-[10px]"
         >
           Post a request
