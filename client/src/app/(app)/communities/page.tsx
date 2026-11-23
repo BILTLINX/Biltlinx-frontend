@@ -76,7 +76,7 @@ export default function CommunitiesPage() {
 
         <FilterDropdown label="Show" options={SHOW_OPTIONS} value={show} onChange={setShow} />
 
-        <section className="flex flex-col gap-3">
+        <section className="@container flex min-w-0 flex-col gap-3">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-bold leading-[23px] text-[#0f172a]">
               {mineOnly ? "Your communities" : "Suggested for you"}
@@ -86,8 +86,8 @@ export default function CommunitiesPage() {
             </button>
           </div>
           {communities.length > 0 ? (
-            // One row, three cards wide: any more scroll sideways instead of wrapping onto a second row. The padding keeps the card shadows from being clipped.
-            <div className="no-scrollbar -mb-3 grid snap-x auto-cols-[max(240px,calc((100%-2rem)/3))] grid-flow-col gap-4 overflow-x-auto pb-3 *:snap-start">
+            // One row that scrolls sideways, sized by the room the list has rather than the screen: three cards wide when there is room, two when there is less, and one with the next peeking in when it is narrow. The padding keeps the card shadows from being clipped.
+            <div className="no-scrollbar -mb-3 grid snap-x auto-cols-[85%] @[520px]:auto-cols-[calc((100%-1rem)/2)] @[760px]:auto-cols-[calc((100%-2rem)/3)] grid-flow-col gap-4 overflow-x-auto pb-3 *:snap-start">
               {communities.map((community) => (
                 <CommunityCard
                   key={community.id}
