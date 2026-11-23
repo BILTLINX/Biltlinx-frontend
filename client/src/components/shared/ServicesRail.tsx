@@ -12,7 +12,7 @@ export function ServicesRail() {
 
   return (
     <div className="flex w-full flex-col gap-4">
-      <RailCta title="Offer a service" body="Set your prices and what is included, and get found by people who need the work done." label="Offer a service" href="/manage/provider" />
+      <RailCta title="Offer a service" body="Set your prices and what is included, and get found by people who need the work done." label="Offer a service" href="/manage/provider" variant="outline" />
 
       <section className={CARD}>
         <h2 className="text-sm font-bold leading-5 text-[#0f172a]">Need something not listed?</h2>

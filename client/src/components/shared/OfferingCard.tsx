@@ -46,7 +46,7 @@ export function OfferingCard({ offering }: { offering: OfferingDto }) {
   const note = [MODE_LABEL[offering.mode ?? ""], unit].filter(Boolean).join(" · ");
 
   return (
-    <article className="@container overflow-hidden rounded-2xl border border-gray-200 bg-white p-4">
+    <article className="@container overflow-hidden rounded-2xl border border-[#e2e8f0] bg-white p-4">
       <div className="flex flex-col gap-4 @[560px]:flex-row @[560px]:items-center">
         <div className="flex min-w-0 flex-1 items-center gap-4">
           <Link href={href} aria-label={`View ${title}`} className="relative block size-24 shrink-0 overflow-hidden rounded-xl bg-[#eef2ff]">
@@ -64,7 +64,7 @@ export function OfferingCard({ offering }: { offering: OfferingDto }) {
                 {title}
               </Link>
             </p>
-            <p className="max-w-full truncate text-[13px] font-medium leading-[19px] text-brand-900">{[name, offering.category].filter(Boolean).join(" · ")}</p>
+            <p className="max-w-full truncate text-[13px] font-medium leading-[19px] text-[#1465e6]">{[name, offering.category].filter(Boolean).join(" · ")}</p>
             {provider.credentialVerified && <span className="rounded-full bg-[#dcfce7] px-2 py-[3px] text-[11px] font-medium leading-[14px] text-[#16a34a]">Credential verified ✓</span>}
             {provider.credentialWarning && <span className="rounded-full bg-[#fef3c7] px-2 py-[3px] text-[11px] font-medium leading-[14px] text-[#b45309]">Credential not verified</span>}
           </div>
@@ -72,7 +72,7 @@ export function OfferingCard({ offering }: { offering: OfferingDto }) {
 
         <div className="flex shrink-0 flex-col gap-1 @[560px]:items-end">
           <p className="whitespace-nowrap text-lg font-bold leading-[26px] text-[#0f172a]">{offeringAmount(offering)}</p>
-          {note && <p className="whitespace-nowrap text-xs leading-[17px] text-gray-500">{note}</p>}
+          {note && <p className="whitespace-nowrap text-xs leading-[17px] text-[#64748a]">{note}</p>}
         </div>
 
         <div className="flex shrink-0 gap-2 @[560px]:w-[150px] @[560px]:flex-col">
@@ -80,14 +80,14 @@ export function OfferingCard({ offering }: { offering: OfferingDto }) {
             <Button
               variant="primary"
               onClick={() => (offering.primaryAction === "Book" ? router.push(href) : setQuoteOpen(true))}
-              className="h-10 min-w-0 whitespace-nowrap rounded-[10px] px-2 lg:rounded-[10px]"
+              className="h-10 min-w-0 whitespace-nowrap rounded-[10px] bg-[#eef4ff] px-2 text-[#1465e6] hover:bg-[#dfeaff] lg:rounded-[10px]"
             >
               {action}
             </Button>
           )}
           <Link
             href={href}
-            className="flex h-10 w-full min-w-0 items-center justify-center whitespace-nowrap rounded-[10px] border border-gray-200 px-2 text-sm font-medium text-[#0f172a] hover:bg-gray-50 @[560px]:h-9"
+            className="flex h-10 w-full min-w-0 items-center justify-center whitespace-nowrap rounded-[10px] border border-[#e2e8f0] px-2 text-sm font-medium text-[#0f172a] hover:bg-gray-50 @[560px]:h-9"
           >
             Details
           </Link>

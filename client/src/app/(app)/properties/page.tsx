@@ -1,11 +1,11 @@
 "use client";
 
 import { SearchEmpty } from "@/components/shared/SearchEmpty";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AppShell } from "@/components/shared/AppShell";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { filterText, FilterPanel, type FilterSection, type FilterValues } from "@/components/shared/FilterPanel";
+import { cn } from "@/lib/utils";
 import { PropertyCard } from "@/components/shared/PropertyCard";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { PropertiesRail } from "@/components/shared/PropertiesRail";
@@ -49,9 +49,9 @@ function numberOrUndefined(value: string) {
 }
 
 export default function PropertiesPage() {
-  const router = useRouter();
   const search = useDebouncedSearch();
   const [filters, setFilters] = useState<FilterValues>(EMPTY_FILTERS);
+  const [view, setView] = useState<"list" | "map">("list");
   const category = filterText(filters, "category");
 
   function clearFilters() {
@@ -92,19 +92,36 @@ export default function PropertiesPage() {
           <p className="text-sm font-medium leading-5 text-[#0f172a]">
             {isPending ? "Searching…" : `${total.toLocaleString("en-GH")} ${active?.noun ?? "properties"}`}
           </p>
-          <div className="flex shrink-0 gap-1 rounded-[10px] border border-gray-200 p-1">
-            <span className="rounded-lg bg-brand-900 px-3.5 py-1.5 text-[13px] font-medium leading-[19px] text-white">List</span>
-            <button
-              type="button"
-              onClick={() => router.push(comingSoonHref("Map view"))}
-              className="rounded-lg px-3.5 py-1.5 text-[13px] font-medium leading-[19px] text-[#334155] hover:bg-gray-50"
-            >
-              Map
-            </button>
+          <div role="tablist" aria-label="View" className="flex shrink-0 gap-1 rounded-[10px] border border-[#e2e8f0] p-1">
+            {(["list", "map"] as const).map((value) => (
+              <button
+                key={value}
+                type="button"
+                role="tab"
+                aria-selected={view === value}
+                onClick={() => setView(value)}
+                className={cn(
+                  "rounded-lg border px-3.5 py-1.5 text-[13px] font-medium leading-[19px] capitalize",
+                  view === value ? "border-[#cbd5e1] bg-white text-[#0f172a]" : "border-transparent text-[#334155] hover:bg-gray-50",
+                )}
+              >
+                {value}
+              </button>
+            ))}
           </div>
         </div>
 
-        {isPending && (
+        {view === "map" && (
+          <EmptyState
+            size="section"
+            icon="marketplace"
+            title="Map view is coming soon"
+            body="For now, browse the properties as a list."
+            primary={{ label: "Back to list", onClick: () => setView("list") }}
+          />
+        )}
+
+        {view === "list" && isPending && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {[0, 1, 2].map((n) => (
               <Skeleton key={n} className="h-[360px] rounded-2xl" />
@@ -112,7 +129,7 @@ export default function PropertiesPage() {
           </div>
         )}
 
-        {isError && (
+        {view === "list" && isError && (
           <div className="flex flex-col items-center gap-3 rounded-2xl border border-gray-200 bg-white p-8 text-center">
             <p className="text-sm text-gray-500">{errorMessage(error, "We could not load properties.")}</p>
             <button type="button" onClick={() => void refetch()} className="text-sm font-medium text-brand-900">
@@ -121,8 +138,8 @@ export default function PropertiesPage() {
           </div>
         )}
 
-        {!isPending && !isError && cards.length === 0 && search && <SearchEmpty noun="properties" />}
-        {!isPending && !isError && cards.length === 0 && !search && (
+        {view === "list" && !isPending && !isError && cards.length === 0 && search && <SearchEmpty noun="properties" />}
+        {view === "list" && !isPending && !isError && cards.length === 0 && !search && (
           <EmptyState
             mood="sad"
             icon="home-sad"
@@ -133,14 +150,14 @@ export default function PropertiesPage() {
           />
         )}
 
-        {cards.length > 0 && (
+        {view === "list" && cards.length > 0 && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {cards.map((listing) => (
               <PropertyCard key={listing.id} listing={listing} />
             ))}
           </div>
         )}
-        <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+        {view === "list" && <Pagination page={page} totalPages={totalPages} onChange={setPage} />}
 
         <div className="xl:hidden">
           <PropertiesRail />

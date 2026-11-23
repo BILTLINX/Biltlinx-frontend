@@ -2,18 +2,15 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { RailCta } from "@/components/shared/RailCta";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { Button } from "@/components/ui/Button";
 import { useProjectUpdates } from "@/hooks/useProjects";
 import { formatRelative } from "@/lib/format";
 import { FALLBACK_PROJECT_IMAGE } from "@/lib/project-mapper";
 
-/** Projects side cards (Figma node 1042:21544): latest site updates and the Concierge build prompt. */
+/** Projects side cards (Figma node 1042:21544): latest site updates. */
 export function ProjectsRail() {
-  const router = useRouter();
   const [followedOnly, setFollowedOnly] = useState(false);
   const updates = useProjectUpdates(followedOnly);
 
@@ -45,16 +42,6 @@ export function ProjectsRail() {
             </div>
           </Link>
         ))}
-      </section>
-
-      <section className="flex flex-col gap-2.5 rounded-2xl border border-gray-200 bg-white p-4">
-        <h2 className="text-sm font-bold leading-5 text-[#0f172a]">Planning your own build?</h2>
-        <p className="text-xs leading-[17px] text-gray-500">
-          Concierge can line up a surveyor, architect, engineer and contractor for your land.
-        </p>
-        <Button variant="primary" onClick={() => router.push("/concierge")} className="rounded-[10px] lg:rounded-[10px]">
-          Plan with Concierge
-        </Button>
       </section>
     </div>
   );

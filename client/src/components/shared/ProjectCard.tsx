@@ -25,7 +25,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
   const { following, toggle } = useProjectFollow(project.id, project.following);
 
   return (
-    <article className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-4 sm:flex-row sm:gap-5">
+    <article className="flex flex-col gap-4 rounded-2xl border border-[#e2e8f0] bg-white p-4 sm:flex-row sm:gap-5">
       <div className="relative h-[170px] w-full shrink-0 overflow-hidden rounded-xl sm:w-[240px]">
         <Image
           src={project.image}
@@ -52,7 +52,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
             {project.stage}
           </span>
         </div>
-        <p className="text-[13px] leading-[19px] text-gray-500">
+        <p className="text-[13px] leading-[19px] text-[#64748a]">
           {project.developer} · {project.area}
         </p>
 
@@ -67,30 +67,30 @@ export function ProjectCard({ project }: ProjectCardProps) {
             aria-valuenow={project.progress}
             aria-valuemin={0}
             aria-valuemax={100}
-            className="h-2 w-full overflow-hidden rounded-full bg-gray-200"
+            className="h-2 w-full overflow-hidden rounded-full bg-[#e2e8f0]"
           >
-            <div className="h-full rounded-full bg-brand-900" style={{ width: `${project.progress}%` }} />
+            <div className="h-full rounded-full bg-[#1465e6]" style={{ width: `${project.progress}%` }} />
           </div>
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
           <div className="flex flex-col gap-0.5">
             <p className="text-base font-bold leading-[23px] text-[#0f172a]">{project.priceFrom}</p>
-            <p className="text-xs leading-[17px] text-gray-500">{project.summary}</p>
+            <p className="text-xs leading-[17px] text-[#64748a]">{project.summary}</p>
           </div>
           <div className="flex gap-2">
             <Button
               variant="outline"
               onClick={toggle}
               aria-pressed={following}
-              className="h-10 w-auto whitespace-nowrap rounded-[10px] px-4 lg:rounded-[10px]"
+              className="h-10 w-auto whitespace-nowrap rounded-[10px] border-[#e2e8f0] px-4 text-[#0f172a] lg:rounded-[10px]"
             >
               {following ? "Following" : "Follow"}
             </Button>
             <Button
               variant="primary"
               onClick={() => router.push(`/projects/${project.id}`)}
-              className="h-10 w-auto whitespace-nowrap rounded-[10px] px-4 lg:rounded-[10px]"
+              className="h-10 w-auto whitespace-nowrap rounded-[10px] bg-[#eef4ff] px-4 text-[#1465e6] hover:bg-[#dfeaff] lg:rounded-[10px]"
             >
               View project
             </Button>

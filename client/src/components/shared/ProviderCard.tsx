@@ -53,7 +53,7 @@ export function ProviderCard({ provider, kind }: { provider: ProviderCardDto; ki
           <button
             type="button"
             onClick={() => setQuoteOpen(true)}
-            className="flex h-10 min-w-0 flex-1 items-center justify-center whitespace-nowrap rounded-[10px] bg-[#1465e6] px-4 text-sm font-medium leading-5 text-white hover:bg-[#0f52c0]"
+            className="flex h-10 min-w-0 flex-1 items-center justify-center whitespace-nowrap rounded-[10px] bg-[#eef4ff] px-4 text-sm font-medium leading-5 text-[#1465e6] hover:bg-[#dfeaff]"
           >
             {kind === "professional" ? "Request consultation" : "Request a quote"}
           </button>
