@@ -12,7 +12,6 @@ import { CreateCommunityModal } from "@/components/shared/CreateCommunityModal";
 import { DiscussionRow } from "@/components/shared/DiscussionRow";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { NavIcon } from "@/components/shared/NavIcon";
-import { Button } from "@/components/ui/Button";
 import { useCommunities } from "@/hooks/useCommunities";
 import { comingSoonHref } from "@/lib/coming-soon";
 import {
@@ -62,9 +61,6 @@ export default function CommunitiesPage() {
             <h1 className="text-2xl font-bold leading-8 text-[#0f172a]">Communities</h1>
             <p className="text-sm leading-5 text-gray-500">Ask questions, share know-how and meet neighbours, builders and owners.</p>
           </div>
-          <Button variant="primary" onClick={startCommunity} className="h-10 w-auto shrink-0 rounded-[10px] px-4 text-sm font-medium lg:rounded-[10px]">
-            Create a community
-          </Button>
         </div>
 
         <label className="flex h-12 items-center gap-2.5 rounded-xl border border-[#e2e8f0] bg-white px-4 focus-within:border-brand-900">

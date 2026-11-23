@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { CreateMarketplaceListingModal } from "@/components/shared/CreateMarketplaceListingModal";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { Button } from "@/components/ui/Button";
 import { comingSoonHref } from "@/lib/coming-soon";
@@ -10,7 +11,7 @@ const CARD = "flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-
 
 /** Marketplace side cards (Figma node 1040:20492): where to list, your saved searches, and how badges work. */
 export function MarketplaceRail() {
-  const router = useRouter();
+  const [listing, setListing] = useState(false);
   const savedSearches = comingSoonHref("Saved searches");
 
   return (
@@ -18,10 +19,11 @@ export function MarketplaceRail() {
       <section className={CARD}>
         <h2 className="text-base font-bold leading-[23px] text-[#0f172a]">Sell or hire on Biltlinx</h2>
         <p className="text-[13px] leading-[19px] text-gray-500">List materials, equipment or land. Buyers see the price first, so set a real asking price. Your payment is held until the buyer confirms delivery.</p>
-        <Button variant="primary" onClick={() => router.push("/manage/marketplace")} className="h-10 rounded-[10px] lg:rounded-[10px]">
-          Manage my listings
+        <Button variant="primary" onClick={() => setListing(true)} className="h-10 rounded-[10px] lg:rounded-[10px]">
+          List on Marketplace
         </Button>
       </section>
+      <CreateMarketplaceListingModal open={listing} onClose={() => setListing(false)} />
 
       <section className={CARD}>
         <div className="flex items-center justify-between gap-2">

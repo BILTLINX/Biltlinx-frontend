@@ -9,6 +9,7 @@ import { showSuccessToast } from "@/components/shared/AppToast";
 import { AnchoredPanel } from "@/components/shared/AnchoredPanel";
 import { AppShell } from "@/components/shared/AppShell";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
+import { CreateMarketplaceListingModal } from "@/components/shared/CreateMarketplaceListingModal";
 import { CreateListingModal, type ListingTarget } from "@/components/shared/CreateListingModal";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ListingActionDialog } from "@/components/shared/ListingActionDialog";
@@ -114,6 +115,7 @@ function ManageListings() {
   const [filter, setFilter] = useState<Filter>("all");
   const [kindFilter, setKindFilter] = useState<KindFilter>("all");
   const [dialog, setDialog] = useState<{ initial: ListingTarget | null } | null>(null);
+  const [marketOpen, setMarketOpen] = useState(false);
   const [action, setAction] = useState<{ property: PropertyDto; action: RowAction } | null>(null);
   const [documentsFor, setDocumentsFor] = useState<PropertyDto | null>(null);
   const [menuFor, setMenuFor] = useState<string | null>(null);
@@ -233,6 +235,9 @@ function ManageListings() {
           <div className="flex shrink-0 flex-wrap gap-2">
             <Button variant="primary" onClick={() => setDialog({ initial: null })} className="h-10 w-auto whitespace-nowrap rounded-[10px] px-4 lg:rounded-[10px]">
               + Create listing
+            </Button>
+            <Button variant="outline" onClick={() => setMarketOpen(true)} className="h-10 w-auto whitespace-nowrap rounded-[10px] px-4 lg:rounded-[10px]">
+              List on Marketplace
             </Button>
           </div>
         </div>
@@ -399,6 +404,7 @@ function ManageListings() {
       </PageContainer>
 
       {dialog && <CreateListingModal initial={dialog.initial} onClose={() => setDialog(null)} />}
+      <CreateMarketplaceListingModal open={marketOpen} onClose={() => setMarketOpen(false)} />
       {postFor && <PostPropertyModal open onClose={() => setPostFor(null)} initialId={postFor.id} />}
       <ListingActionDialog property={action?.property ?? null} action={action?.action ?? null} onClose={() => setAction(null)} />
       <ListingDocumentsDialog propertyId={documentsFor?.id ?? null} title={documentsFor?.name ?? ""} onClose={() => setDocumentsFor(null)} />
