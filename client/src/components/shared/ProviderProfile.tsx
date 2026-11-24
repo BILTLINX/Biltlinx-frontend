@@ -9,6 +9,7 @@ import { BookmarkIcon } from "@/components/shared/BookmarkIcon";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { MODE_LABEL, offeringAmount } from "@/components/shared/OfferingCard";
 import { PageContainer } from "@/components/shared/PageContainer";
+import { ProjectDetailDialog } from "@/components/shared/ProjectDetailDialog";
 import { ProviderReviews, type ProviderReview } from "@/components/shared/ProviderReviews";
 import { QuoteRequestDialog } from "@/components/shared/QuoteRequestDialog";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -47,14 +48,18 @@ export function PortfolioCard({ item }: { item: PortfolioItemDto }) {
 }
 
 /** One finished project in the Projects tab: its first photo, the title and the year. */
-function ProjectTile({ item }: { item: PortfolioItemDto }) {
+function ProjectTile({ item, onOpen }: { item: PortfolioItemDto; onOpen: () => void }) {
   const cover = item.media?.find((file) => file.url)?.url;
+  const count = item.media?.filter((file) => file.url).length ?? 0;
   return (
-    <article className="flex min-w-0 flex-col gap-1.5">
-      <div className="relative aspect-[246/130] overflow-hidden rounded-xl bg-[#eef2ff]">{cover && <Image src={cover} alt="" fill unoptimized className="object-cover" sizes="(min-width: 1024px) 246px, 50vw" />}</div>
-      <p className="truncate text-sm font-semibold text-[#0f172a]">{item.title}</p>
+    <button type="button" onClick={onOpen} aria-label={`Open ${item.title ?? "project"}`} className="group flex min-w-0 flex-col gap-1.5 text-left">
+      <div className="relative aspect-[246/130] overflow-hidden rounded-xl bg-[#eef2ff] ring-1 ring-transparent group-hover:ring-brand-900">
+        {cover && <Image src={cover} alt="" fill unoptimized className="object-cover" sizes="(min-width: 1024px) 246px, 50vw" />}
+        {count > 1 && <span className="absolute bottom-2 right-2 rounded-full bg-[#0f172a]/70 px-2 py-0.5 text-[11px] font-medium text-white">{count} photos</span>}
+      </div>
+      <p className="w-full truncate text-sm font-semibold text-[#0f172a] group-hover:text-brand-900">{item.title}</p>
       {item.completedYear && <p className="text-xs text-gray-500">{item.completedYear}</p>}
-    </article>
+    </button>
   );
 }
 
@@ -206,6 +211,7 @@ export function ProviderProfile({ id, kind }: { id: string; kind: "professional"
   const [quoteOpen, setQuoteOpen] = useState(false);
   const [tab, setTab] = useState<TabKey>("projects");
   const [allProjects, setAllProjects] = useState(false);
+  const [openProject, setOpenProject] = useState<PortfolioItemDto | null>(null);
   const [allServices, setAllServices] = useState(false);
   const data = provider.data;
   const isArtisan = kind === "artisan";
@@ -334,7 +340,7 @@ export function ProviderProfile({ id, kind }: { id: string; kind: "professional"
                     <>
                       <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
                         {(allProjects ? projects : projects.slice(0, PROJECTS_SHOWN)).map((item) => (
-                          <ProjectTile key={item.id} item={item} />
+                          <ProjectTile key={item.id} item={item} onOpen={() => setOpenProject(item)} />
                         ))}
                       </div>
                       {projects.length > PROJECTS_SHOWN && (
@@ -383,7 +389,8 @@ export function ProviderProfile({ id, kind }: { id: string; kind: "professional"
                 {tab === "about" && (isArtisan ? <ArtisanAbout data={data} /> : <AboutTab data={data} projects={projects.length} services={services.length} />)}
               </section>
             </div>
-            {quoteOpen && <QuoteRequestDialog open onClose={() => setQuoteOpen(false)} target={{ providerIds: [data.id], providerName: name, category: data.categories?.[0], city: data.city ?? undefined }} />}
+            {openProject && <ProjectDetailDialog item={openProject} onClose={() => setOpenProject(null)} />}
+            {quoteOpen && <QuoteRequestDialog open onClose={() => setQuoteOpen(false)} target={{ providerIds: [data.id], providerName: name, consultation: kind === "professional", category: data.categories?.[0], city: data.city ?? undefined }} />}
           </>
         )}
       </PageContainer>

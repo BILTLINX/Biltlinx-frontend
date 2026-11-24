@@ -3,8 +3,8 @@
 import { DatePickerField } from "@/components/shared/ViewingSlotPickers";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { showSuccessToast } from "@/components/shared/AppToast";
 import { CenteredDialog } from "@/components/shared/CenteredDialog";
+import { RequestSentDialog } from "@/components/shared/RequestSentDialog";
 import { notifyError } from "@/lib/errors";
 import { enquire } from "@/lib/leads-api";
 import { cn } from "@/lib/utils";
@@ -31,6 +31,7 @@ export function EnquiryModal({ open, onClose, listingId, title, isRental, curren
   const [moveIn, setMoveIn] = useState("");
   const [financing, setFinancing] = useState<(typeof FINANCING)[number] | "">("");
   const [error, setError] = useState<string | undefined>();
+  const [sent, setSent] = useState<{ created: boolean } | null>(null);
 
   const send = useMutation({
     mutationFn: () => {
@@ -48,12 +49,11 @@ export function EnquiryModal({ open, onClose, listingId, title, isRental, curren
     },
     onSuccess: (result) => {
       void queryClient.invalidateQueries({ queryKey: ["leads"] });
-      showSuccessToast(result.created ? "Enquiry sent" : "Your message was added to your open enquiry");
       setMessage("");
       setBudget("");
       setMoveIn("");
       setFinancing("");
-      onClose();
+      setSent({ created: result.created });
     },
     onError: (err) => notifyError(err, "Your enquiry could not be sent."),
   });
@@ -65,6 +65,22 @@ export function EnquiryModal({ open, onClose, listingId, title, isRental, curren
     }
     setError(undefined);
     send.mutate();
+  }
+
+  if (sent) {
+    return (
+      <RequestSentDialog
+        open={open}
+        onClose={onClose}
+        title={sent.created ? "Enquiry sent" : "Message added"}
+        message={sent.created ? "The lister has your message and details." : "Your message was added to your open enquiry."}
+        rows={[
+          { label: "Listing", value: title },
+          { label: "Status", value: "Waiting for the lister" },
+        ]}
+        primary={{ label: "Done", onClick: onClose }}
+      />
+    );
   }
 
   return (

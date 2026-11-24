@@ -72,7 +72,7 @@ export function ProviderCard({ provider, kind }: { provider: ProviderCardDto; ki
       <Link href={href} aria-label={`View ${name}`} className="absolute inset-0 rounded-[28px]" />
 
       {quoteOpen && (
-        <QuoteRequestDialog open onClose={() => setQuoteOpen(false)} target={{ providerIds: [provider.id], providerName: name, category: provider.categories?.[0], city: provider.city ?? undefined }} />
+        <QuoteRequestDialog open onClose={() => setQuoteOpen(false)} target={{ providerIds: [provider.id], providerName: name, consultation: kind === "professional", category: provider.categories?.[0], city: provider.city ?? undefined }} />
       )}
     </article>
   );

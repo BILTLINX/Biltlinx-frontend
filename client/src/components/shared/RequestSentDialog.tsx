@@ -11,7 +11,7 @@ interface RequestSentDialogProps {
   title: string;
   message: string;
   rows: { label: string; value: string }[];
-  secondary: { label: string; onClick: () => void };
+  secondary?: { label: string; onClick: () => void };
   primary: { label: string; onClick: () => void };
 }
 
@@ -36,9 +36,11 @@ export function RequestSentDialog({ open, onClose, title, message, rows, seconda
           ))}
         </dl>
         <div className="flex w-full gap-2.5">
-          <Button variant="outline" onClick={secondary.onClick} className={`h-11 min-w-0 flex-1 whitespace-nowrap px-3 ${ROUNDED}`}>
-            {secondary.label}
-          </Button>
+          {secondary && (
+            <Button variant="outline" onClick={secondary.onClick} className={`h-11 min-w-0 flex-1 whitespace-nowrap px-3 ${ROUNDED}`}>
+              {secondary.label}
+            </Button>
+          )}
           <Button variant="primary" onClick={primary.onClick} className={`h-11 min-w-0 flex-1 whitespace-nowrap px-3 ${ROUNDED}`}>
             {primary.label}
           </Button>
