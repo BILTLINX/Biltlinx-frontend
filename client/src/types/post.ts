@@ -27,7 +27,7 @@ export interface PollState {
   isClosed: boolean;
 }
 
-export type PostVariant = "text" | "poll" | "property" | "stay" | "project" | "professional" | "artisan";
+export type PostVariant = "text" | "poll" | "property" | "stay" | "project" | "professional" | "artisan" | "request";
 
 export interface PostCardData {
   id: string;
@@ -47,6 +47,8 @@ export interface PostCardData {
   isOwn?: boolean;
   verified?: "individual" | "organization";
   text?: string;
+  /** The type of issue on a request post. */
+  issue?: string;
   truncated?: boolean;
   image?: string;
   images?: string[];

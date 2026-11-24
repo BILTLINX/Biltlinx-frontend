@@ -10,6 +10,9 @@ const VARIANTS: Record<Post["kind"], PostVariant> = {
   Service: "artisan",
 };
 
+/** The `postType` metadata value that marks a text post as a request for help. */
+export const REQUEST_POST_TYPE = "request";
+
 export function authorDisplay(author: Author) {
   const name = author.username;
   const role = author.organizationName && author.organizationName !== author.username ? author.organizationName : "";
@@ -107,6 +110,10 @@ export function mapPost(post: Post, now: Date = new Date()): PostCardData {
       ],
       messageHostLabel: "Message Provider",
     };
+  }
+
+  if (meta<string>(post, "postType") === REQUEST_POST_TYPE) {
+    return { ...base, variant: "request", issue: post.title ?? undefined, text: post.description || undefined };
   }
 
   return { ...base, text: [post.title, post.description].filter(Boolean).join("\n\n") || undefined };

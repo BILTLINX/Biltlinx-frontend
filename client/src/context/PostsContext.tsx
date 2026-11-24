@@ -7,6 +7,7 @@ import { FEED_KEY } from "@/hooks/useFeed";
 import type { ServiceListing, StayListing } from "@/lib/post-listings";
 import { notifyError } from "@/lib/errors";
 import { createPost, deletePost } from "@/lib/social-api";
+import { REQUEST_POST_TYPE } from "@/lib/post-mapper";
 import { uploadAll } from "@/lib/upload";
 import type { CreatePostInput, MediaInput } from "@/types/api/social";
 
@@ -15,7 +16,8 @@ export type NewPostInput =
   | { kind: "poll"; question: string; options: string[] }
   | { kind: "article"; headline: string; body: string; files?: File[] }
   | { kind: "stay"; note: string; listing: StayListing }
-  | { kind: "service"; note: string; files: File[]; listing?: ServiceListing };
+  | { kind: "service"; note: string; files: File[]; listing?: ServiceListing }
+  | { kind: "request"; issue: string; details: string; files: File[] };
 
 async function uploadFiles(files: File[]): Promise<MediaInput[]> {
   const uploaded = await uploadAll(files);
@@ -41,6 +43,15 @@ async function toRequest(input: NewPostInput): Promise<CreatePostInput | null> {
       };
     case "service":
       return { kind: "Text", description: input.note.trim(), media: await uploadFiles(input.files) };
+    case "request":
+      return {
+        kind: "Text",
+        title: input.issue.trim(),
+        // Marks the post so the feed can show it as a request.
+        metaData: { postType: REQUEST_POST_TYPE },
+        description: input.details.trim(),
+        media: await uploadFiles(input.files),
+      };
     default:
       return null;
   }

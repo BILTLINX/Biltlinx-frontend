@@ -51,8 +51,16 @@ export function PostCard({ post }: PostCardProps) {
   const like = usePostLike(post);
   const mediaItems = getMediaItems(post);
 
+  const isRequest = post.variant === "request";
+
   return (
-    <article className="flex w-full flex-col gap-[15px] rounded-[29px] border border-gray-200 bg-white p-[15px] sm:rounded-[15px]">
+    <article
+      className={cn(
+        "flex w-full flex-col gap-[15px] rounded-[29px] border p-[15px] sm:rounded-[15px]",
+        isRequest ? "border-[#bcd3fb] bg-[#f7faff]" : "border-gray-200 bg-white",
+      )}
+    >
+      {isRequest && <RequestBanner issue={post.issue} />}
       <PostHeader post={post} />
 
       <div className="h-px w-full bg-gray-200" />
@@ -106,6 +114,19 @@ export function PostCard({ post }: PostCardProps) {
         onClose={() => setShowComments(false)}
       />
     </article>
+  );
+}
+
+/** The strip across the top of a request post: it says "Request" and what kind of issue it is, so requests stand out in the feed. */
+function RequestBanner({ issue }: { issue?: string }) {
+  return (
+    <div className="flex items-center gap-2.5 rounded-xl bg-[#eef4ff] px-3 py-2">
+      <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-[#1465e6] px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-white">
+        <NavIcon icon="/icons/wrench-01.svg" size={12} className="bg-white" />
+        Request
+      </span>
+      {issue && <span className="min-w-0 truncate text-[13px] font-semibold text-[#0f172a]">{issue}</span>}
+    </div>
   );
 }
 
