@@ -11,7 +11,7 @@ export function ProfessionalsRail() {
 
   return (
     <div className="flex w-full flex-col gap-4">
-      <RailCta variant="outline" title="Are you a professional?" body="Get verified and be found by people who need your skills." label="Join as a professional" href="/manage/provider" />
+      <RailCta variant="outline" title="Are you a professional?" body="Get verified and be found by people who need your skills." label="Join as a professional" href="/onboarding/professional" />
 
       <section className={CARD}>
         <h2 className="text-sm font-bold leading-5 text-[#0f172a]">What the badges mean</h2>

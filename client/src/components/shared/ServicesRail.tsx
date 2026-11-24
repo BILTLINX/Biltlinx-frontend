@@ -2,6 +2,7 @@
 
 import { RailCta } from "@/components/shared/RailCta";
 import { Button } from "@/components/ui/Button";
+import { openListingDialog } from "@/hooks/useListingDialog";
 import { openRequestModal } from "@/hooks/useRequestModal";
 
 const CARD = "flex flex-col gap-2.5 rounded-2xl border border-gray-200 bg-white p-4";
@@ -11,7 +12,7 @@ export function ServicesRail() {
 
   return (
     <div className="flex w-full flex-col gap-4">
-      <RailCta title="Offer a service" body="Set your prices and what is included, and get found by people who need the work done." label="Offer a service" href="/manage/provider" variant="outline" />
+      <RailCta title="Offer a service" body="Set your prices and what is included, and get found by people who need the work done." label="Offer a service" onClick={() => openListingDialog({ kind: "service" })} variant="outline" />
 
       <section className={CARD}>
         <h2 className="text-sm font-bold leading-5 text-[#0f172a]">Need something not listed?</h2>

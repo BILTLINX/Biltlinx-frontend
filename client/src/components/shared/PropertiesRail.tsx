@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { RailCta } from "@/components/shared/RailCta";
 import { Button } from "@/components/ui/Button";
+import { openListingDialog } from "@/hooks/useListingDialog";
 import { comingSoonHref } from "@/lib/coming-soon";
 
 const CARD = "flex flex-col gap-2.5 rounded-2xl border border-gray-200 bg-white p-4";
@@ -16,7 +17,7 @@ export function PropertiesRail() {
 
   return (
     <div className="flex w-full flex-col gap-4">
-      <RailCta title="Own a property?" body="List it for sale or rent. Buyers and tenants see a verified listing with its price." label="List a property" href="/manage/listings?create=property" />
+      <RailCta title="Own a property?" body="List it for sale or rent. Buyers and tenants see a verified listing with its price." label="List a property" onClick={() => openListingDialog({ kind: "property" })} />
 
       <section className={`${CARD} gap-3`}>
         <h2 className="text-base font-bold leading-[23px] text-[#0f172a]">Map view</h2>

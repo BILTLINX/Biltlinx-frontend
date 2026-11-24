@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { RailCta } from "@/components/shared/RailCta";
 import { Button } from "@/components/ui/Button";
+import { openListingDialog } from "@/hooks/useListingDialog";
 
 const CARD = "flex flex-col gap-2.5 rounded-2xl border border-gray-200 bg-white p-4";
 const ROUNDED_BUTTON = "rounded-[10px] lg:rounded-[10px]";
@@ -30,7 +31,7 @@ export function StayRail() {
         <p className="text-xs leading-[17px] text-gray-500">
           List your apartment or hotel rooms, manage your calendar and get paid through Biltlinx.
         </p>
-        <Button variant="primary" onClick={() => router.push("/manage/listings?create=stay")} className={ROUNDED_BUTTON}>
+        <Button variant="primary" onClick={() => openListingDialog({ kind: "stay" })} className={ROUNDED_BUTTON}>
           List your stay
         </Button>
       </section>
