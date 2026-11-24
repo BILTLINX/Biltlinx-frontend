@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import { useRef, useState } from "react";
 import { showErrorToast, showSuccessToast } from "@/components/shared/AppToast";
-import { ListingFormLayout, ListingPreview, PreviewToggle, WizardNav } from "@/components/shared/ListingFormLayout";
+import { ListingFormLayout, ListingPreview, WizardNav } from "@/components/shared/ListingFormLayout";
 import { FIELD_BOX, FIELD_INPUT, FormField } from "@/components/shared/ModalFormParts";
 import { SelectField } from "@/components/shared/SelectField";
 import { ListingDocumentsField } from "@/components/shared/ListingDocumentsField";
@@ -62,7 +62,6 @@ export function ServiceListingForm({ offering, onClose }: ServiceListingFormProp
   const [uploading, setUploading] = useState(false);
   const [step, setStep] = useState(0);
   const [documents, setDocuments] = useState<PendingDocument[]>([]);
-  const [previewing, setPreviewing] = useState(false);
   const photoInput = useRef<HTMLInputElement | null>(null);
   const existingPhotos = (offering?.media ?? []).map((item) => item.url).filter((url): url is string => Boolean(url));
 
@@ -167,11 +166,11 @@ export function ServiceListingForm({ offering, onClose }: ServiceListingFormProp
       onClose={onClose}
       steps={SERVICE_STEPS}
       step={step}
-      headerAction={<PreviewToggle previewing={previewing} onToggle={() => setPreviewing((current) => !current)} />}
+      preview={<ListingPreview listing={previewCard} note={cover ? undefined : "Add a photo of your work. The picture shown here is only a stand-in."} />}
+      railNote={{ title: "Draft first", body: "Saving keeps it as a draft until you publish it." }}
       footer={footer}
     >
-      {previewing && <ListingPreview listing={previewCard} note={cover ? undefined : "Add a photo of your work. The picture shown here is only a stand-in."} />}
-      {!previewing && step === 0 && (
+      {step === 0 && (
         <>
       <FormField label="Service title">
         <label className={cn(FIELD_BOX, "border-gray-200")}>
@@ -181,7 +180,7 @@ export function ServiceListingForm({ offering, onClose }: ServiceListingFormProp
       <FormField label="What is included">
         <textarea value={form.description} onChange={(event) => set({ description: event.target.value })} rows={2} placeholder="Describe the work, materials and timelines" className={TEXTAREA} />
       </FormField>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 @sm:grid-cols-2">
         <FormField label="Category">
           <SelectField value={form.category} onChange={(value) => set({ category: value })} aria-label="Category" placeholder="Choose a category" options={categories.map((item) => ({ value: item, label: item }))} />
         </FormField>
@@ -191,9 +190,9 @@ export function ServiceListingForm({ offering, onClose }: ServiceListingFormProp
       </div>
         </>
       )}
-      {!previewing && step === 1 && (
+      {step === 1 && (
         <>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 @sm:grid-cols-2">
         <FormField label="Price in GHS (optional)">
           <label className={cn(FIELD_BOX, "border-gray-200")}>
             <input value={form.price} onChange={(event) => set({ price: event.target.value.replace(/[^\d.,]/g, "") })} inputMode="decimal" className={FIELD_INPUT} />
@@ -215,7 +214,7 @@ export function ServiceListingForm({ offering, onClose }: ServiceListingFormProp
       </FormField>
         </>
       )}
-      {!previewing && step === 2 && (
+      {step === 2 && (
         <>
       <FormField label="Areas you serve (comma separated)">
         <label className={cn(FIELD_BOX, "border-gray-200")}>

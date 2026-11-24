@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { showSuccessToast } from "@/components/shared/AppToast";
 import { ListingDocumentsField } from "@/components/shared/ListingDocumentsField";
-import { ListingFormLayout, ListingPreview, PreviewToggle, WizardNav } from "@/components/shared/ListingFormLayout";
+import { ListingFormLayout, ListingPreview, WizardNav } from "@/components/shared/ListingFormLayout";
 import { LocationCombobox } from "@/components/shared/LocationCombobox";
 import { ChoiceChip, FIELD_BOX, FIELD_INPUT, FormField } from "@/components/shared/ModalFormParts";
 import { NavIcon } from "@/components/shared/NavIcon";
@@ -82,7 +82,6 @@ export function PropertyListingForm({ draftParam, editId, onClose }: PropertyLis
   const [form, setForm] = useState<ListingForm>(EMPTY_LISTING_FORM);
   const [hydrated, setHydrated] = useState(!draftParam && !editId);
   const [uploading, setUploading] = useState(0);
-  const [previewing, setPreviewing] = useState(false);
   const [step, setStep] = useState(0);
   const [documents, setDocuments] = useState<PendingDocument[]>([]);
 
@@ -284,9 +283,8 @@ export function PropertyListingForm({ draftParam, editId, onClose }: PropertyLis
       steps={steps}
       step={step}
       onClose={onClose}
-      headerAction={
-        <PreviewToggle previewing={previewing} onToggle={() => setPreviewing((current) => !current)} />
-      }
+      preview={<ListingPreview listing={previewCard} />}
+      railNote={{ title: "Checked before it goes live", body: "Reviewed by our team before it goes live." }}
       footer={loading ? null : footer}
     >
       {loading ? (
@@ -294,8 +292,6 @@ export function PropertyListingForm({ draftParam, editId, onClose }: PropertyLis
           <Skeleton className="h-40 w-full rounded-2xl" />
           <Skeleton className="h-40 w-full rounded-2xl" />
         </>
-      ) : previewing ? (
-        <ListingPreview listing={previewCard} />
       ) : (
         <>
           {step === 0 && (
@@ -326,7 +322,7 @@ export function PropertyListingForm({ draftParam, editId, onClose }: PropertyLis
                   className="resize-none rounded-[10px] border border-gray-200 px-3.5 py-2 text-sm leading-5 text-[#0f172a] placeholder:text-[#94a3b8] focus:border-brand-900 focus:outline-none"
                 />
               </FormField>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="grid grid-cols-1 gap-3 @md:grid-cols-3">
                 {isHome && <NumberField label="Bedrooms" value={form.bedrooms} onChange={(value) => set("bedrooms", value)} />}
                 {isHome && <NumberField label="Bathrooms" value={form.bathrooms} onChange={(value) => set("bathrooms", value)} />}
                 {form.propertyType === "Land" ? (
@@ -342,7 +338,7 @@ export function PropertyListingForm({ draftParam, editId, onClose }: PropertyLis
 
           {step === 1 && (
             <div className="flex flex-col gap-3.5">
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 @sm:grid-cols-2">
                 <NumberField label={rental ? "Rent (GHS)" : "Price (GHS)"} value={form.price} onChange={(value) => set("price", value)} />
                 {rental ? (
                   <FormField label="Per">
@@ -357,12 +353,12 @@ export function PropertyListingForm({ draftParam, editId, onClose }: PropertyLis
                 )}
               </div>
               {rental && (
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-3 @sm:grid-cols-2">
                   <NumberField label="Deposit (GHS)" value={form.deposit} onChange={(value) => set("deposit", value)} />
                   <NumberField label="Lease term" value={form.leaseTermMonths} onChange={(value) => set("leaseTermMonths", value)} suffix="months" />
                 </div>
               )}
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="grid grid-cols-1 gap-3 @md:grid-cols-3">
                 <NumberField label="Service charge (GHS)" value={form.serviceCharge} onChange={(value) => set("serviceCharge", value)} />
                 <FormField label="Service charge per">
                   <div role="radiogroup" aria-label="Service charge period" className="flex gap-2">
@@ -376,7 +372,7 @@ export function PropertyListingForm({ draftParam, editId, onClose }: PropertyLis
                   Price is negotiable
                 </label>
               </div>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 @sm:grid-cols-2">
                 <FormField label="City or area">
                   <LocationCombobox value={form.city} onChange={(value) => set("city", value)} placeholder="e.g. East Legon, Accra" ariaLabel="City or area" icon />
                 </FormField>

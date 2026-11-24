@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { showSuccessToast } from "@/components/shared/AppToast";
-import { ListingFormLayout, ListingPreview, PreviewToggle, WizardNav } from "@/components/shared/ListingFormLayout";
+import { ListingFormLayout, ListingPreview, WizardNav } from "@/components/shared/ListingFormLayout";
 import { ChoiceChip, FIELD_BOX, FIELD_INPUT, FormField } from "@/components/shared/ModalFormParts";
 import { SelectField } from "@/components/shared/SelectField";
 import { ListingDocumentsField } from "@/components/shared/ListingDocumentsField";
@@ -230,8 +230,8 @@ function RoomsManager({ stay }: { stay: StayDetailDto }) {
             ))}
 
             {draft ? (
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-                <input className={cn(MINI, "col-span-2 sm:col-span-1")} placeholder="Rate name" value={draft.name} onChange={(event) => setRate({ ...rate, [item.id]: { ...draft, name: event.target.value } })} />
+              <div className="grid grid-cols-2 gap-2 @lg:grid-cols-5">
+                <input className={cn(MINI, "col-span-2 @lg:col-span-1")} placeholder="Rate name" value={draft.name} onChange={(event) => setRate({ ...rate, [item.id]: { ...draft, name: event.target.value } })} />
                 <input className={MINI} placeholder="Nightly GHS" inputMode="decimal" value={draft.nightly} onChange={(event) => setRate({ ...rate, [item.id]: { ...draft, nightly: event.target.value } })} />
                 <input className={MINI} placeholder="Min nights" inputMode="numeric" value={draft.minNights} onChange={(event) => setRate({ ...rate, [item.id]: { ...draft, minNights: event.target.value } })} />
                 <label className="flex items-center gap-1.5 text-xs">
@@ -251,7 +251,7 @@ function RoomsManager({ stay }: { stay: StayDetailDto }) {
             )}
 
             {blockDraft ? (
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <div className="grid grid-cols-2 gap-2 @lg:grid-cols-4">
                 <DatePickerField value={blockDraft.from} onChange={(value) => setBlock({ ...block, [item.id]: { ...blockDraft, from: value } })} />
                 <DatePickerField value={blockDraft.to} min={blockDraft.from || undefined} onChange={(value) => setBlock({ ...block, [item.id]: { ...blockDraft, to: value } })} />
                 <input className={MINI} placeholder="Units" inputMode="numeric" value={blockDraft.units} onChange={(event) => setBlock({ ...block, [item.id]: { ...blockDraft, units: event.target.value } })} />
@@ -271,8 +271,8 @@ function RoomsManager({ stay }: { stay: StayDetailDto }) {
 
       <div className="flex flex-col gap-2 rounded-xl bg-[#f8fafc] p-4">
         <p className="text-[13px] font-semibold text-[#0f172a]">Add a room type</p>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-          <input className={cn(MINI, "col-span-2 sm:col-span-1")} placeholder="Name" value={room.name} onChange={(event) => setRoom({ ...room, name: event.target.value })} />
+        <div className="grid grid-cols-2 gap-2 @lg:grid-cols-5">
+          <input className={cn(MINI, "col-span-2 @lg:col-span-1")} placeholder="Name" value={room.name} onChange={(event) => setRoom({ ...room, name: event.target.value })} />
           <SelectField value={room.shape} onChange={(shape) => setRoom({ ...room, shape })} aria-label="Shape" className="h-10 rounded-[10px]" options={SHAPES.map((shape) => ({ value: shape, label: SHAPE_LABEL[shape] }))} />
           <input className={MINI} placeholder={room.shape === "DormBed" ? "Beds" : "Units"} inputMode="numeric" value={room.quantity} onChange={(event) => setRoom({ ...room, quantity: event.target.value })} />
           <input className={MINI} placeholder="Max guests" inputMode="numeric" value={room.maxGuests} onChange={(event) => setRoom({ ...room, maxGuests: event.target.value })} />
@@ -304,7 +304,6 @@ export function StayListingForm({ stayId, onClose }: StayListingFormProps) {
   const photoInput = useRef<HTMLInputElement | null>(null);
   const [step, setStep] = useState(0);
   const [documents, setDocuments] = useState<PendingDocument[]>([]);
-  const [previewing, setPreviewing] = useState(false);
 
   const stay = useQuery({ queryKey: [...STAY_KEY, "one", id, "editor"], queryFn: () => getStay(id as string), enabled: Boolean(id), refetchOnWindowFocus: false });
   useEffect(() => {
@@ -419,13 +418,13 @@ export function StayListingForm({ stayId, onClose }: StayListingFormProps) {
       onClose={onClose}
       steps={STAY_STEPS}
       step={step}
-      headerAction={<PreviewToggle previewing={previewing} onToggle={() => setPreviewing((current) => !current)} />}
+      preview={<ListingPreview listing={previewCard} note={fromNightly === null ? "The price shows once the stay has a room with a rate." : undefined} />}
+      railNote={{ title: "Verified hosts only", body: "You need a verified host to go live." }}
       footer={footer}
     >
       {stay.isError && <p className="text-sm text-[#dc2626]">{errorMessage(stay.error)}</p>}
       {!hydrated && !stay.isError && <Skeleton className="h-64 w-full rounded-2xl" />}
-      {hydrated && previewing && <ListingPreview listing={previewCard} note={fromNightly === null ? "The price shows once the stay has a room with a rate." : undefined} />}
-      {hydrated && !previewing && step === 0 && (
+      {hydrated && step === 0 && (
         <div className="flex flex-col gap-3.5">
           <Text label="Name" value={form.name} onChange={(value) => set("name", value)} placeholder="e.g. Golden Palm Hotel" />
           <FormField label="Type">
@@ -438,7 +437,7 @@ export function StayListingForm({ stayId, onClose }: StayListingFormProps) {
           <FormField label="Description">
             <textarea value={form.description} onChange={(event) => set("description", event.target.value)} rows={2} className="resize-none rounded-[10px] border border-gray-200 px-3.5 py-2 text-sm leading-5 text-[#0f172a] focus:border-brand-900 focus:outline-none" />
           </FormField>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 @md:grid-cols-3">
             <Text label="City" value={form.city} onChange={(value) => set("city", value)} />
             <Text label="Area" value={form.area} onChange={(value) => set("area", value)} />
             <Text label="Address (shared after booking)" value={form.address} onChange={(value) => set("address", value)} />
@@ -452,9 +451,9 @@ export function StayListingForm({ stayId, onClose }: StayListingFormProps) {
           </FormField>
         </div>
       )}
-      {hydrated && !previewing && step === 1 && (
+      {hydrated && step === 1 && (
         <div className="flex flex-col gap-3.5">
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 @md:grid-cols-3">
             <Text label="Cleaning fee (GHS)" value={form.cleaningFee} onChange={(value) => set("cleaningFee", value)} />
             <Text label="Tax (%)" value={form.taxPercent} onChange={(value) => set("taxPercent", value)} />
             <Text label="Security deposit (GHS)" value={form.securityDeposit} onChange={(value) => set("securityDeposit", value)} />
@@ -466,14 +465,14 @@ export function StayListingForm({ stayId, onClose }: StayListingFormProps) {
               ))}
             </div>
           </FormField>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 @md:grid-cols-3">
             <Text label="Check in from" type="time" value={form.checkInFrom} onChange={(value) => set("checkInFrom", value)} />
             <Text label="Check out by" type="time" value={form.checkOutBy} onChange={(value) => set("checkOutBy", value)} />
             <FormField label="Opens on">
               <DatePickerField value={form.opensOn} onChange={(value) => set("opensOn", value)} />
             </FormField>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 @sm:grid-cols-2">
             <FormField label="House rules">
               <textarea value={form.houseRules} onChange={(event) => set("houseRules", event.target.value)} rows={2} className="resize-none rounded-[10px] border border-gray-200 px-3.5 py-2 text-sm leading-5 text-[#0f172a] focus:border-brand-900 focus:outline-none" />
             </FormField>
@@ -485,8 +484,8 @@ export function StayListingForm({ stayId, onClose }: StayListingFormProps) {
             <div className="flex flex-col gap-2 rounded-xl bg-[#f8fafc] p-3">
               <p className="text-[13px] font-semibold text-[#0f172a]">Academic periods</p>
               {form.periods.map((period, index) => (
-                <div key={index} className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  <input className={cn(MINI, "col-span-2 sm:col-span-1")} placeholder="Name" value={period.name} onChange={(event) => set("periods", form.periods.map((p, i) => (i === index ? { ...p, name: event.target.value } : p)))} />
+                <div key={index} className="grid grid-cols-2 gap-2 @lg:grid-cols-4">
+                  <input className={cn(MINI, "col-span-2 @lg:col-span-1")} placeholder="Name" value={period.name} onChange={(event) => set("periods", form.periods.map((p, i) => (i === index ? { ...p, name: event.target.value } : p)))} />
                   <DatePickerField value={period.startsOn} onChange={(value) => set("periods", form.periods.map((p, i) => (i === index ? { ...p, startsOn: value } : p)))} />
                   <DatePickerField value={period.endsOn} min={period.startsOn || undefined} onChange={(value) => set("periods", form.periods.map((p, i) => (i === index ? { ...p, endsOn: value } : p)))} />
                   <button type="button" onClick={() => set("periods", form.periods.filter((_, i) => i !== index))} className="text-[13px] font-medium text-[#dc2626]">
@@ -501,7 +500,7 @@ export function StayListingForm({ stayId, onClose }: StayListingFormProps) {
           )}
         </div>
       )}
-      {hydrated && !previewing && step === 2 && (
+      {hydrated && step === 2 && (
         <div className="flex flex-col gap-3.5">
           <input
             ref={photoInput}

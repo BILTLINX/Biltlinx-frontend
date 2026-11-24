@@ -34,7 +34,7 @@ export function CreateListingModal({ initial = null, onClose }: CreateListingMod
   const [target, setTarget] = useState<ListingTarget | null>(initial);
 
   return (
-    <CenteredDialog open onClose={onClose} labelledBy="listing-dialog-title" className={target ? "max-w-[760px]" : "max-w-[520px]"}>
+    <CenteredDialog open onClose={onClose} labelledBy="listing-dialog-title" className={target ? "max-w-[1040px] lg:h-[600px]" : "max-w-[520px]"}>
       {!target && (
         <ListingFormLayout titleId="listing-dialog-title" title="What are you listing?" subtitle="Pick one. You can list the others later." onClose={onClose}>
           <div className="flex flex-col gap-3">
