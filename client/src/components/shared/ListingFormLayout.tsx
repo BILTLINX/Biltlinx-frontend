@@ -2,10 +2,16 @@
 
 import Image from "next/image";
 import { useState, type ReactNode } from "react";
-import { ListingCard } from "@/components/shared/ListingCard";
 import { WizardSteps } from "@/components/shared/ModalFormParts";
 import { cn } from "@/lib/utils";
-import type { ListingCardData } from "@/types/listing";
+
+/** What a listing form reports when it is done, for the "it's sent" dialog: what happened, a summary, and where to see it. */
+export interface ListingSubmitted {
+  title: string;
+  message: string;
+  rows: { label: string; value: string }[];
+  manageHref: string;
+}
 
 interface ListingFormLayoutProps {
   titleId: string;
@@ -112,7 +118,7 @@ export function ListingFormLayout({ titleId, title, subtitle, onClose, headerAct
           </div>
           {/* Hidden, not removed, while the preview is showing, so nothing typed in the form is lost. */}
           <div className={cn("flex flex-col gap-3.5", previewing && "max-xl:hidden")}>{children}</div>
-          {previewing && <div className="xl:hidden">{preview}</div>}
+          {previewing && <div className="mx-auto w-full max-w-[420px] xl:hidden">{preview}</div>}
         </div>
 
         {footer && <div className="flex shrink-0 flex-col gap-3 px-5 pb-4 pt-2 sm:px-7 sm:pb-5">{footer}</div>}
@@ -127,19 +133,6 @@ export function PreviewToggle({ previewing, onToggle }: { previewing: boolean; o
     <button type="button" onClick={onToggle} className="h-9 whitespace-nowrap rounded-[10px] bg-[#eff5ff] px-3.5 text-[13px] font-medium text-brand-900 hover:bg-[#e2edff]">
       {previewing ? "Back to editing" : "Preview"}
     </button>
-  );
-}
-
-/** What the listing looks like in search results, and anything the card cannot show. */
-export function ListingPreview({ listing, note }: { listing: ListingCardData; note?: string }) {
-  return (
-    <div className="mx-auto flex w-full max-w-[360px] flex-col gap-3">
-      <h3 className="text-base font-bold leading-[23px] text-[#0f172a]">How it will look</h3>
-      <div inert>
-        <ListingCard listing={listing} />
-      </div>
-      {note && <p className="text-xs leading-[17px] text-gray-500">{note}</p>}
-    </div>
   );
 }
 

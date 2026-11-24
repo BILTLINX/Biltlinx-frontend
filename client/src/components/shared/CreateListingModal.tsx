@@ -1,9 +1,11 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { CenteredDialog } from "@/components/shared/CenteredDialog";
-import { ListingFormLayout } from "@/components/shared/ListingFormLayout";
+import { ListingFormLayout, type ListingSubmitted } from "@/components/shared/ListingFormLayout";
 import { NavIcon } from "@/components/shared/NavIcon";
+import { RequestSentDialog } from "@/components/shared/RequestSentDialog";
 import { PropertyListingForm } from "@/components/shared/PropertyListingForm";
 import { ServiceListingForm } from "@/components/shared/ServiceListingForm";
 import { StayListingForm } from "@/components/shared/StayListingForm";
@@ -31,7 +33,29 @@ interface CreateListingModalProps {
 
 /** The one place a lister creates or edits a property, stay or service, as a dialog. Mount it when needed; it keeps its own step. */
 export function CreateListingModal({ initial = null, onClose }: CreateListingModalProps) {
+  const router = useRouter();
   const [target, setTarget] = useState<ListingTarget | null>(initial);
+  const [submitted, setSubmitted] = useState<ListingSubmitted | null>(null);
+
+  if (submitted) {
+    return (
+      <RequestSentDialog
+        open
+        onClose={onClose}
+        title={submitted.title}
+        message={submitted.message}
+        rows={submitted.rows}
+        secondary={{ label: "Done", onClick: onClose }}
+        primary={{
+          label: "View in Manage",
+          onClick: () => {
+            onClose();
+            router.push(submitted.manageHref);
+          },
+        }}
+      />
+    );
+  }
 
   return (
     <CenteredDialog open onClose={onClose} labelledBy="listing-dialog-title" className={target ? "max-w-[1040px] lg:h-[600px]" : "max-w-[520px]"}>
@@ -57,9 +81,9 @@ export function CreateListingModal({ initial = null, onClose }: CreateListingMod
           </div>
         </ListingFormLayout>
       )}
-      {target?.kind === "property" && <PropertyListingForm draftParam={target.draftId ?? null} editId={target.editId ?? null} onClose={onClose} />}
-      {target?.kind === "stay" && <StayListingForm stayId={target.stayId ?? null} onClose={onClose} />}
-      {target?.kind === "service" && <ServiceListingForm offering={target.offering ?? null} onClose={onClose} />}
+      {target?.kind === "property" && <PropertyListingForm draftParam={target.draftId ?? null} editId={target.editId ?? null} onClose={onClose} onSubmitted={setSubmitted} />}
+      {target?.kind === "stay" && <StayListingForm stayId={target.stayId ?? null} onClose={onClose} onSubmitted={setSubmitted} />}
+      {target?.kind === "service" && <ServiceListingForm offering={target.offering ?? null} onClose={onClose} onSubmitted={setSubmitted} />}
     </CenteredDialog>
   );
 }

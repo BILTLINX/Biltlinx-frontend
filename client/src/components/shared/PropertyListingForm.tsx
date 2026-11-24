@@ -4,9 +4,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { showSuccessToast } from "@/components/shared/AppToast";
 import { ListingDocumentsField } from "@/components/shared/ListingDocumentsField";
-import { ListingFormLayout, ListingPreview, WizardNav } from "@/components/shared/ListingFormLayout";
+import { FeedPostPreview, type FeedPostPreviewInput } from "@/components/shared/FeedPostPreview";
+import { ListingFormLayout, WizardNav, type ListingSubmitted } from "@/components/shared/ListingFormLayout";
 import { LocationCombobox } from "@/components/shared/LocationCombobox";
 import { ChoiceChip, FIELD_BOX, FIELD_INPUT, FormField } from "@/components/shared/ModalFormParts";
 import { NavIcon } from "@/components/shared/NavIcon";
@@ -29,7 +29,6 @@ import {
   type Purpose,
 } from "@/lib/listing-form";
 import { getDraftPreview, getProperty, publishDraft, submitDraft } from "@/lib/properties-api";
-import { toListingCard } from "@/lib/property-mapper";
 import { uploadMedia } from "@/lib/upload";
 import { classificationOptions, submitListingDocuments, type PendingDocument } from "@/lib/verification-api";
 import { cn } from "@/lib/utils";
@@ -72,10 +71,11 @@ interface PropertyListingFormProps {
   /** A live listing to change. */
   editId: string | null;
   onClose: () => void;
+  onSubmitted: (submitted: ListingSubmitted) => void;
 }
 
 /** Create a property listing, carry on with a draft or edit a live one: autosaved drafts, a readiness check, then submit for review or publish now. */
-export function PropertyListingForm({ draftParam, editId, onClose }: PropertyListingFormProps) {
+export function PropertyListingForm({ draftParam, editId, onClose, onSubmitted }: PropertyListingFormProps) {
   const queryClient = useQueryClient();
   const photoInput = useRef<HTMLInputElement | null>(null);
 
@@ -175,8 +175,15 @@ export function PropertyListingForm({ draftParam, editId, onClose }: PropertyLis
     },
     onSuccess: (_property, mode) => {
       refreshLists();
-      showSuccessToast(mode === "publish" ? "Your listing is live" : "Sent for review. We will tell you when it is approved.");
-      onClose();
+      onSubmitted({
+        title: mode === "publish" ? "Your listing is live" : "Sent for review",
+        message: mode === "publish" ? "Buyers and tenants can find it now. You can edit or take it down from Manage › Listings." : "Our team reviews new listings before they go live. We will tell you when it is approved.",
+        rows: [
+          { label: "Listing", value: form.name.trim() || "Property" },
+          { label: "Status", value: mode === "publish" ? "Live" : "Pending review" },
+        ],
+        manageHref: "/manage/listings",
+      });
     },
     onError: (error) => notifyError(error, "The listing could not be submitted."),
   });
@@ -191,8 +198,12 @@ export function PropertyListingForm({ draftParam, editId, onClose }: PropertyLis
     },
     onSuccess: () => {
       refreshLists();
-      showSuccessToast("Changes saved");
-      onClose();
+      onSubmitted({
+        title: "Changes saved",
+        message: "Your listing was updated. Material changes send it back for review before it shows again.",
+        rows: [{ label: "Listing", value: form.name.trim() || "Property" }],
+        manageHref: "/manage/listings",
+      });
     },
     onError: (error) => notifyError(error, "The changes could not be saved."),
   });
@@ -201,51 +212,21 @@ export function PropertyListingForm({ draftParam, editId, onClose }: PropertyLis
   const blocking = issues.filter((issue) => issue.severity === "Blocking");
   const canSubmit = Boolean(draftId) && readiness.data?.ready === true && blocking.length === 0;
   const loading = !hydrated && (draft.isPending || editing.isPending) && (draftParam !== null || editId !== null);
-  const previewCard = {
-    ...toListingCard({
-      id: "preview",
+  const priceNumber = Number(form.price.replace(/,/g, ""));
+  const previewPost: FeedPostPreviewInput = {
+    kind: "Property",
+    title: form.name.trim() || "Your listing",
+    description: form.description.trim(),
+    photos: form.media.filter((item) => item.url).map((item) => item.url),
+    metaData: {
       propertyId: "preview",
-      name: form.name || "Your listing",
-      description: form.description,
-      price: Number(form.price.replace(/,/g, "")) || 0,
-      currency: "GHS",
-      pricePeriod: form.pricePeriod,
-      deposit: null,
-      serviceCharge: null,
-      serviceChargePeriod: null,
-      isNegotiable: form.isNegotiable,
-      paymentPlanNote: null,
-      leaseTermMonths: null,
-      address: form.address,
-      addressVisibility: form.hideAddress ? "Hidden" : "Public",
-      city: form.city,
-      latitude: null,
-      longitude: null,
       listingType: info.listingType,
-      propertyType: form.propertyType,
-      bedrooms: form.bedrooms ? Number(form.bedrooms) : null,
-      bathrooms: form.bathrooms ? Number(form.bathrooms) : null,
-      floorAreaSqm: form.floorAreaSqm ? Number(form.floorAreaSqm) : null,
-      landSizeSqm: form.landSizeSqm ? Number(form.landSizeSqm) : null,
-      useClass: null,
-      powerCapacityKva: null,
-      status: "PendingReview",
-      availability: "Available",
-      approvedAt: null,
-      lastConfirmedAt: new Date().toISOString(),
-      isStale: false,
-      unavailableReports: null,
-      owner: { id: "", username: "You", organizationName: null, organizationId: "", profilePicUrl: null, isVerified: false },
-      media: form.media.filter((item) => item.url).map((item) => ({ name: item.name, contentType: item.contentType, url: item.url })),
-      documents: null,
-      isOwn: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: null,
-      postedAt: null,
-    }),
-    href: undefined,
-    cta: "Request viewing",
-    secondaryCta: undefined,
+      currency: "GHS",
+      price: priceNumber > 0 ? priceNumber : undefined,
+      city: form.city.trim() || undefined,
+      bedrooms: form.bedrooms ? Number(form.bedrooms) : undefined,
+      bathrooms: form.bathrooms ? Number(form.bathrooms) : undefined,
+    },
   };
 
   const saveLabel = editId ? "Material changes send the listing back for review." : saveState === "saving" ? "Saving…" : saveState === "saved" ? "Draft saved" : saveState === "error" ? "Not saved" : "Autosaves as you type";
@@ -283,7 +264,7 @@ export function PropertyListingForm({ draftParam, editId, onClose }: PropertyLis
       steps={steps}
       step={step}
       onClose={onClose}
-      preview={<ListingPreview listing={previewCard} />}
+      preview={<FeedPostPreview post={previewPost} />}
       railNote={{ title: "Checked before it goes live", body: "Reviewed by our team before it goes live." }}
       footer={loading ? null : footer}
     >

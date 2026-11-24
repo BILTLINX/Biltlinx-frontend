@@ -3,8 +3,9 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import { useRef, useState } from "react";
-import { showErrorToast, showSuccessToast } from "@/components/shared/AppToast";
-import { ListingFormLayout, ListingPreview, WizardNav } from "@/components/shared/ListingFormLayout";
+import { showErrorToast } from "@/components/shared/AppToast";
+import { FeedPostPreview, type FeedPostPreviewInput } from "@/components/shared/FeedPostPreview";
+import { ListingFormLayout, WizardNav, type ListingSubmitted } from "@/components/shared/ListingFormLayout";
 import { FIELD_BOX, FIELD_INPUT, FormField } from "@/components/shared/ModalFormParts";
 import { SelectField } from "@/components/shared/SelectField";
 import { ListingDocumentsField } from "@/components/shared/ListingDocumentsField";
@@ -12,7 +13,6 @@ import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { SERVICES_KEY, useTaxonomy } from "@/hooks/useServices";
 import { errorMessage, notifyError } from "@/lib/errors";
-import { formatPrice } from "@/lib/format";
 import { createOffering, offeringAction, updateOffering } from "@/lib/services-api";
 import { uploadMedia } from "@/lib/upload";
 import { classificationOptions, submitListingDocuments, type PendingDocument } from "@/lib/verification-api";
@@ -25,10 +25,6 @@ const SERVICE_MODES = [
   { value: "QuoteRequired", label: "Quote required" },
   { value: "InspectionFirst", label: "Inspection first" },
 ] as const;
-/** The button a customer sees on the card for each way of selling. */
-const MODE_CTA: Record<string, string> = { FixedPrice: "Book", QuoteRequired: "Request a quote", InspectionFirst: "Request an inspection" };
-/** Shown on the preview card until a photo is added. */
-const PLACEHOLDER_IMAGE = "/images/marketplace-equipment.jpg";
 const UNITS = ["PerJob", "PerHour", "PerDay", "PerSqm", "PerUnit"] as const;
 const TEXTAREA = "resize-none rounded-[10px] border border-gray-200 px-3.5 py-2 text-sm leading-5 text-[#0f172a] placeholder:text-[#94a3b8] focus:border-brand-900 focus:outline-none";
 
@@ -39,10 +35,11 @@ interface ServiceListingFormProps {
   /** The service being changed; omit to create one. */
   offering: OfferingDto | null;
   onClose: () => void;
+  onSubmitted: (submitted: ListingSubmitted) => void;
 }
 
 /** Create or edit a service listing. Saving keeps it as a draft; "Save and publish" also asks to take it live. */
-export function ServiceListingForm({ offering, onClose }: ServiceListingFormProps) {
+export function ServiceListingForm({ offering, onClose, onSubmitted }: ServiceListingFormProps) {
   const queryClient = useQueryClient();
   const taxonomy = useTaxonomy();
   const categories = [...(taxonomy.data?.professions ?? []), ...(taxonomy.data?.trades ?? [])];
@@ -118,25 +115,30 @@ export function ServiceListingForm({ offering, onClose }: ServiceListingFormProp
     },
     onSuccess: (result) => {
       void queryClient.invalidateQueries({ queryKey: SERVICES_KEY });
-      if (result.published) showSuccessToast("Your service is live");
-      else if ("publishError" in result) showErrorToast(`Saved as a draft, but it could not be published yet: ${result.publishError}`);
-      else showSuccessToast("Saved as a draft. Publish it when you are ready.");
-      onClose();
+      if ("publishError" in result) {
+        showErrorToast(`Saved as a draft, but it could not be published yet: ${result.publishError}`);
+        onClose();
+        return;
+      }
+      onSubmitted({
+        title: result.published ? "Your service is live" : "Saved as a draft",
+        message: result.published ? "People can find it and book or ask for a quote now." : "Publish it from Manage › Services when you are ready.",
+        rows: [
+          { label: "Service", value: form.title.trim() },
+          { label: "Status", value: result.published ? "Live" : "Draft" },
+        ],
+        manageHref: "/manage/provider",
+      });
     },
     onError: (error) => notifyError(error, "The service could not be saved."),
   });
 
   const canSave = form.title.trim() !== "" && form.category !== "";
-  const cover = photos[0]?.url ?? existingPhotos[0];
-  const amount = num(form.price);
-  const previewCard = {
-    id: offering?.id ?? "preview",
-    kind: form.category || "Service",
-    image: cover ?? PLACEHOLDER_IMAGE,
-    price: amount !== null && Number.isFinite(amount) ? formatPrice(amount, "GHS", form.unit) : "Price on request",
+  const previewPost: FeedPostPreviewInput = {
+    kind: "Service",
     title: form.title.trim() || "Your service",
-    location: list(form.areas).join(", ") || "Ghana",
-    cta: MODE_CTA[form.mode] ?? "View",
+    description: form.description.trim(),
+    photos: photos.length > 0 ? photos.map((photo) => photo.url) : existingPhotos,
   };
 
   const footer = (
@@ -166,7 +168,7 @@ export function ServiceListingForm({ offering, onClose }: ServiceListingFormProp
       onClose={onClose}
       steps={SERVICE_STEPS}
       step={step}
-      preview={<ListingPreview listing={previewCard} note={cover ? undefined : "Add a photo of your work. The picture shown here is only a stand-in."} />}
+      preview={<FeedPostPreview post={previewPost} />}
       railNote={{ title: "Draft first", body: "Saving keeps it as a draft until you publish it." }}
       footer={footer}
     >

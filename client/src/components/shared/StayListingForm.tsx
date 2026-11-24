@@ -5,7 +5,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { showSuccessToast } from "@/components/shared/AppToast";
-import { ListingFormLayout, ListingPreview, WizardNav } from "@/components/shared/ListingFormLayout";
+import { FeedPostPreview, type FeedPostPreviewInput } from "@/components/shared/FeedPostPreview";
+import { ListingFormLayout, WizardNav, type ListingSubmitted } from "@/components/shared/ListingFormLayout";
 import { ChoiceChip, FIELD_BOX, FIELD_INPUT, FormField } from "@/components/shared/ModalFormParts";
 import { SelectField } from "@/components/shared/SelectField";
 import { ListingDocumentsField } from "@/components/shared/ListingDocumentsField";
@@ -27,7 +28,7 @@ import {
   STAY_TYPES,
   updateOperatorProperty,
 } from "@/lib/stay-api";
-import { FALLBACK_STAY_IMAGE, SHAPE_LABEL, STAY_TYPE_LABEL } from "@/lib/stay-mapper";
+import { SHAPE_LABEL, STAY_TYPE_LABEL } from "@/lib/stay-mapper";
 import { uploadMedia } from "@/lib/upload";
 import { classificationOptions, submitListingDocuments, type PendingDocument } from "@/lib/verification-api";
 import type { SaveStayInput, StayDetailDto } from "@/types/api/schema";
@@ -292,10 +293,11 @@ interface StayListingFormProps {
   /** A stay to change; omit to create one. Once created, the form carries on as an edit so rooms and rates can be added. */
   stayId: string | null;
   onClose: () => void;
+  onSubmitted: (submitted: ListingSubmitted) => void;
 }
 
 /** Create or edit a stay, with every detail its page shows: about, amenities, fees and rules, check-in times, student periods, photos, and its rooms and rates. */
-export function StayListingForm({ stayId, onClose }: StayListingFormProps) {
+export function StayListingForm({ stayId, onClose, onSubmitted }: StayListingFormProps) {
   const queryClient = useQueryClient();
   const [id, setId] = useState<string | null>(stayId);
   const [form, setForm] = useState<StayForm>(EMPTY);
@@ -346,8 +348,15 @@ export function StayListingForm({ stayId, onClose }: StayListingFormProps) {
     mutationFn: () => publishOperatorProperty(id as string),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: STAY_KEY });
-      showSuccessToast("Your stay is live");
-      onClose();
+      onSubmitted({
+        title: "Your stay is live",
+        message: "Guests can find it and book now. You can pause it or change its rooms and rates from Manage.",
+        rows: [
+          { label: "Stay", value: form.name.trim() },
+          { label: "Status", value: "Live" },
+        ],
+        manageHref: "/manage/listings",
+      });
     },
     onError: (error) => notifyError(error, "It could not be published yet."),
   });
@@ -369,18 +378,11 @@ export function StayListingForm({ stayId, onClose }: StayListingFormProps) {
   const toggleAmenity = (amenity: string) => set("amenities", form.amenities.includes(amenity) ? form.amenities.filter((item) => item !== amenity) : [...form.amenities, amenity]);
   const canSave = form.name.trim() !== "" && form.city.trim() !== "";
   const existingPhotos = stay.data?.photos ?? [];
-  const nightlyRates = (stay.data?.rooms ?? []).flatMap((room) => (room.isActive ? (room.ratePlans ?? []).filter((plan) => plan.isActive).map((plan) => plan.nightly) : []));
-  const fromNightly = nightlyRates.length > 0 ? Math.min(...nightlyRates) : null;
-  const previewCard = {
-    id: id ?? "preview",
-    kind: STAY_TYPE_LABEL[form.type] ?? "Stay",
-    image: form.newPhotos[0]?.url ?? existingPhotos[0] ?? FALLBACK_STAY_IMAGE,
-    price: fromNightly !== null ? `From ${formatMoney(fromNightly)}` : "Price on request",
-    priceUnit: fromNightly !== null ? "night" : undefined,
+  const previewPost: FeedPostPreviewInput = {
+    kind: "Stay",
     title: form.name.trim() || "Your stay",
-    location: [form.area, form.city].filter((part) => part.trim()).join(", ") || "Ghana",
-    detail: form.amenities.length > 0 ? { icon: "bed" as const, text: form.amenities.slice(0, 3).join(" · ") } : undefined,
-    cta: "View and book",
+    description: form.description.trim(),
+    photos: form.newPhotos.length > 0 ? form.newPhotos.map((photo) => photo.url) : existingPhotos,
   };
   const next = () => setStep((current) => current + 1);
   const footer = (
@@ -418,7 +420,7 @@ export function StayListingForm({ stayId, onClose }: StayListingFormProps) {
       onClose={onClose}
       steps={STAY_STEPS}
       step={step}
-      preview={<ListingPreview listing={previewCard} note={fromNightly === null ? "The price shows once the stay has a room with a rate." : undefined} />}
+      preview={<FeedPostPreview post={previewPost} />}
       railNote={{ title: "Verified hosts only", body: "You need a verified host to go live." }}
       footer={footer}
     >
