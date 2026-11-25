@@ -120,7 +120,7 @@ export function PostCard({ post }: PostCardProps) {
   );
 }
 
-/** The headline of a request post, laid out like the price row of a property post: what it is about on the left, and a label that says it is a request on the right. */
+/** The headline of a request post, laid out like the price row of a property post: what it is about. */
 function RequestRow({ post }: { post: PostCardData }) {
   return (
     <div className="flex w-full items-center justify-between gap-3">
@@ -128,10 +128,6 @@ function RequestRow({ post }: { post: PostCardData }) {
         <p className="truncate text-[16px] font-semibold sm:text-[19px]">{post.issue ?? "Request for help"}</p>
         <p className="text-[11px] font-light sm:text-[13px]">Looking for help</p>
       </div>
-      <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-[#1465e6] px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-white">
-        <NavIcon icon="/icons/wrench-01.svg" size={12} className="bg-white" />
-        Request
-      </span>
     </div>
   );
 }

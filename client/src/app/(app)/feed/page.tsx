@@ -23,15 +23,14 @@ import type { FeedQuery } from "@/types/api/social";
 
 interface FeedTab {
   label: string;
-  query: Pick<FeedQuery, "scope" | "kind">;
+  query: Pick<FeedQuery, "scope">;
 }
 
 const FEED_TABS: FeedTab[] = [
-  { label: "All Posts", query: {} },
+  { label: "All posts", query: {} },
+  // The API has no personalised feed yet, so For you shows the same posts as All posts until it does.
+  { label: "For you", query: {} },
   { label: "Following", query: { scope: "following" } },
-  { label: "Properties", query: { kind: "Property" } },
-  { label: "Stay", query: { kind: "Stay" } },
-  { label: "Services", query: { kind: "Service" } },
 ];
 
 const COMPOSER_ACTIONS = [
@@ -127,18 +126,10 @@ function FeedContent() {
   );
 }
 
-/** Where an empty kind tab sends people: the directory that fills it. */
-const KIND_BROWSE: Record<string, { noun: string; label: string; href: string }> = {
-  Property: { noun: "property", label: "Browse properties", href: "/properties" },
-  Stay: { noun: "stay", label: "Browse stays", href: "/stay" },
-  Service: { noun: "service", label: "Browse services", href: "/services" },
-};
-
 /** What the feed says when the chosen tab or hashtag has no posts, with the next step for that case. */
 function FeedEmpty({ tab, hashtag }: { tab: FeedTab; hashtag?: string }) {
   const { openPostModal, modals } = usePostModals();
   const createPost = { label: "Create a post", onClick: () => openPostModal("media") };
-  const browse = tab.query.kind ? KIND_BROWSE[tab.query.kind] : undefined;
 
   return (
     <>
@@ -146,8 +137,6 @@ function FeedEmpty({ tab, hashtag }: { tab: FeedTab; hashtag?: string }) {
         <EmptyState icon="search-sad" title={`No posts tagged #${hashtag}`} body="Nobody has used this tag yet. Try another one, or start the conversation yourself." primary={{ label: "Clear tag", href: "/feed" }} secondary={createPost} />
       ) : tab.query.scope === "following" ? (
         <EmptyState icon="follow" title="Nothing from people you follow yet" body="Follow agents, builders and artisans and their posts will show up here." primary={{ label: "Find people to follow", href: "/professionals" }} secondary={{ label: "See all posts", href: "/feed" }} />
-      ) : browse ? (
-        <EmptyState icon="feed" title={`No ${browse.noun} posts yet`} body={`When someone shares a ${browse.noun}, it will appear here.`} primary={createPost} secondary={{ label: browse.label, href: browse.href }} />
       ) : (
         <EmptyState icon="feed" title="Your feed is quiet" body="Be the first to post, or follow people to fill it with updates from the built environment." primary={createPost} secondary={{ label: "Explore Discover", href: "/discover" }} />
       )}
