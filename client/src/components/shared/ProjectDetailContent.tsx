@@ -118,7 +118,8 @@ export function ProjectDetailContent({ detail, onReserve }: ProjectDetailContent
         {activeUnits.length === 0 && <p className="text-[13px] leading-[19px] text-gray-500">No unit types are on sale yet.</p>}
         {activeUnits.map((unit) => (
           <div key={unit.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-gray-200 p-3.5">
-            <NavIcon icon="/icons/bed-sm.svg" size={17} className="shrink-0 bg-brand-900" />
+            {/* The bed vector is drawn upside down, so it is flipped back. */}
+            <NavIcon icon="/icons/bed-sm.svg" size={17} className="shrink-0 -scale-y-100 bg-brand-900" />
             <div className="flex min-w-[140px] flex-1 flex-col gap-0.5">
               <p className="text-sm font-semibold leading-5 text-[#0f172a]">{unit.name}</p>
               <p className="text-xs leading-[17px] text-gray-500">{unit.summary}</p>
