@@ -4,8 +4,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import { useRef, useState } from "react";
 import { showErrorToast } from "@/components/shared/AppToast";
-import { FeedPostPreview, type FeedPostPreviewInput } from "@/components/shared/FeedPostPreview";
-import { ListingFormLayout, WizardNav, type ListingSubmitted } from "@/components/shared/ListingFormLayout";
+import { OfferingCard } from "@/components/shared/OfferingCard";
+import { ListingFormLayout, PreviewPane, WizardNav, type ListingSubmitted } from "@/components/shared/ListingFormLayout";
 import { FIELD_BOX, FIELD_INPUT, FormField } from "@/components/shared/ModalFormParts";
 import { SelectField } from "@/components/shared/SelectField";
 import { ListingDocumentsField } from "@/components/shared/ListingDocumentsField";
@@ -16,6 +16,7 @@ import { errorMessage, notifyError } from "@/lib/errors";
 import { createOffering, offeringAction, updateOffering } from "@/lib/services-api";
 import { uploadMedia } from "@/lib/upload";
 import { classificationOptions, submitListingDocuments, type PendingDocument } from "@/lib/verification-api";
+import { useSession } from "@/context/SessionContext";
 import type { OfferingDto } from "@/types/api/schema";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +26,8 @@ const SERVICE_MODES = [
   { value: "QuoteRequired", label: "Quote required" },
   { value: "InspectionFirst", label: "Inspection first" },
 ] as const;
+/** The main button a customer sees on the card for each way of selling. */
+const PRIMARY_ACTION: Record<string, string> = { FixedPrice: "Book", QuoteRequired: "RequestQuote", InspectionFirst: "RequestInspection" };
 const UNITS = ["PerJob", "PerHour", "PerDay", "PerSqm", "PerUnit"] as const;
 const TEXTAREA = "resize-none rounded-[10px] border border-gray-200 px-3.5 py-2 text-sm leading-5 text-[#0f172a] placeholder:text-[#94a3b8] focus:border-brand-900 focus:outline-none";
 
@@ -134,11 +137,38 @@ export function ServiceListingForm({ offering, onClose, onSubmitted }: ServiceLi
   });
 
   const canSave = form.title.trim() !== "" && form.category !== "";
-  const previewPost: FeedPostPreviewInput = {
-    kind: "Service",
+  const { user } = useSession();
+  const amount = num(form.price);
+  const previewOffering: OfferingDto = {
+    id: offering?.id ?? "preview",
+    providerId: offering?.providerId ?? "",
     title: form.title.trim() || "Your service",
-    description: form.description.trim(),
-    photos: photos.length > 0 ? photos.map((photo) => photo.url) : existingPhotos,
+    description: form.description.trim() || null,
+    category: form.category || null,
+    mode: form.mode,
+    status: "Draft",
+    price: amount !== null && Number.isFinite(amount) ? amount : null,
+    currency: "GHS",
+    priceUnit: form.price.trim() ? form.unit : null,
+    priceLabel: null,
+    primaryAction: PRIMARY_ACTION[form.mode] ?? null,
+    serviceAreas: list(form.areas),
+    maxBookingsPerDay: null,
+    terms: null,
+    media: (photos.length > 0 ? photos.map((photo) => photo.url) : existingPhotos).map((url) => ({ url, contentType: "image/jpeg" })),
+    provider: {
+      id: offering?.providerId ?? "",
+      displayName: user?.username ?? "You",
+      headline: null,
+      city: null,
+      categories: null,
+      urgentAvailable: false,
+      credentialVerified: false,
+      credentialWarning: null,
+      isPublished: false,
+      owner: { accountId: user?.id ?? "", username: user?.username ?? "You", profilePicUrl: user?.profilePicUrl ?? null, isVerified: false },
+    },
+    createdAt: new Date().toISOString(),
   };
 
   const footer = (
@@ -168,7 +198,13 @@ export function ServiceListingForm({ offering, onClose, onSubmitted }: ServiceLi
       onClose={onClose}
       steps={SERVICE_STEPS}
       step={step}
-      preview={<FeedPostPreview post={previewPost} />}
+      preview={
+        <PreviewPane caption="This is how it will look on the Services page.">
+          <div inert>
+            <OfferingCard offering={previewOffering} />
+          </div>
+        </PreviewPane>
+      }
       railNote={{ title: "Draft first", body: "Saving keeps it as a draft until you publish it." }}
       footer={footer}
     >

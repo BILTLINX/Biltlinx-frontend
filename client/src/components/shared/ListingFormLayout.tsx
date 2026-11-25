@@ -136,6 +136,19 @@ export function PreviewToggle({ previewing, onToggle }: { previewing: boolean; o
   );
 }
 
+/** The heading over a listing preview, with a line saying where it will look like this. */
+export function PreviewPane({ caption, children }: { caption: string; children: ReactNode }) {
+  return (
+    <div className="flex w-full flex-col gap-3">
+      <div className="flex flex-col gap-0.5">
+        <p className="text-[15px] font-bold text-[#0f172a]">Preview</p>
+        <p className="text-[13px] text-gray-500">{caption}</p>
+      </div>
+      {children}
+    </div>
+  );
+}
+
 /** Back on the left, then the step's own buttons (Next, or the final actions). Back is hidden on the first step. */
 export function WizardNav({ step, onBack, children }: { step: number; onBack: () => void; children: ReactNode }) {
   return (

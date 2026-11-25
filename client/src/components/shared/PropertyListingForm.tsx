@@ -5,8 +5,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ListingDocumentsField } from "@/components/shared/ListingDocumentsField";
-import { FeedPostPreview, type FeedPostPreviewInput } from "@/components/shared/FeedPostPreview";
-import { ListingFormLayout, WizardNav, type ListingSubmitted } from "@/components/shared/ListingFormLayout";
+import { PropertyCard } from "@/components/shared/PropertyCard";
+import { toListingCard } from "@/lib/property-mapper";
+import { ListingFormLayout, PreviewPane, WizardNav, type ListingSubmitted } from "@/components/shared/ListingFormLayout";
 import { LocationCombobox } from "@/components/shared/LocationCombobox";
 import { ChoiceChip, FIELD_BOX, FIELD_INPUT, FormField } from "@/components/shared/ModalFormParts";
 import { NavIcon } from "@/components/shared/NavIcon";
@@ -212,22 +213,47 @@ export function PropertyListingForm({ draftParam, editId, onClose, onSubmitted }
   const blocking = issues.filter((issue) => issue.severity === "Blocking");
   const canSubmit = Boolean(draftId) && readiness.data?.ready === true && blocking.length === 0;
   const loading = !hydrated && (draft.isPending || editing.isPending) && (draftParam !== null || editId !== null);
-  const priceNumber = Number(form.price.replace(/,/g, ""));
-  const previewPost: FeedPostPreviewInput = {
-    kind: "Property",
-    title: form.name.trim() || "Your listing",
-    description: form.description.trim(),
-    photos: form.media.filter((item) => item.url).map((item) => item.url),
-    metaData: {
-      propertyId: "preview",
-      listingType: info.listingType,
-      currency: "GHS",
-      price: priceNumber > 0 ? priceNumber : undefined,
-      city: form.city.trim() || undefined,
-      bedrooms: form.bedrooms ? Number(form.bedrooms) : undefined,
-      bathrooms: form.bathrooms ? Number(form.bathrooms) : undefined,
-    },
-  };
+  const previewCard = toListingCard({
+    id: "preview",
+    propertyId: "preview",
+    name: form.name.trim() || "Your listing",
+    description: form.description,
+    price: Number(form.price.replace(/,/g, "")) || 0,
+    currency: "GHS",
+    pricePeriod: form.pricePeriod,
+    deposit: null,
+    serviceCharge: null,
+    serviceChargePeriod: null,
+    isNegotiable: form.isNegotiable,
+    paymentPlanNote: null,
+    leaseTermMonths: null,
+    address: form.address,
+    addressVisibility: form.hideAddress ? "Hidden" : "Public",
+    city: form.city,
+    latitude: null,
+    longitude: null,
+    listingType: info.listingType,
+    propertyType: form.propertyType,
+    bedrooms: form.bedrooms ? Number(form.bedrooms) : null,
+    bathrooms: form.bathrooms ? Number(form.bathrooms) : null,
+    floorAreaSqm: form.floorAreaSqm ? Number(form.floorAreaSqm) : null,
+    landSizeSqm: form.landSizeSqm ? Number(form.landSizeSqm) : null,
+    useClass: null,
+    powerCapacityKva: null,
+    status: "PendingReview",
+    availability: "Available",
+    approvedAt: null,
+    lastConfirmedAt: new Date().toISOString(),
+    isStale: false,
+    unavailableReports: null,
+    owner: { id: "", username: "You", organizationName: null, organizationId: "", profilePicUrl: null, isVerified: false },
+    media: form.media.filter((item) => item.url).map((item) => ({ name: item.name, contentType: item.contentType, url: item.url })),
+    documents: null,
+    isOwn: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: null,
+    postedAt: null,
+  });
 
   const saveLabel = editId ? "Material changes send the listing back for review." : saveState === "saving" ? "Saving…" : saveState === "saved" ? "Draft saved" : saveState === "error" ? "Not saved" : "Autosaves as you type";
 
@@ -264,7 +290,13 @@ export function PropertyListingForm({ draftParam, editId, onClose, onSubmitted }
       steps={steps}
       step={step}
       onClose={onClose}
-      preview={<FeedPostPreview post={previewPost} />}
+      preview={
+        <PreviewPane caption="This is how it will look on the Properties page.">
+          <div inert>
+            <PropertyCard listing={{ ...previewCard, href: undefined }} />
+          </div>
+        </PreviewPane>
+      }
       railNote={{ title: "Checked before it goes live", body: "Reviewed by our team before it goes live." }}
       footer={loading ? null : footer}
     >

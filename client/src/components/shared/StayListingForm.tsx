@@ -5,8 +5,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { showSuccessToast } from "@/components/shared/AppToast";
-import { FeedPostPreview, type FeedPostPreviewInput } from "@/components/shared/FeedPostPreview";
-import { ListingFormLayout, WizardNav, type ListingSubmitted } from "@/components/shared/ListingFormLayout";
+import { PropertyCard } from "@/components/shared/PropertyCard";
+import { ListingFormLayout, PreviewPane, WizardNav, type ListingSubmitted } from "@/components/shared/ListingFormLayout";
 import { ChoiceChip, FIELD_BOX, FIELD_INPUT, FormField } from "@/components/shared/ModalFormParts";
 import { SelectField } from "@/components/shared/SelectField";
 import { ListingDocumentsField } from "@/components/shared/ListingDocumentsField";
@@ -28,7 +28,8 @@ import {
   STAY_TYPES,
   updateOperatorProperty,
 } from "@/lib/stay-api";
-import { SHAPE_LABEL, STAY_TYPE_LABEL } from "@/lib/stay-mapper";
+import { FALLBACK_STAY_IMAGE, SHAPE_LABEL, STAY_TYPE_LABEL } from "@/lib/stay-mapper";
+import type { ListingCardData } from "@/types/listing";
 import { uploadMedia } from "@/lib/upload";
 import { classificationOptions, submitListingDocuments, type PendingDocument } from "@/lib/verification-api";
 import type { SaveStayInput, StayDetailDto } from "@/types/api/schema";
@@ -378,11 +379,18 @@ export function StayListingForm({ stayId, onClose, onSubmitted }: StayListingFor
   const toggleAmenity = (amenity: string) => set("amenities", form.amenities.includes(amenity) ? form.amenities.filter((item) => item !== amenity) : [...form.amenities, amenity]);
   const canSave = form.name.trim() !== "" && form.city.trim() !== "";
   const existingPhotos = stay.data?.photos ?? [];
-  const previewPost: FeedPostPreviewInput = {
-    kind: "Stay",
+  const nightlyRates = (stay.data?.rooms ?? []).flatMap((room) => (room.isActive ? (room.ratePlans ?? []).filter((plan) => plan.isActive).map((plan) => plan.nightly) : []));
+  const fromNightly = nightlyRates.length > 0 ? Math.min(...nightlyRates) : null;
+  const previewCard: ListingCardData = {
+    id: id ?? "preview",
+    kind: STAY_TYPE_LABEL[form.type] ?? "Stay",
+    image: form.newPhotos[0]?.url ?? existingPhotos[0] ?? FALLBACK_STAY_IMAGE,
+    price: fromNightly !== null ? `From ${formatMoney(fromNightly)}` : "Price on request",
+    priceUnit: fromNightly !== null ? "night" : undefined,
     title: form.name.trim() || "Your stay",
-    description: form.description.trim(),
-    photos: form.newPhotos.length > 0 ? form.newPhotos.map((photo) => photo.url) : existingPhotos,
+    location: [form.area, form.city].filter((part) => part.trim()).join(", ") || "Ghana",
+    detail: form.amenities.length > 0 ? { icon: "bed", text: form.amenities.slice(0, 3).join(" · ") } : undefined,
+    cta: "View and book",
   };
   const next = () => setStep((current) => current + 1);
   const footer = (
@@ -420,7 +428,13 @@ export function StayListingForm({ stayId, onClose, onSubmitted }: StayListingFor
       onClose={onClose}
       steps={STAY_STEPS}
       step={step}
-      preview={<FeedPostPreview post={previewPost} />}
+      preview={
+        <PreviewPane caption={fromNightly === null ? "This is how it will look on the Stay page. The price shows once a room has a rate." : "This is how it will look on the Stay page."}>
+          <div inert>
+            <PropertyCard listing={previewCard} />
+          </div>
+        </PreviewPane>
+      }
       railNote={{ title: "Verified hosts only", body: "You need a verified host to go live." }}
       footer={footer}
     >
