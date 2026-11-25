@@ -17,6 +17,7 @@ import { RequestViewingModal } from "@/components/shared/RequestViewingModal";
 import { CommentsModal } from "@/components/shared/PostComments";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useMediaLoadState } from "@/hooks/useMediaLoadState";
+import { useStartConversation } from "@/hooks/useMessaging";
 import { useFollowAccount } from "@/hooks/useFollowAccount";
 import { useIsClamped } from "@/hooks/useIsClamped";
 import { useLikers } from "@/hooks/useLikers";
@@ -54,13 +55,7 @@ export function PostCard({ post }: PostCardProps) {
   const isRequest = post.variant === "request";
 
   return (
-    <article
-      className={cn(
-        "flex w-full flex-col gap-[15px] rounded-[29px] border p-[15px] sm:rounded-[15px]",
-        isRequest ? "border-[#bcd3fb] bg-[#f7faff]" : "border-gray-200 bg-white",
-      )}
-    >
-      {isRequest && <RequestBanner issue={post.issue} />}
+    <article className="flex w-full flex-col gap-[15px] rounded-[29px] border border-gray-200 bg-white p-[15px] sm:rounded-[15px]">
       <PostHeader post={post} />
 
       <div className="h-px w-full bg-gray-200" />
@@ -99,6 +94,14 @@ export function PostCard({ post }: PostCardProps) {
           {post.priceLine && <PriceRow post={post} />}
 
           {post.actions && <ActionsRow post={post} />}
+
+          {isRequest && (
+            <>
+              <div className="h-px w-full bg-gray-200" />
+              <RequestRow post={post} />
+              <RequestActions post={post} onGiveAdvice={() => setShowComments(true)} />
+            </>
+          )}
         </>
       )}
 
@@ -117,15 +120,48 @@ export function PostCard({ post }: PostCardProps) {
   );
 }
 
-/** The strip across the top of a request post: it says "Request" and what kind of issue it is, so requests stand out in the feed. */
-function RequestBanner({ issue }: { issue?: string }) {
+/** The headline of a request post, laid out like the price row of a property post: what it is about on the left, and a label that says it is a request on the right. */
+function RequestRow({ post }: { post: PostCardData }) {
   return (
-    <div className="flex items-center gap-2.5 rounded-xl bg-[#eef4ff] px-3 py-2">
+    <div className="flex w-full items-center justify-between gap-3">
+      <div className="flex min-w-0 flex-col gap-1 text-gray-700">
+        <p className="truncate text-[16px] font-semibold sm:text-[19px]">{post.issue ?? "Request for help"}</p>
+        <p className="text-[11px] font-light sm:text-[13px]">Looking for help</p>
+      </div>
       <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-[#1465e6] px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-white">
         <NavIcon icon="/icons/wrench-01.svg" size={12} className="bg-white" />
         Request
       </span>
-      {issue && <span className="min-w-0 truncate text-[13px] font-semibold text-[#0f172a]">{issue}</span>}
+    </div>
+  );
+}
+
+/** The buttons under a request post, in the same places as on a property post: the main action on the left, a "Reach out" button on the right that opens a message to whoever asked. Your own request offers its responses instead of advice and messaging. */
+function RequestActions({ post, onGiveAdvice }: { post: PostCardData; onGiveAdvice: () => void }) {
+  const router = useRouter();
+  const message = useStartConversation();
+  const small = "h-auto w-auto rounded-xl px-3 py-1.5 text-[10px] sm:h-[38px] sm:rounded-lg sm:px-[15px] sm:py-0 sm:text-[13px]";
+  return (
+    <div className="flex w-full flex-wrap items-center justify-between gap-2">
+      <Button variant="primary" onClick={onGiveAdvice} className={cn(small, "bg-[#eef4ff] text-[#1465e6] hover:bg-[#dfeaff]")}>
+        {post.isOwn ? "View responses" : "Give advice"}
+      </Button>
+      {!post.isOwn && (
+        <Button
+          variant="outline-brand"
+          disabled={!post.authorId || message.isPending}
+          onClick={() =>
+            post.authorId &&
+            message.mutate(
+              { recipientAccountId: post.authorId, contextType: "Direct", contextTitle: post.issue ? `Your request: ${post.issue}` : "Your request" },
+              { onSuccess: (conversation) => router.push(`/messages?c=${conversation.id}`) },
+            )
+          }
+          className={small}
+        >
+          {message.isPending ? "Opening…" : "Reach out"}
+        </Button>
+      )}
     </div>
   );
 }

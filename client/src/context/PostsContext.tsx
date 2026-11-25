@@ -7,7 +7,7 @@ import { FEED_KEY } from "@/hooks/useFeed";
 import type { ServiceListing, StayListing } from "@/lib/post-listings";
 import { notifyError } from "@/lib/errors";
 import { createPost, deletePost } from "@/lib/social-api";
-import { REQUEST_POST_TYPE } from "@/lib/post-mapper";
+import { REQUEST_TAG } from "@/lib/post-mapper";
 import { uploadAll } from "@/lib/upload";
 import type { CreatePostInput, MediaInput } from "@/types/api/social";
 
@@ -47,9 +47,8 @@ async function toRequest(input: NewPostInput): Promise<CreatePostInput | null> {
       return {
         kind: "Text",
         title: input.issue.trim(),
-        // Marks the post so the feed can show it as a request.
-        metaData: { postType: REQUEST_POST_TYPE },
-        description: input.details.trim(),
+        // The tag is how the feed knows this is a request; see REQUEST_TAG.
+        description: `${input.details.trim()}\n\n${REQUEST_TAG}`,
         media: await uploadFiles(input.files),
       };
     default:

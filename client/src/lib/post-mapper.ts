@@ -10,8 +10,12 @@ const VARIANTS: Record<Post["kind"], PostVariant> = {
   Service: "artisan",
 };
 
-/** The `postType` metadata value that marks a text post as a request for help. */
-export const REQUEST_POST_TYPE = "request";
+/**
+ * The tag that marks a text post as a request for help. The backend does not accept metadata on text posts, so the post says so in its own text:
+ * posting adds the tag, and the feed hides it and shows the post as a request.
+ */
+export const REQUEST_TAG = "#request";
+const REQUEST_TAG_PATTERN = /(^|\s)#request\b/i;
 
 export function authorDisplay(author: Author) {
   const name = author.username;
@@ -112,8 +116,9 @@ export function mapPost(post: Post, now: Date = new Date()): PostCardData {
     };
   }
 
-  if (meta<string>(post, "postType") === REQUEST_POST_TYPE) {
-    return { ...base, variant: "request", issue: post.title ?? undefined, text: post.description || undefined };
+  if (REQUEST_TAG_PATTERN.test(post.description)) {
+    const details = post.description.replace(/\s*#request\b/gi, "").trim();
+    return { ...base, variant: "request", issue: post.title ?? undefined, text: details || undefined };
   }
 
   return { ...base, text: [post.title, post.description].filter(Boolean).join("\n\n") || undefined };
