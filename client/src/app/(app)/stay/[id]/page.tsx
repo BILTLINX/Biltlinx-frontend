@@ -52,6 +52,11 @@ function shortDate(key: string) {
 }
 
 /** One half of the dates box in the booking panel; it takes you to the calendar to pick the day. */
+/** Takes the guest to the availability calendar, where the dates are chosen. */
+function chooseDates() {
+  document.getElementById("availability")?.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
 function DateCell({ label, value }: { label: string; value: string }) {
   return (
     <a href="#availability" className="flex flex-col gap-0.5 px-3.5 py-2.5 hover:bg-gray-50">
@@ -100,8 +105,8 @@ function RatePlanRow({ plan, room, nights, onReserve, reserving }: { plan: RateP
       )}
       <Button
         variant="primary"
-        disabled={nights === 0 || room.bookable === false || reserving}
-        onClick={onReserve}
+        disabled={(nights > 0 && room.bookable === false) || reserving}
+        onClick={nights === 0 ? chooseDates : onReserve}
         className="h-10 w-full rounded-[10px] sm:w-auto sm:self-end sm:px-5 lg:rounded-[10px]"
       >
         {nights === 0 ? "Choose dates to reserve" : reserving ? "Reserving…" : "Reserve"}
@@ -329,7 +334,7 @@ function StayDetail({ id }: { id: string }) {
                     {cheapest ? "Available for your dates" : "Not available for your dates"}
                   </span>
                 )}
-                <Button variant="primary" disabled={!cheapest || hold.isPending} onClick={() => cheapest && hold.mutate(cheapest.plan.id)} className="h-12 rounded-[10px] lg:rounded-[10px]">
+                <Button variant="primary" disabled={(datesValid && !cheapest) || hold.isPending} onClick={() => (datesValid ? cheapest && hold.mutate(cheapest.plan.id) : chooseDates())} className="h-12 rounded-[10px] lg:rounded-[10px]">
                   {!datesValid ? "Choose your dates" : hold.isPending ? "Reserving…" : "Book now"}
                 </Button>
                 <Button
