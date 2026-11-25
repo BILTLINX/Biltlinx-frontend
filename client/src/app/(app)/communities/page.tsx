@@ -3,26 +3,26 @@
 import { SearchEmpty } from "@/components/shared/SearchEmpty";
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/shared/AppShell";
-import { FilterDropdown } from "@/components/shared/FilterDropdown";
+import { filterList, filterText, FilterPanel, type FilterSection, type FilterValues } from "@/components/shared/FilterPanel";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { CommunitiesRail } from "@/components/shared/CommunitiesRail";
 import { CommunityCard } from "@/components/shared/CommunityCard";
 import { CreateCommunityModal } from "@/components/shared/CreateCommunityModal";
 import { DiscussionRow } from "@/components/shared/DiscussionRow";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { NavIcon } from "@/components/shared/NavIcon";
 import { useCommunities } from "@/hooks/useCommunities";
-import {
-  COMMUNITY_FILTERS,
-  DISCUSSIONS,
-  FILTER_TYPES,
-} from "@/lib/dummy-communities";
+import { DISCUSSIONS, FILTER_TYPES } from "@/lib/dummy-communities";
 import { useSearch } from "@/context/SearchContext";
 
-const SHOW_OPTIONS = COMMUNITY_FILTERS.map((item) => ({ value: item, label: item }));
+const TYPE_OPTIONS = Object.entries(FILTER_TYPES).map(([label, value]) => ({ label, value: value as string }));
+const EMPTY_FILTERS: FilterValues = { show: "", type: [] };
+const SECTIONS: FilterSection[] = [
+  { type: "options", label: "Show", key: "show", display: "chips", options: [{ label: "My communities", value: "mine" }] },
+  { type: "options", label: "Type", key: "type", display: "chips", multiple: true, options: TYPE_OPTIONS },
+];
 
 export default function CommunitiesPage() {
-  const [show, setShow] = useState<string>(COMMUNITY_FILTERS[0]);
+  const [filters, setFilters] = useState<FilterValues>(EMPTY_FILTERS);
   const [joined, setJoined] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
   const [seeAll, setSeeAll] = useState(false);
@@ -30,17 +30,18 @@ export default function CommunitiesPage() {
   const startCommunity = () => setCreating(true);
 
   // The same text as the search in the top bar, so the two always agree.
-  const { query, setQuery } = useSearch();
+  const { query } = useSearch();
   const term = query.trim().toLowerCase();
-  const mineOnly = show === "My communities";
+  const mineOnly = filterText(filters, "show") === "mine";
+  const types = filterList(filters, "type");
   const communities = useMemo(() => {
     return all.filter(
       (community) =>
-        (show === "For you" ||
-          (mineOnly ? community.mine || joined.includes(community.id) : community.type === FILTER_TYPES[show as keyof typeof FILTER_TYPES])) &&
+        (!mineOnly || community.mine || joined.includes(community.id)) &&
+        (types.length === 0 || types.includes(community.type)) &&
         (!term || `${community.name} ${community.description}`.toLowerCase().includes(term)),
     );
-  }, [all, show, mineOnly, term, joined]);
+  }, [all, mineOnly, types, term, joined]);
 
   const discussions = useMemo(() => {
     return DISCUSSIONS.filter((discussion) => communities.some((community) => community.id === discussion.communityId) && (!term || discussion.question.toLowerCase().includes(term)));
@@ -58,20 +59,8 @@ export default function CommunitiesPage() {
             <h1 className="text-2xl font-bold leading-8 text-[#0f172a]">Communities</h1>
             <p className="text-sm leading-5 text-gray-500">Ask questions, share know-how and meet neighbours, builders and owners.</p>
           </div>
+          <FilterPanel className="shrink-0 sm:max-w-[45%] sm:justify-end" sections={SECTIONS} values={filters} onChange={setFilters} />
         </div>
-
-        <label className="flex h-12 items-center gap-2.5 rounded-xl border border-[#e2e8f0] bg-white px-4 focus-within:border-brand-900">
-          <NavIcon icon="/icons/search-02.svg" size={18} className="bg-[#64748b]" />
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search communities and discussions"
-            aria-label="Search communities and discussions"
-            className="min-w-0 flex-1 bg-transparent text-sm text-[#0f172a] placeholder:text-[#94a3b8] focus:outline-none"
-          />
-        </label>
-
-        <FilterDropdown label="Show" options={SHOW_OPTIONS} value={show} onChange={setShow} />
 
         <section className="@container flex min-w-0 flex-col gap-3">
           <div className="flex items-center justify-between">
@@ -108,7 +97,7 @@ export default function CommunitiesPage() {
                 icon="communities"
                 title="You haven’t joined a community yet"
                 body="Find your estate, your trade or fellow diaspora buyers. Ask questions, share tips, swap trusted contacts."
-                primary={{ label: "Explore communities", onClick: () => setShow(COMMUNITY_FILTERS[0]) }}
+                primary={{ label: "Explore communities", onClick: () => setFilters(EMPTY_FILTERS) }}
                 secondary={{ label: "Start a community", onClick: startCommunity }}
               />
             ) : (
