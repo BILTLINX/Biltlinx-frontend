@@ -1,7 +1,6 @@
 "use client";
 
 import { SearchEmpty } from "@/components/shared/SearchEmpty";
-import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/shared/AppShell";
 import { FilterDropdown } from "@/components/shared/FilterDropdown";
@@ -13,7 +12,6 @@ import { DiscussionRow } from "@/components/shared/DiscussionRow";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { NavIcon } from "@/components/shared/NavIcon";
 import { useCommunities } from "@/hooks/useCommunities";
-import { comingSoonHref } from "@/lib/coming-soon";
 import {
   COMMUNITY_FILTERS,
   DISCUSSIONS,
@@ -24,12 +22,11 @@ import { useSearch } from "@/context/SearchContext";
 const SHOW_OPTIONS = COMMUNITY_FILTERS.map((item) => ({ value: item, label: item }));
 
 export default function CommunitiesPage() {
-  const router = useRouter();
   const [show, setShow] = useState<string>(COMMUNITY_FILTERS[0]);
   const [joined, setJoined] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
+  const [seeAll, setSeeAll] = useState(false);
   const { communities: all } = useCommunities();
-  const comingSoon = (feature: string) => () => router.push(comingSoonHref(feature));
   const startCommunity = () => setCreating(true);
 
   // The same text as the search in the top bar, so the two always agree.
@@ -81,13 +78,21 @@ export default function CommunitiesPage() {
             <h2 className="text-base font-bold leading-[23px] text-[#0f172a]">
               {mineOnly ? "Your communities" : "Suggested for you"}
             </h2>
-            <button type="button" onClick={comingSoon("All communities")} className="text-[13px] font-medium text-brand-900">
-              See all ›
-            </button>
+            {communities.length > 0 && (
+              <button type="button" onClick={() => setSeeAll((current) => !current)} aria-expanded={seeAll} className="text-[13px] font-medium text-brand-900">
+                {seeAll ? "Show fewer" : "See all ›"}
+              </button>
+            )}
           </div>
           {communities.length > 0 ? (
-            // One row that scrolls sideways, sized by the room the list has rather than the screen: three cards wide when there is room, two when there is less, and one with the next peeking in when it is narrow. The padding keeps the card shadows from being clipped.
-            <div className="no-scrollbar -mb-3 grid snap-x auto-cols-[85%] @[520px]:auto-cols-[calc((100%-1rem)/2)] @[760px]:auto-cols-[calc((100%-2rem)/3)] grid-flow-col gap-4 overflow-x-auto pb-3 *:snap-start">
+            // One row that scrolls sideways, sized by the room the list has rather than the screen: three cards wide when there is room, two when there is less, and one with the next peeking in when it is narrow. The padding keeps the card shadows from being clipped. "See all" lays every community out in a wrapping grid of the same widths instead.
+            <div
+              className={
+                seeAll
+                  ? "grid grid-cols-1 gap-4 @[520px]:grid-cols-2 @[760px]:grid-cols-3"
+                  : "no-scrollbar -mb-3 grid snap-x auto-cols-[85%] @[520px]:auto-cols-[calc((100%-1rem)/2)] @[760px]:auto-cols-[calc((100%-2rem)/3)] grid-flow-col gap-4 overflow-x-auto pb-3 *:snap-start"
+              }
+            >
               {communities.map((community) => (
                 <CommunityCard
                   key={community.id}
