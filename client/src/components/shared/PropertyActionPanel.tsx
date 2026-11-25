@@ -22,6 +22,10 @@ import { shareContent } from "@/lib/share";
 const CARD = "flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-4";
 const ROUNDED = "rounded-[10px] lg:rounded-[10px]";
 
+/** Availability values that mean the property is no longer on offer. Anything else, such as "Available", is treated as open, so a value the backend adds for a live listing never switches the viewing button off. */
+const CLOSED_AVAILABILITY = ["sold", "rented", "let", "closed", "unavailable", "paused", "archived", "withdrawn"];
+const isClosed = (availability: string | null) => availability !== null && CLOSED_AVAILABILITY.includes(availability.trim().toLowerCase());
+
 /** The right column of a property page (Figma node 1052:23834): price and viewing actions, the lister, safety advice and Concierge. */
 export function PropertyActionPanel({ detail }: { detail: PropertyDetailView }) {
   const router = useRouter();
@@ -34,7 +38,7 @@ export function PropertyActionPanel({ detail }: { detail: PropertyDetailView }) 
   const message = useStartConversation();
   const { canSave, saved, toggle: toggleSaved } = useSaved(savedListing(card));
   const isRental = property.listingType === "Rent";
-  const unavailable = property.availability !== null && property.availability !== "Available";
+  const unavailable = isClosed(property.availability);
 
   function reportListing() {
     report.mutate(undefined, { onSuccess: () => showSuccessToast("Thanks. We will check whether it is still available.") });
