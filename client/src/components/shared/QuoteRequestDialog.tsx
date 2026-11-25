@@ -134,7 +134,7 @@ export function QuoteRequestDialog({ open, onClose, target }: { open: boolean; o
           <SelectField value={category} onChange={setCategory} aria-label="Trade or profession" invalid={Boolean(errors.category)} placeholder="Choose one" options={categories.map((item) => ({ value: item, label: item }))} className="h-11 rounded-[10px] [@media(max-height:860px)]:h-10" />
         </FormField>
         <FormField label="City or area" error={errors.city}>
-          <LocationCombobox value={city} onChange={setCity} placeholder="e.g. Kasoa" ariaLabel="City" pick="city" invalid={Boolean(errors.city)} inputClassName={FIELD_INPUT} />
+          <LocationCombobox value={city} onChange={setCity} placeholder="e.g. Kasoa" ariaLabel="City" pick="city" invalid={Boolean(errors.city)} icon />
         </FormField>
       </div>
 
