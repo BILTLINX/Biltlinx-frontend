@@ -14,12 +14,8 @@ import { useCommunities } from "@/hooks/useCommunities";
 import { DISCUSSIONS, FILTER_TYPES } from "@/lib/dummy-communities";
 import { useSearch } from "@/context/SearchContext";
 
-const TYPE_OPTIONS = Object.entries(FILTER_TYPES).map(([label, value]) => ({ label, value: value as string }));
+const STANDARD_TYPE_OPTIONS = Object.entries(FILTER_TYPES).map(([label, value]) => ({ label, value: value as string }));
 const EMPTY_FILTERS: FilterValues = { show: "", type: [] };
-const SECTIONS: FilterSection[] = [
-  { type: "options", label: "Show", key: "show", display: "chips", options: [{ label: "My communities", value: "mine" }] },
-  { type: "options", label: "Type", key: "type", display: "chips", multiple: true, options: TYPE_OPTIONS },
-];
 
 export default function CommunitiesPage() {
   const [filters, setFilters] = useState<FilterValues>(EMPTY_FILTERS);
@@ -28,6 +24,15 @@ export default function CommunitiesPage() {
   const [seeAll, setSeeAll] = useState(false);
   const { communities: all } = useCommunities();
   const startCommunity = () => setCreating(true);
+  // The types people made up for their own communities are filters too.
+  const sections = useMemo<FilterSection[]>(() => {
+    const standard = new Set(STANDARD_TYPE_OPTIONS.map((option) => option.value));
+    const own = [...new Set(all.map((community) => community.type))].filter((type) => !standard.has(type)).map((type) => ({ label: type, value: type }));
+    return [
+      { type: "options", label: "Show", key: "show", display: "chips", options: [{ label: "My communities", value: "mine" }] },
+      { type: "options", label: "Type", key: "type", display: "chips", multiple: true, options: [...STANDARD_TYPE_OPTIONS, ...own] },
+    ];
+  }, [all]);
 
   // The same text as the search in the top bar, so the two always agree.
   const { query } = useSearch();
@@ -59,7 +64,7 @@ export default function CommunitiesPage() {
             <h1 className="text-2xl font-bold leading-8 text-[#0f172a]">Communities</h1>
             <p className="text-sm leading-5 text-gray-500">Ask questions, share know-how and meet neighbours, builders and owners.</p>
           </div>
-          <FilterPanel className="shrink-0 sm:max-w-[45%] sm:justify-end" sections={SECTIONS} values={filters} onChange={setFilters} />
+          <FilterPanel className="shrink-0 sm:max-w-[45%] sm:justify-end" sections={sections} values={filters} onChange={setFilters} />
         </div>
 
         <section className="@container flex min-w-0 flex-col gap-3">

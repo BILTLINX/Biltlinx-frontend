@@ -5,50 +5,52 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { showSuccessToast } from "@/components/shared/AppToast";
 import { CenteredDialog } from "@/components/shared/CenteredDialog";
-import { ListingFormLayout } from "@/components/shared/ListingFormLayout";
-import { ChoiceChip, FIELD_BOX, FIELD_INPUT, FormField } from "@/components/shared/ModalFormParts";
+import { CommunityInvitePanel } from "@/components/shared/CommunityInvitePanel";
+import { FIELD_BOX, FIELD_INPUT, FormField } from "@/components/shared/ModalFormParts";
 import { NavIcon } from "@/components/shared/NavIcon";
-import { Button } from "@/components/ui/Button";
+import { START_HINT, START_INPUT_BOX, START_TEXTAREA, StartDialogFrame, TickChip } from "@/components/shared/StartDialogFrame";
 import { useCommunities } from "@/hooks/useCommunities";
-import { COMMUNITY_COVERS, COMMUNITY_PRIVACY, COMMUNITY_TYPES, DEFAULT_COMMUNITY_RULES, type CommunityPrivacy } from "@/lib/dummy-communities";
+import { COMMUNITY_COVERS, COMMUNITY_PRIVACY, COMMUNITY_TYPES, DEFAULT_COMMUNITY_COVER, type CommunityInvite, type CommunityPrivacy } from "@/lib/dummy-communities";
 import { notifyError } from "@/lib/errors";
 import { uploadMedia } from "@/lib/upload";
 import { cn } from "@/lib/utils";
 
-const TEXTAREA = "resize-none rounded-[10px] border border-gray-200 px-3.5 py-2 text-sm leading-5 text-[#0f172a] placeholder:text-[#94a3b8] focus:border-brand-900 focus:outline-none";
-const COVER_BUTTON = "h-8 rounded-[10px] bg-white px-3 text-[13px] font-medium text-[#0f172a] shadow-[0_1px_3px_rgba(15,23,42,0.2)] hover:bg-gray-50 disabled:opacity-60";
-const HINT = "text-xs leading-[17px] text-gray-500";
+const ABOUT_MAX = 140;
+const OTHER_TYPE_MAX = 30;
+/** The "Other" chip: not a type itself, it asks for one. */
+const OTHER = "__other";
 
+const PRIVACY_ICON: Record<CommunityPrivacy, string> = { Public: "/icons/community-globe.svg", Private: "/icons/community-lock.svg" };
 const PRIVACY_NOTES: Record<CommunityPrivacy, string> = {
   Public: "Anyone can find it, read the posts and join.",
   Private: "Anyone can find it, but people ask to join and only members see the posts.",
 };
-
-const MAX_RULES = 8;
 
 /** The form itself, mounted only while the dialog is open so it starts empty each time. */
 function CreateCommunityForm({ onClose }: { onClose: () => void }) {
   const router = useRouter();
   const { communities, create } = useCommunities();
   const fileInput = useRef<HTMLInputElement | null>(null);
+  // Chosen now so a private community can show its link before it exists.
+  const [id] = useState(() => crypto.randomUUID());
   const [name, setName] = useState("");
-  const [type, setType] = useState("");
+  const [picked, setPicked] = useState("");
+  const [otherType, setOtherType] = useState("");
   const [description, setDescription] = useState("");
   const [privacy, setPrivacy] = useState<CommunityPrivacy>("Public");
-  const [rules, setRules] = useState(DEFAULT_COMMUNITY_RULES.join("\n"));
+  const [invited, setInvited] = useState<CommunityInvite[]>([]);
   const [cover, setCover] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
+  // The types people have already made up for their own communities can be picked again.
+  const ownTypes = [...new Set(communities.map((community) => community.type))].filter((type) => !COMMUNITY_TYPES.includes(type));
+  const chosenType = picked === OTHER ? otherType.trim() : picked;
   const cleanName = name.trim();
   const taken = cleanName !== "" && communities.some((community) => community.name.toLowerCase() === cleanName.toLowerCase());
-  const ruleList = rules
-    .split("\n")
-    .map((rule) => rule.replace(/^[\s•\-*]+/, "").trim())
-    .filter(Boolean)
-    .slice(0, MAX_RULES);
   // Without an uploaded picture the community gets the cover that goes with its type.
-  const shownCover = cover ?? COMMUNITY_COVERS[type];
-  const ready = cleanName !== "" && !taken && type !== "" && description.trim() !== "" && ruleList.length > 0;
+  const shownCover = cover ?? COMMUNITY_COVERS[chosenType] ?? DEFAULT_COMMUNITY_COVER;
+  const ready = cleanName !== "" && !taken && chosenType !== "" && description.trim() !== "";
+  const link = `${typeof window === "undefined" ? "" : window.location.origin}/communities/${id}`;
 
   async function pickCover(files: FileList | null) {
     const file = files?.[0];
@@ -64,116 +66,106 @@ function CreateCommunityForm({ onClose }: { onClose: () => void }) {
   }
 
   function submit() {
-    const community = create({ name: cleanName, type, description: description.trim(), image: shownCover, privacy, rules: ruleList });
+    const community = create({ id, name: cleanName, type: chosenType, description: description.trim(), image: shownCover, privacy, invited: privacy === "Private" ? invited : undefined });
     showSuccessToast("Community created. You are its first member.");
     onClose();
     router.push(`/communities/${community.id}`);
   }
 
   return (
-    <ListingFormLayout
+    <StartDialogFrame
       titleId="create-community-title"
       title="Start a community"
       subtitle="Bring neighbours, builders and owners together around what you care about."
       onClose={onClose}
-      footer={
-        <div className="flex gap-2">
-          <button type="button" onClick={onClose} className="h-11 shrink-0 rounded-[10px] border border-gray-200 px-5 text-sm font-medium text-[#0f172a] hover:bg-gray-50">
-            Cancel
-          </button>
-          <Button variant="primary" onClick={submit} disabled={!ready || uploading} className="h-11 flex-1 rounded-[10px] lg:rounded-[10px]">
-            {uploading ? "Uploading…" : "Create community"}
-          </Button>
-        </div>
-      }
+      primary={{ label: uploading ? "Uploading…" : "Create community", onClick: submit, disabled: !ready || uploading }}
     >
-      <div className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
-      <div className="flex min-w-0 flex-col gap-4">
-      <FormField label="Cover photo (optional)">
-        <div className="relative h-[100px] w-full shrink-0 overflow-hidden rounded-xl bg-[#eef2ff]">
-          {shownCover ? (
-            <Image src={shownCover} alt="" fill unoptimized className="object-cover" sizes="380px" />
-          ) : (
-            <span className="flex size-full items-center justify-center">
-              <NavIcon icon="/icons/image-01.svg" size={28} className="bg-[#94a3b8]" />
-            </span>
-          )}
-          <div className="absolute bottom-2.5 right-2.5 flex gap-2">
-            {cover && !uploading && (
-              <button type="button" onClick={() => setCover(null)} className={COVER_BUTTON}>
-                Remove
-              </button>
-            )}
-            <button type="button" disabled={uploading} onClick={() => fileInput.current?.click()} className={COVER_BUTTON}>
-              {uploading ? "Uploading…" : cover ? "Change photo" : "Upload a photo"}
+      <FormField label="Who can join?" className="gap-2">
+        <div role="radiogroup" aria-label="Who can join?" className="flex gap-1 rounded-[10px] bg-[#f1f5f9] p-1">
+          {COMMUNITY_PRIVACY.map((option) => (
+            <button
+              key={option}
+              type="button"
+              role="radio"
+              aria-checked={privacy === option}
+              onClick={() => setPrivacy(option)}
+              className={cn(
+                "flex h-10 min-w-0 flex-1 items-center justify-center gap-2 rounded-lg text-sm font-semibold leading-5",
+                privacy === option ? "bg-white text-[#0f172a] shadow-[0_1px_3px_rgba(15,23,41,0.12)]" : "text-[#64748a]",
+              )}
+            >
+              <NavIcon icon={PRIVACY_ICON[option]} size={16} className={privacy === option ? "bg-[#1465e6]" : "bg-[#64748a]"} />
+              {option}
             </button>
-          </div>
-          <input
-            ref={fileInput}
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/gif"
-            className="hidden"
-            onChange={(event) => {
-              void pickCover(event.target.files);
-              event.target.value = "";
-            }}
-          />
-        </div>
-        <p className={HINT}>Without a photo, your community gets a cover that matches its type.</p>
-      </FormField>
-
-      <FormField label="Community name" error={taken ? "There is already a community with this name." : undefined}>
-        <label className={cn(FIELD_BOX, taken ? "border-[#dc2626]" : "border-gray-200")}>
-          <input autoFocus value={name} onChange={(event) => setName(event.target.value)} maxLength={60} aria-label="Community name" placeholder="e.g. Oyibi Land Buyers" className={FIELD_INPUT} />
-        </label>
-      </FormField>
-
-      <FormField label="What kind of community is it?">
-        <div role="radiogroup" aria-label="Community type" className="flex flex-wrap gap-2">
-          {COMMUNITY_TYPES.map((option) => (
-            <ChoiceChip key={option} role="radio" label={option} selected={type === option} onClick={() => setType(option)} />
           ))}
         </div>
+        <p className={START_HINT}>{PRIVACY_NOTES[privacy]}</p>
       </FormField>
 
+      <div className="flex items-start gap-2.5">
+        <button type="button" aria-label="Upload a community photo" disabled={uploading} onClick={() => fileInput.current?.click()} className="relative block size-[72px] shrink-0 rounded-[23px] disabled:opacity-60">
+          <span className="absolute inset-0 overflow-hidden rounded-[23px] bg-[#eef2ff]">
+            <Image src={shownCover} alt="" fill unoptimized className="object-cover" sizes="72px" />
+          </span>
+          <span className="absolute -bottom-[1.67px] -right-[2.17px] flex items-center rounded-[29px] border border-dashed border-[#ff8d28] bg-gradient-to-r from-[#ff8d28] via-[#e24bb9] to-[#983fe0] p-1 shadow-[0_4px_4px_rgba(0,0,0,0.1)] backdrop-blur-[13.5px]">
+            <NavIcon icon="/icons/community-upload.svg" size={11.67} className="bg-[#f8fafc]" />
+          </span>
+        </button>
+        <input
+          ref={fileInput}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          className="hidden"
+          onChange={(event) => {
+            void pickCover(event.target.files);
+            event.target.value = "";
+          }}
+        />
+        <FormField label="Community name" error={taken ? "There is already a community with this name." : undefined} className="flex-1 gap-2">
+          <label className={cn(FIELD_BOX, START_INPUT_BOX, "px-3.5", taken ? "border-[#dc2626]" : "border-[#e2e8f0]")}>
+            <input autoFocus value={name} onChange={(event) => setName(event.target.value)} maxLength={60} aria-label="Community name" placeholder="e.g. Oyibi Land Buyers" className={FIELD_INPUT} />
+          </label>
+        </FormField>
       </div>
-      <div className="flex min-w-0 flex-col gap-4">
-      <FormField label="What is it about?">
+
+      <FormField label="What kind of community is it?" className="gap-2">
+        <div role="radiogroup" aria-label="Community type" className="flex flex-wrap gap-2">
+          {[...COMMUNITY_TYPES, ...ownTypes].map((option) => (
+            <TickChip key={option} label={option} selected={picked === option} onClick={() => setPicked(option)} />
+          ))}
+          <TickChip label="Other" selected={picked === OTHER} onClick={() => setPicked(OTHER)} />
+        </div>
+        {picked === OTHER && (
+          <label className={cn(FIELD_BOX, START_INPUT_BOX, "mt-1 border-[#e2e8f0]")}>
+            <input autoFocus value={otherType} onChange={(event) => setOtherType(event.target.value)} maxLength={OTHER_TYPE_MAX} aria-label="Your community type" placeholder="Name your own type, e.g. Estate security" className={FIELD_INPUT} />
+          </label>
+        )}
+      </FormField>
+
+      <FormField label="What is it about?" className="gap-2">
         <textarea
           value={description}
           onChange={(event) => setDescription(event.target.value)}
-          rows={2}
-          maxLength={140}
+          maxLength={ABOUT_MAX}
           aria-label="What is it about?"
           placeholder="e.g. Water, roads, security and recommendations for our estate."
-          className={TEXTAREA}
+          className={START_TEXTAREA}
         />
-        <p className={HINT}>Shown on the community’s card. {140 - description.length} characters left.</p>
-      </FormField>
-
-      <FormField label="Who can join?">
-        <div role="radiogroup" aria-label="Who can join?" className="flex flex-wrap gap-2">
-          {COMMUNITY_PRIVACY.map((option) => (
-            <ChoiceChip key={option} role="radio" label={option} selected={privacy === option} onClick={() => setPrivacy(option)} />
-          ))}
+        <div className="flex items-start gap-4">
+          <p className={cn(START_HINT, "min-w-0 flex-1")}>Shown on the community’s card.</p>
+          <p className="shrink-0 whitespace-nowrap text-xs leading-[17px] text-[#94a3b8]">{ABOUT_MAX - description.length} characters left</p>
         </div>
-        <p className={HINT}>{PRIVACY_NOTES[privacy]}</p>
       </FormField>
 
-      <FormField label="Community rules" error={ruleList.length === 0 ? "Add at least one rule." : undefined}>
-        <textarea value={rules} onChange={(event) => setRules(event.target.value)} rows={4} aria-label="Community rules" className={TEXTAREA} />
-        <p className={HINT}>One rule per line, up to {MAX_RULES}. Members see them on the community’s page.</p>
-      </FormField>
-      </div>
-      </div>
-    </ListingFormLayout>
+      {privacy === "Private" && <CommunityInvitePanel link={link} invited={invited} onChange={setInvited} />}
+    </StartDialogFrame>
   );
 }
 
-/** Start a community: its cover, name, type, blurb, who can join and its rules — the details a community's card and page show. */
+/** Start a community (Figma nodes 1684:54058, 1684:54066 and 1684:54110): who can join, its photo and name, its type (or your own), what it is about, and for a private one the people you invite. */
 export function CreateCommunityModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
-    <CenteredDialog open={open} onClose={onClose} labelledBy="create-community-title" className="max-w-[780px]">
+    <CenteredDialog open={open} onClose={onClose} labelledBy="create-community-title" className="max-w-[560px]">
       <CreateCommunityForm onClose={onClose} />
     </CenteredDialog>
   );

@@ -28,6 +28,12 @@ export const COMMUNITY_PRIVACY = ["Public", "Private"] as const;
 
 export type CommunityPrivacy = (typeof COMMUNITY_PRIVACY)[number];
 
+/** Someone the founder added to a private community by name. */
+export interface CommunityInvite {
+  id: string;
+  name: string;
+}
+
 export interface Community {
   id: string;
   name: string;
@@ -39,6 +45,8 @@ export interface Community {
   privacy?: CommunityPrivacy;
   /** Its own rules; the sample communities share the default ones. */
   rules?: string[];
+  /** People the founder invited by name when it was started as private. */
+  invited?: CommunityInvite[];
   /** Started by the person looking at it. */
   mine?: boolean;
 }
@@ -51,6 +59,9 @@ export const COMMUNITY_COVERS: Record<string, string> = {
   "Diaspora buyers": "/images/marketplace/land.jpg",
   Professionals: "/images/marketplace/property-tower.jpg",
 };
+
+/** The cover for a community whose type has none of its own, such as one the founder named themselves. */
+export const DEFAULT_COMMUNITY_COVER = COMMUNITY_COVERS.Neighbourhood;
 
 export const DEFAULT_COMMUNITY_RULES = ["Be respectful", "No paid ads outside the Marketplace", "Report scams to moderators"];
 

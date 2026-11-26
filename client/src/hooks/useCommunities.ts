@@ -13,7 +13,10 @@ import {
   type StartedEvent,
 } from "@/lib/dummy-communities";
 
-export type CommunityDraft = Required<Pick<Community, "name" | "type" | "description" | "image" | "privacy" | "rules">>;
+export type CommunityDraft = Required<Pick<Community, "name" | "type" | "description" | "image" | "privacy">> & Pick<Community, "rules" | "invited"> & {
+  /** Chosen up front when the form already shows a link to the community. */
+  id?: string;
+};
 export type EventDraft = Omit<StartedEvent, "id" | "hostName">;
 
 // There is no communities or events API yet, so what you start lives in this browser, one list of each per signed-in account.
@@ -41,7 +44,7 @@ export function useCommunities() {
 
   const create = useCallback(
     (draft: CommunityDraft) => {
-      const community: Community = { ...draft, id: crypto.randomUUID(), members: "1", mine: true };
+      const community: Community = { ...draft, id: draft.id ?? crypto.randomUUID(), members: "1", mine: true };
       writeList(storageKey, [community, ...readList<Community>(storageKey)]);
       return community;
     },
