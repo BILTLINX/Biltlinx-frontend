@@ -14,15 +14,21 @@ import { PostStoryModal, VIDEO_ONLY_ACCEPT } from "@/components/shared/PostStory
 import { MyStoryViewer } from "@/components/shared/StoriesRow";
 import { TopNav } from "@/components/shared/TopNav";
 import { Tooltip } from "@/components/shared/Tooltip";
+import { useAnimatedSheet } from "@/hooks/useAnimatedSheet";
 import { useDiscoverReels } from "@/hooks/useDiscoverReels";
 import { useMyStories } from "@/hooks/useMyStories";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+import { cn } from "@/lib/utils";
 
 export default function DiscoverPage() {
   const { reels, loading, isError, refetch, hasNextPage, fetchNextPage, isFetchingNextPage, query, setQuery, activeTab, setActiveTab, addReel } =
     useDiscoverReels();
   const [activeIndex, setActiveIndex] = useState(0);
   const [commentsReelId, setCommentsReelId] = useState<string | null>(null);
+  // The side panel stays mounted while it slides out, still showing the reel it was open on.
+  const panel = useAnimatedSheet(commentsReelId !== null, 200);
+  const [panelReelId, setPanelReelId] = useState(commentsReelId);
+  if (commentsReelId !== null && commentsReelId !== panelReelId) setPanelReelId(commentsReelId);
   const [composerOpen, setComposerOpen] = useState(false);
   const [autoScroll, setAutoScroll] = useState(false);
   const prefersReducedMotion = usePrefersReducedMotion();
@@ -72,14 +78,14 @@ export default function DiscoverPage() {
               disabled={activeIndex === reels.length - 1}
               onClick={() => scrollToIndex(activeIndex + 1)}
             />
-            {commentsReelId && (
+            {panel.mounted && panelReelId && (
               // `mr-[-62px]` (negative) pulls the panel rightward to the nav
               // buttons' own right edge (54px button + 8px left padding),
               // covering them, while leaving this column's 8px right padding
               // as a gap before the story rail instead of running flush
               // into it.
-              <div className="absolute right-full top-0 z-20 mr-[-62px] pt-[12px]">
-                <DiscoverCommentPanel reelId={commentsReelId} onClose={() => setCommentsReelId(null)} />
+              <div className={cn("absolute right-full top-0 z-20 mr-[-62px] pt-[12px]", !prefersReducedMotion && (panel.closing ? "animate-comment-panel-out" : "animate-comment-panel-in"))}>
+                <DiscoverCommentPanel reelId={panelReelId} onClose={() => setCommentsReelId(null)} />
               </div>
             )}
           </div>
